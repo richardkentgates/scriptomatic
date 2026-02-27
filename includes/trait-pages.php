@@ -482,8 +482,8 @@ trait Scriptomatic_Pages {
     public function add_action_links( $links ) {
         $settings_link = sprintf(
             '<a href="%s">%s</a>',
-            admin_url( 'admin.php?page=scriptomatic' ),
-            __( 'Head Scripts', 'scriptomatic' )
+            admin_url( 'admin.php?page=scriptomatic-settings' ),
+            __( 'Preferences', 'scriptomatic' )
         );
         array_unshift( $links, $settings_link );
         return $links;

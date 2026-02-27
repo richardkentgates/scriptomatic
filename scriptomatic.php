@@ -7,7 +7,7 @@
  * Requires at least: 5.3
  * Requires PHP: 7.2
  * Author: Richard Kent Gates
- * Author URI: https://github.com/richardkentgates
+ * Author URI: https://richardkentgates.com
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: scriptomatic
