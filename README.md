@@ -284,19 +284,7 @@ eval(someUntrustedString); // Never use eval!
 
 - **[Changelog](CHANGELOG.md)**: Version history and changes
 - **[Security Policy](SECURITY.md)**: Security guidelines and reporting
-- **[Contributing](CONTRIBUTING.md)**: How to contribute to the project
-- **[Code of Conduct](CODE_OF_CONDUCT.md)**: Community guidelines
 - **[License](LICENSE)**: GPL v2 license details
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on:
-
-- Reporting bugs
-- Suggesting features
-- Submitting pull requests
-- Development setup
-- Coding standards
 
 ## 📜 License
 
@@ -322,6 +310,7 @@ See [LICENSE](LICENSE) file for full license text.
 
 **Richard Kent Gates**
 
+- Website: [richardkentgates.com](https://richardkentgates.com)
 - GitHub: [@richardkentgates](https://github.com/richardkentgates)
 
 ## 🙏 Support
@@ -331,8 +320,7 @@ If you find this plugin helpful, please:
 - ⭐ Star this repository
 - 🐛 Report bugs via [GitHub Issues](https://github.com/richardkentgates/scriptomatic/issues)
 - 💡 Suggest features or improvements
-- 📖 Contribute to documentation
-- 🔄 Share with others who might benefit
+-  Share with others who might benefit
 
 ## 🔗 Links
 
