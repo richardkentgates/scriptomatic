@@ -229,7 +229,7 @@ trait Scriptomatic_Pages {
             <?php
             printf(
                 /* translators: %d: maximum number of retained log entries */
-                esc_html__( 'A record of all script saves and rollbacks on this site. The most recent %d entries are retained.', 'scriptomatic' ),
+                esc_html__( 'A record of all script saves, rollbacks, and external URL changes on this site. The most recent %d entries are retained.', 'scriptomatic' ),
                 $this->get_max_log_entries()
             );
             ?>
@@ -249,18 +249,19 @@ trait Scriptomatic_Pages {
                     <th><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'Action', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'Location', 'scriptomatic' ); ?></th>
-                    <th style="width:100px;"><?php esc_html_e( 'Characters', 'scriptomatic' ); ?></th>
+                    <th><?php esc_html_e( 'Detail', 'scriptomatic' ); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ( $log as $entry ) :
                     if ( ! is_array( $entry ) ) { continue; }
-                    $ts       = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']          : 0;
-                    $ulogin   = isset( $entry['user_login'] ) ? (string) $entry['user_login']      : '';
-                    $uid      = isset( $entry['user_id'] )    ? (int) $entry['user_id']            : 0;
-                    $action   = isset( $entry['action'] )    ? ucfirst( (string) $entry['action'] )   : '—';
+                    $ts       = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : 0;
+                    $ulogin   = isset( $entry['user_login'] ) ? (string) $entry['user_login']  : '';
+                    $uid      = isset( $entry['user_id'] )    ? (int) $entry['user_id']        : 0;
+                    $action   = isset( $entry['action'] )    ? ucwords( str_replace( '_', ' ', (string) $entry['action'] ) ) : '—';
                     $location = isset( $entry['location'] )  ? ucfirst( (string) $entry['location'] ) : '—';
-                    $chars    = isset( $entry['chars'] )     ? (int) $entry['chars']              : 0;
+                    $detail   = isset( $entry['detail'] )    ? (string) $entry['detail']       : '';
+                    $chars    = isset( $entry['chars'] )     ? (int) $entry['chars']           : 0;
                 ?>
                 <tr>
                     <td><?php echo esc_html( $ts ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) : '—' ); ?></td>
@@ -272,7 +273,13 @@ trait Scriptomatic_Pages {
                     </td>
                     <td><?php echo esc_html( $action ); ?></td>
                     <td><?php echo esc_html( $location ); ?></td>
-                    <td><?php echo esc_html( number_format( $chars ) ); ?></td>
+                    <td><?php
+                        if ( '' !== $detail ) {
+                            echo '<span title="' . esc_attr( $detail ) . '">' . esc_html( strlen( $detail ) > 60 ? substr( $detail, 0, 57 ) . '…' : $detail ) . '</span>';
+                        } else {
+                            echo esc_html( number_format( $chars ) ) . ' ' . esc_html__( 'chars', 'scriptomatic' );
+                        }
+                    ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

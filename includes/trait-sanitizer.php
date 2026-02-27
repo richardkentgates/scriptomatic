@@ -294,13 +294,20 @@ trait Scriptomatic_Sanitizer {
      * (plain strings are automatically migrated). Validates each URL and sanitises
      * each entry's conditions object via {@see sanitize_conditions_array()}.
      *
+     * Diffs the incoming URL list against the stored list and writes an audit
+     * log entry for every URL that was added or removed.
+     *
      * @since  1.2.0 (rewritten 1.6.0)
+     * @since  1.7.1 Audit-logs URL additions and removals.
      * @access private
      * @param  mixed  $input    Raw value (expected JSON string).
      * @param  string $location `'head'` or `'footer'`.
      * @return string JSON-encoded array of `{url, conditions}` objects.
      */
     private function sanitize_linked_for( $input, $location ) {
+        // Guard against the Settings API double-call (same as sanitize_script_for).
+        static $logged_this_request = array();
+
         $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
 
         if ( empty( $input ) ) {
@@ -343,6 +350,43 @@ trait Scriptomatic_Sanitizer {
                 'url'        => $url,
                 'conditions' => $this->sanitize_conditions_array( $raw_cond ),
             );
+        }
+
+        // Diff old vs new URL lists and audit-log each addition and removal.
+        // Skipped on the second invocation within the same request.
+        if ( ! isset( $logged_this_request[ $location ] ) ) {
+            $logged_this_request[ $location ] = true;
+
+            $old_raw     = get_option( $option_key, '[]' );
+            $old_decoded = json_decode( $old_raw, true );
+            $old_urls    = array();
+            if ( is_array( $old_decoded ) ) {
+                foreach ( $old_decoded as $e ) {
+                    // Handle both legacy plain strings and the current {url, conditions} format.
+                    $u = is_string( $e ) ? trim( $e ) : ( isset( $e['url'] ) ? (string) $e['url'] : '' );
+                    if ( '' !== $u ) {
+                        $old_urls[] = $u;
+                    }
+                }
+            }
+
+            $new_urls = array_column( $clean, 'url' );
+
+            foreach ( array_diff( $new_urls, $old_urls ) as $url ) {
+                $this->write_audit_log_entry( array(
+                    'action'   => 'url_added',
+                    'location' => $location,
+                    'detail'   => $url,
+                ) );
+            }
+
+            foreach ( array_diff( $old_urls, $new_urls ) as $url ) {
+                $this->write_audit_log_entry( array(
+                    'action'   => 'url_removed',
+                    'location' => $location,
+                    'detail'   => $url,
+                ) );
+            }
         }
 
         return wp_json_encode( $clean );

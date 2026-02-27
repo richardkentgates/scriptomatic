@@ -246,7 +246,8 @@ trait Scriptomatic_Settings {
      * @since  1.5.0
      * @access private
      * @param  array $data Associative array with keys: action (string),
-     *                     location (string), chars (int).
+     *                     location (string), chars (int, for save/rollback),
+     *                     detail (string, optional — URL for url_added/url_removed).
      * @return void
      */
     private function write_audit_log_entry( array $data ) {
