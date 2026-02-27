@@ -18,27 +18,6 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 }
 
 /**
- * All option keys written by the plugin.
- */
-$scriptomatic_options = array(
-    // Head scripts
-    'scriptomatic_script_content',
-    'scriptomatic_script_history',
-    'scriptomatic_linked_scripts',
-    // Footer scripts (v1.2+)
-    'scriptomatic_footer_script',
-    'scriptomatic_footer_history',
-    'scriptomatic_footer_linked',
-    // Load conditions (v1.3+)
-    'scriptomatic_head_conditions',
-    'scriptomatic_footer_conditions',
-    // General settings
-    'scriptomatic_plugin_settings',
-    // Audit log
-    'scriptomatic_audit_log',
-);
-
-/**
  * Remove all Scriptomatic data from the database.
  *
  * Honours the "keep_data_on_uninstall" setting: when the administrator has
@@ -48,7 +27,23 @@ $scriptomatic_options = array(
  * @return void
  */
 function scriptomatic_uninstall_cleanup() {
-    global $scriptomatic_options;
+    $options = array(
+        // Head scripts
+        'scriptomatic_script_content',
+        'scriptomatic_script_history',
+        'scriptomatic_linked_scripts',
+        // Footer scripts (v1.2+)
+        'scriptomatic_footer_script',
+        'scriptomatic_footer_history',
+        'scriptomatic_footer_linked',
+        // Load conditions (v1.3+)
+        'scriptomatic_head_conditions',
+        'scriptomatic_footer_conditions',
+        // General settings
+        'scriptomatic_plugin_settings',
+        // Audit log
+        'scriptomatic_audit_log',
+    );
 
     // Read the plugin settings BEFORE deciding whether to delete anything.
     $plugin_settings        = get_option('scriptomatic_plugin_settings', array());
@@ -61,7 +56,7 @@ function scriptomatic_uninstall_cleanup() {
     }
 
     // Single-site: delete from the current site.
-    foreach ($scriptomatic_options as $option_key) {
+    foreach ($options as $option_key) {
         delete_option($option_key);
     }
 
@@ -71,16 +66,16 @@ function scriptomatic_uninstall_cleanup() {
 
         $blog_ids = $wpdb->get_col("SELECT blog_id FROM {$wpdb->blogs}");
 
-        foreach ($blog_ids as $blog_id) {
+        foreach ((array) $blog_ids as $blog_id) {
             switch_to_blog($blog_id);
-            foreach ($scriptomatic_options as $option_key) {
+            foreach ($options as $option_key) {
                 delete_option($option_key);
             }
             restore_current_blog();
         }
 
         // Network-wide options (if any were ever stored at the network level).
-        foreach ($scriptomatic_options as $option_key) {
+        foreach ($options as $option_key) {
             delete_site_option($option_key);
         }
     }
