@@ -41,12 +41,9 @@ trait Scriptomatic_Settings {
         ) );
 
         add_settings_section( 'sm_head_code',  __( 'Inline Script', 'scriptomatic' ),       array( $this, 'render_head_code_section' ),  'scriptomatic_head_page' );
-        add_settings_section( 'sm_head_links', __( 'External Script URLs', 'scriptomatic' ), array( $this, 'render_head_links_section' ), 'scriptomatic_head_page' );
 
         add_settings_field( SCRIPTOMATIC_HEAD_SCRIPT, __( 'Script Content', 'scriptomatic' ),
             array( $this, 'render_head_script_field' ), 'scriptomatic_head_page', 'sm_head_code' );
-        add_settings_field( SCRIPTOMATIC_HEAD_LINKED, __( 'Script URLs', 'scriptomatic' ),
-            array( $this, 'render_head_linked_field' ), 'scriptomatic_head_page', 'sm_head_links' );
 
         // ---- HEAD CONDITIONS ----
         register_setting( 'scriptomatic_head_group', SCRIPTOMATIC_HEAD_CONDITIONS, array(
@@ -57,6 +54,11 @@ trait Scriptomatic_Settings {
         add_settings_section( 'sm_head_conditions', __( 'Load Conditions', 'scriptomatic' ), array( $this, 'render_head_conditions_section' ), 'scriptomatic_head_page' );
         add_settings_field( SCRIPTOMATIC_HEAD_CONDITIONS, __( 'When to inject', 'scriptomatic' ),
             array( $this, 'render_head_conditions_field' ), 'scriptomatic_head_page', 'sm_head_conditions' );
+
+        add_settings_section( 'sm_head_links', __( 'External Script URLs', 'scriptomatic' ), array( $this, 'render_head_links_section' ), 'scriptomatic_head_page' );
+
+        add_settings_field( SCRIPTOMATIC_HEAD_LINKED, __( 'Script URLs', 'scriptomatic' ),
+            array( $this, 'render_head_linked_field' ), 'scriptomatic_head_page', 'sm_head_links' );
 
         // ---- FOOTER SCRIPTS GROUP ----
         register_setting( 'scriptomatic_footer_group', SCRIPTOMATIC_FOOTER_SCRIPT, array(
@@ -71,12 +73,9 @@ trait Scriptomatic_Settings {
         ) );
 
         add_settings_section( 'sm_footer_code',  __( 'Inline Script', 'scriptomatic' ),       array( $this, 'render_footer_code_section' ),  'scriptomatic_footer_page' );
-        add_settings_section( 'sm_footer_links', __( 'External Script URLs', 'scriptomatic' ), array( $this, 'render_footer_links_section' ), 'scriptomatic_footer_page' );
 
         add_settings_field( SCRIPTOMATIC_FOOTER_SCRIPT, __( 'Script Content', 'scriptomatic' ),
             array( $this, 'render_footer_script_field' ), 'scriptomatic_footer_page', 'sm_footer_code' );
-        add_settings_field( SCRIPTOMATIC_FOOTER_LINKED, __( 'Script URLs', 'scriptomatic' ),
-            array( $this, 'render_footer_linked_field' ), 'scriptomatic_footer_page', 'sm_footer_links' );
 
         // ---- FOOTER CONDITIONS ----
         register_setting( 'scriptomatic_footer_group', SCRIPTOMATIC_FOOTER_CONDITIONS, array(
@@ -87,6 +86,11 @@ trait Scriptomatic_Settings {
         add_settings_section( 'sm_footer_conditions', __( 'Load Conditions', 'scriptomatic' ), array( $this, 'render_footer_conditions_section' ), 'scriptomatic_footer_page' );
         add_settings_field( SCRIPTOMATIC_FOOTER_CONDITIONS, __( 'When to inject', 'scriptomatic' ),
             array( $this, 'render_footer_conditions_field' ), 'scriptomatic_footer_page', 'sm_footer_conditions' );
+
+        add_settings_section( 'sm_footer_links', __( 'External Script URLs', 'scriptomatic' ), array( $this, 'render_footer_links_section' ), 'scriptomatic_footer_page' );
+
+        add_settings_field( SCRIPTOMATIC_FOOTER_LINKED, __( 'Script URLs', 'scriptomatic' ),
+            array( $this, 'render_footer_linked_field' ), 'scriptomatic_footer_page', 'sm_footer_links' );
 
         // ---- GENERAL SETTINGS GROUP ----
         register_setting( 'scriptomatic_general_group', SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array(
