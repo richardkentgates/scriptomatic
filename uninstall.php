@@ -21,9 +21,15 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
  * All option keys written by the plugin.
  */
 $scriptomatic_options = array(
+    // Head scripts (v1.0+ / legacy keys kept for backward compat)
     'scriptomatic_script_content',
     'scriptomatic_script_history',
     'scriptomatic_linked_scripts',
+    // Footer scripts (v1.2+)
+    'scriptomatic_footer_script',
+    'scriptomatic_footer_history',
+    'scriptomatic_footer_linked',
+    // General settings
     'scriptomatic_plugin_settings',
 );
 
