@@ -52,7 +52,10 @@ public function enqueue_admin_scripts( $hook ) {
     if ( in_array( $hook, $footer_hooks, true ) ) {
         $location = 'footer';
     } elseif ( in_array( $hook, $general_hooks, true ) ) {
-        }
+        $location = 'general';
+    } else {
+        $location = 'head';
+    }
 
         // Enqueue the real CSS file.
         wp_enqueue_style(
