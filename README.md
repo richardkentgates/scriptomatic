@@ -18,7 +18,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 - **🌐 Multisite Compatible**: Works seamlessly with WordPress multisite
 - **♿ Accessibility**: ARIA labels and semantic HTML for screen readers
 - **🎨 WordPress Standards**: Follows WordPress coding standards and best practices
-- **🧹 Clean Uninstall**: Removes all data when plugin is deleted
+- **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion, controlled via General Settings; fully multisite-aware
 
 ## 📋 Requirements
 
@@ -149,7 +149,8 @@ Scriptomatic is built with security as a top priority:
 - Scripts only injected on front-end (not in admin)
 
 ### Data Protection
-- Clean uninstall removes all plugin data
+- Uninstall behaviour is controlled by the **Keep data on uninstall** setting in General Settings; data is removed by default unless the setting is enabled
+- On multisite, uninstall iterates every sub-site and removes per-site option data, then cleans network-level options
 - Multisite-aware data handling
 - No external dependencies or API calls
 - No raw SQL from user input (options API only)
