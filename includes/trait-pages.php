@@ -83,13 +83,14 @@ trait Scriptomatic_Pages {
             <p class="description">
                 <?php
                 printf(
-                    /* translators: %d: number of stored revisions */
+                    /* translators: 1: 'Head' or 'Footer', 2: revision count */
                     esc_html( _n(
-                        'Showing %d saved revision. Click Restore to roll back to a previous version.',
-                        'Showing %d saved revisions. Click Restore to roll back to a previous version.',
+                        'Showing %2$d saved revision of the %1$s inline script. Click Restore to roll back to a previous version.',
+                        'Showing %2$d saved revisions of the %1$s inline script. Click Restore to roll back to a previous version.',
                         count( $history ),
                         'scriptomatic'
                     ) ),
+                    esc_html( ucfirst( $location ) ),
                     count( $history )
                 );
                 ?>
@@ -149,7 +150,7 @@ trait Scriptomatic_Pages {
         </form>
         <?php
         $this->render_history_panel( 'head' );
-        $this->render_audit_log_table( 'scriptomatic' );
+        $this->render_audit_log_table( 'scriptomatic', 'head' );
         echo '</div>'; // .wrap
     }
 
@@ -172,7 +173,7 @@ trait Scriptomatic_Pages {
         </form>
         <?php
         $this->render_history_panel( 'footer' );
-        $this->render_audit_log_table( 'scriptomatic-footer' );
+        $this->render_audit_log_table( 'scriptomatic-footer', 'footer' );
         echo '</div>'; // .wrap
     }
 
@@ -204,15 +205,25 @@ trait Scriptomatic_Pages {
     /**
      * Output the audit log table (or an empty-state message).
      *
+     * Filters entries to those matching $location so each scripts page only
+     * shows its own saves, rollbacks, and URL changes.
+     *
      * @since  1.5.0
      * @since  1.7.0 Accepts a page-slug string instead of a network boolean.
+     * @since  1.7.1 Accepts $location to filter and hide the Location column.
      * @access private
      * @param  string $page_slug The admin page slug used to build the clear-log URL.
+     * @param  string $location  `'head'` or `'footer'` — filters log entries.
      * @return void
      */
-    private function render_audit_log_table( $page_slug ) {
+    private function render_audit_log_table( $page_slug, $location = '' ) {
         $base_url  = admin_url( 'admin.php?page=' . $page_slug );
-        $log       = $this->get_audit_log();
+        $all_log   = $this->get_audit_log();
+        $log       = '' !== $location
+            ? array_values( array_filter( $all_log, function( $e ) use ( $location ) {
+                return isset( $e['location'] ) && $e['location'] === $location;
+              } ) )
+            : $all_log;
         $clear_url = wp_nonce_url(
             add_query_arg( 'action', 'clear', $base_url ),
             SCRIPTOMATIC_CLEAR_LOG_NONCE,
@@ -248,20 +259,18 @@ trait Scriptomatic_Pages {
                     <th><?php esc_html_e( 'Date / Time', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'Action', 'scriptomatic' ); ?></th>
-                    <th><?php esc_html_e( 'Location', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'Detail', 'scriptomatic' ); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ( $log as $entry ) :
                     if ( ! is_array( $entry ) ) { continue; }
-                    $ts       = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : 0;
-                    $ulogin   = isset( $entry['user_login'] ) ? (string) $entry['user_login']  : '';
-                    $uid      = isset( $entry['user_id'] )    ? (int) $entry['user_id']        : 0;
-                    $action   = isset( $entry['action'] )    ? ucwords( str_replace( '_', ' ', (string) $entry['action'] ) ) : '—';
-                    $location = isset( $entry['location'] )  ? ucfirst( (string) $entry['location'] ) : '—';
-                    $detail   = isset( $entry['detail'] )    ? (string) $entry['detail']       : '';
-                    $chars    = isset( $entry['chars'] )     ? (int) $entry['chars']           : 0;
+                    $ts     = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']    : 0;
+                    $ulogin = isset( $entry['user_login'] ) ? (string) $entry['user_login'] : '';
+                    $uid    = isset( $entry['user_id'] )    ? (int) $entry['user_id']       : 0;
+                    $action = isset( $entry['action'] )     ? ucwords( str_replace( '_', ' ', (string) $entry['action'] ) ) : '—';
+                    $detail = isset( $entry['detail'] )     ? (string) $entry['detail']     : '';
+                    $chars  = isset( $entry['chars'] )      ? (int) $entry['chars']         : 0;
                 ?>
                 <tr>
                     <td><?php echo esc_html( $ts ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) : '—' ); ?></td>
@@ -272,7 +281,6 @@ trait Scriptomatic_Pages {
                         <?php endif; ?>
                     </td>
                     <td><?php echo esc_html( $action ); ?></td>
-                    <td><?php echo esc_html( $location ); ?></td>
                     <td><?php
                         if ( '' !== $detail ) {
                             echo '<span title="' . esc_attr( $detail ) . '">' . esc_html( strlen( $detail ) > 60 ? substr( $detail, 0, 57 ) . '…' : $detail ) . '</span>';
