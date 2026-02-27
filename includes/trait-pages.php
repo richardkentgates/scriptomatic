@@ -639,6 +639,8 @@ trait Scriptomatic_Pages {
                 '<p>' . __( 'Scriptomatic safely injects custom JavaScript into the <strong>head</strong> (before &lt;/head&gt;) and the <strong>footer</strong> (before &lt;/body&gt;) of your WordPress site. Use the <strong>Load Conditions</strong> setting on each page to control exactly which pages, post types, or user states receive the script.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'Use the <strong>Head Scripts</strong> page for analytics tags, pixel codes, and scripts that must load early. Use the <strong>Footer Scripts</strong> page for scripts that should run after page content has loaded.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and a <strong>Revision History</strong> panel so you can restore any previous version in one click.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( 'The <strong>JS Files</strong> page lets you create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file has its own Head/Footer selector and Load Conditions, and persists across plugin updates.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( 'The inline-script editor and JS Files editor both use <strong>CodeMirror</strong> — a full JavaScript code editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea when syntax highlighting is disabled in your WordPress profile.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, revision history, conditional loading, and audit logging.', 'scriptomatic' ) . '</p>',
         ) );
 
@@ -649,13 +651,14 @@ trait Scriptomatic_Pages {
                 '<h3>' . __( 'How to Use', 'scriptomatic' ) . '</h3>' .
                 '<ol>' .
                 '<li><strong>' . __( 'Choose a location:', 'scriptomatic' ) . '</strong> ' . __( 'Use <em>Head Scripts</em> for early-loading code (analytics, pixels) or <em>Footer Scripts</em> for deferred code.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Add Your Code:', 'scriptomatic' ) . '</strong> ' . __( 'Paste your JavaScript code into the textarea. Do not include &lt;script&gt; tags — they are added automatically.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Add Your Code:', 'scriptomatic' ) . '</strong> ' . __( 'Write or paste your JavaScript into the <strong>CodeMirror editor</strong>. Do not include &lt;script&gt; tags — they are added automatically. Use Ctrl-Space for WordPress/jQuery autocomplete hints.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Add external URLs (optional):', 'scriptomatic' ) . '</strong> ' . __( 'Enter remote script URLs in the External Script URLs section. They load before the inline block.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Set Load Conditions (optional):', 'scriptomatic' ) . '</strong> ' . __( 'Use the Load Conditions drop-down to restrict injection to specific pages, post types, URL patterns, or user login state. Defaults to all pages.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Save Changes:', 'scriptomatic' ) . '</strong> ' . __( 'Click the Save button at the bottom of the page.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Verify:', 'scriptomatic' ) . '</strong> ' . __( 'View your page source to confirm the script is injected in the correct location.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Test:', 'scriptomatic' ) . '</strong> ' . __( 'Thoroughly test your site to ensure the script functions correctly.', 'scriptomatic' ) . '</li>' .
                 '</ol>' .
+                '<p><strong>' . __( 'Managed JS Files:', 'scriptomatic' ) . '</strong> ' . __( 'Use <em>Scriptomatic &rarr; JS Files</em> to create and manage standalone <code>.js</code> files. Each file has its own label, filename, Head/Footer selector, Load Conditions, and CodeMirror editor. Files are stored in <code>wp-content/uploads/scriptomatic/</code> and survive plugin updates.', 'scriptomatic' ) . '</p>' .
                 '<p><strong>' . __( 'Example:', 'scriptomatic' ) . '</strong></p>' .
                 '<pre>console.log("Hello from Scriptomatic!");\n' .
                 'var myCustomVar = "Hello World";</pre>',
