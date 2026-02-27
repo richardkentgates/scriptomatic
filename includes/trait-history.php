@@ -108,7 +108,20 @@ trait Scriptomatic_History {
         $entry   = $history[ $index ];
         $content = $entry['content'];
 
-        update_option( $option_key, $content );
+        // Write directly using $wpdb to bypass the registered sanitize_callback.
+        // update_option() runs our sanitize_head/footer_script callback which
+        // performs nonce + capability checks that have no $‌_POST data in this
+        // AJAX context and would silently return the old (empty) value.
+        // The content is already validated — it came from our own stored history.
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->options,
+            array( 'option_value' => $content ),
+            array( 'option_name'  => $option_key ),
+            array( '%s' ),
+            array( '%s' )
+        );
+        wp_cache_delete( $option_key, 'options' );
         $this->push_history( $content, $location );
         $this->write_audit_log_entry( array(
             'action'   => 'rollback',
