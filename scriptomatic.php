@@ -137,6 +137,7 @@ class Scriptomatic {
      * @since 1.0.0
      */
     private function init_hooks() {
+        add_action('init',                  array($this, 'load_textdomain'));
         add_action('admin_menu',            array($this, 'add_admin_menus'));
         add_action('admin_init',            array($this, 'register_settings'));
         add_action('wp_head',               array($this, 'inject_head_scripts'), 999);
@@ -147,14 +148,31 @@ class Scriptomatic {
         // AJAX handlers — wp_ajax_ prefix ensures only logged-in users can trigger them.
         add_action('wp_ajax_scriptomatic_rollback', array($this, 'ajax_rollback'));
 
-        // Multisite: network-admin menu + custom save handler for network admin pages.
-        // options.php does not exist in the network admin context, so we handle saves manually.
+        // Multisite: network-admin menu + custom save handler + settings registration.
+        // options.php does not exist in the network-admin context, so saves are handled manually.
         if (is_multisite()) {
-            add_action('network_admin_menu',                                  array($this, 'add_network_admin_menus'));
-            add_action('network_admin_edit_scriptomatic_network_save',        array($this, 'handle_network_settings_save'));
-            add_filter('plugin_action_links_' . plugin_basename(SCRIPTOMATIC_PLUGIN_FILE), array($this, 'add_action_links'));
+            add_action('network_admin_menu',                                           array($this, 'add_network_admin_menus'));
+            add_action('network_admin_init',                                           array($this, 'register_settings'));
+            add_action('network_admin_edit_scriptomatic_network_save',                 array($this, 'handle_network_settings_save'));
             add_filter('network_admin_plugin_action_links_' . plugin_basename(SCRIPTOMATIC_PLUGIN_FILE), array($this, 'add_network_action_links'));
         }
+    }
+
+    /**
+     * Load the plugin text domain for i18n.
+     *
+     * Called on the `init` action so WordPress has already set the locale.
+     * The .mo files are expected under `languages/` inside the plugin folder.
+     *
+     * @since  1.2.0
+     * @return void
+     */
+    public function load_textdomain() {
+        load_plugin_textdomain(
+            'scriptomatic',
+            false,
+            dirname(plugin_basename(SCRIPTOMATIC_PLUGIN_FILE)) . '/languages/'
+        );
     }
 
     // =========================================================================
@@ -350,13 +368,14 @@ class Scriptomatic {
             'default'           => '[]',
         ));
 
-        add_settings_section('sm_head_code',  __('Inline Script', 'scriptomatic'),         array($this, 'render_head_code_section'),   'scriptomatic_head_group');
-        add_settings_section('sm_head_links', __('External Script URLs', 'scriptomatic'),   array($this, 'render_head_links_section'),  'scriptomatic_head_group');
+        // Page slug constants — must match the string passed to do_settings_sections().
+        add_settings_section('sm_head_code',  __('Inline Script', 'scriptomatic'),         array($this, 'render_head_code_section'),   'scriptomatic_head_page');
+        add_settings_section('sm_head_links', __('External Script URLs', 'scriptomatic'),   array($this, 'render_head_links_section'),  'scriptomatic_head_page');
 
         add_settings_field(SCRIPTOMATIC_HEAD_SCRIPT, __('Script Content', 'scriptomatic'),
-            array($this, 'render_head_script_field'), 'scriptomatic_head_group', 'sm_head_code');
+            array($this, 'render_head_script_field'), 'scriptomatic_head_page', 'sm_head_code');
         add_settings_field(SCRIPTOMATIC_HEAD_LINKED, __('Script URLs', 'scriptomatic'),
-            array($this, 'render_head_linked_field'), 'scriptomatic_head_group', 'sm_head_links');
+            array($this, 'render_head_linked_field'), 'scriptomatic_head_page', 'sm_head_links');
 
         // ---- FOOTER SCRIPTS GROUP ----
         register_setting('scriptomatic_footer_group', SCRIPTOMATIC_FOOTER_SCRIPT, array(
@@ -370,13 +389,13 @@ class Scriptomatic {
             'default'           => '[]',
         ));
 
-        add_settings_section('sm_footer_code',  __('Inline Script', 'scriptomatic'),       array($this, 'render_footer_code_section'),   'scriptomatic_footer_group');
-        add_settings_section('sm_footer_links', __('External Script URLs', 'scriptomatic'), array($this, 'render_footer_links_section'),  'scriptomatic_footer_group');
+        add_settings_section('sm_footer_code',  __('Inline Script', 'scriptomatic'),       array($this, 'render_footer_code_section'),   'scriptomatic_footer_page');
+        add_settings_section('sm_footer_links', __('External Script URLs', 'scriptomatic'), array($this, 'render_footer_links_section'),  'scriptomatic_footer_page');
 
         add_settings_field(SCRIPTOMATIC_FOOTER_SCRIPT, __('Script Content', 'scriptomatic'),
-            array($this, 'render_footer_script_field'), 'scriptomatic_footer_group', 'sm_footer_code');
+            array($this, 'render_footer_script_field'), 'scriptomatic_footer_page', 'sm_footer_code');
         add_settings_field(SCRIPTOMATIC_FOOTER_LINKED, __('Script URLs', 'scriptomatic'),
-            array($this, 'render_footer_linked_field'), 'scriptomatic_footer_group', 'sm_footer_links');
+            array($this, 'render_footer_linked_field'), 'scriptomatic_footer_page', 'sm_footer_links');
 
         // ---- GENERAL SETTINGS GROUP ----
         register_setting('scriptomatic_general_group', SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array(
@@ -388,12 +407,12 @@ class Scriptomatic {
             ),
         ));
 
-        add_settings_section('sm_advanced', __('Advanced Settings', 'scriptomatic'), array($this, 'render_advanced_section'), 'scriptomatic_general_group');
+        add_settings_section('sm_advanced', __('Advanced Settings', 'scriptomatic'), array($this, 'render_advanced_section'), 'scriptomatic_general_page');
 
         add_settings_field('scriptomatic_max_history', __('History Limit', 'scriptomatic'),
-            array($this, 'render_max_history_field'), 'scriptomatic_general_group', 'sm_advanced');
+            array($this, 'render_max_history_field'), 'scriptomatic_general_page', 'sm_advanced');
         add_settings_field('scriptomatic_keep_data', __('Data on Uninstall', 'scriptomatic'),
-            array($this, 'render_keep_data_field'), 'scriptomatic_general_group', 'sm_advanced');
+            array($this, 'render_keep_data_field'), 'scriptomatic_general_page', 'sm_advanced');
     }
 
     /**
@@ -563,7 +582,7 @@ class Scriptomatic {
      * Determine whether the current user has exceeded the configured save rate
      * for the given location.
      *
-     * @since  1.2.0(was 1.0.0 without $location param)
+     * @since  1.2.0 (was 1.0.0, single-location)
      * @access private
      * @param  string $location `'head'` or `'footer'`.
      * @return bool
@@ -811,11 +830,14 @@ class Scriptomatic {
         // keep_data_on_uninstall: boolean.
         $clean['keep_data_on_uninstall'] = !empty($input['keep_data_on_uninstall']);
 
-        // If the limit was reduced, immediately trim the history stack.
+        // If the limit was reduced, immediately trim both history stacks.
         if ($clean['max_history'] < $this->get_max_history()) {
-            $history = $this->get_history();
-            if (count($history) > $clean['max_history']) {
-                update_option(SCRIPTOMATIC_HISTORY_OPTION, array_slice($history, 0, $clean['max_history']));
+            foreach (array('head', 'footer') as $loc) {
+                $history    = $this->get_history($loc);
+                $option_key = ('footer' === $loc) ? SCRIPTOMATIC_FOOTER_HISTORY : SCRIPTOMATIC_HEAD_HISTORY;
+                if (count($history) > $clean['max_history']) {
+                    update_option($option_key, array_slice($history, 0, $clean['max_history']));
+                }
             }
         }
 
@@ -890,16 +912,6 @@ class Scriptomatic {
 
         return 'Unknown';
     }
-
-    /**
-     * Output the descriptive text for the main settings section.
-     *
-     * Callback registered via {@see add_settings_section()}. The output is
-     * rendered directly above the settings field inside `do_settings_sections()`.
-     *
-     * @since  1.0.0
-     * @return void
-     */
 
     // =========================================================================
     // RENDER METHODS — HEAD SCRIPTS
@@ -1218,10 +1230,6 @@ class Scriptomatic {
     }
 
     // =========================================================================
-    // SETTINGS PAGE
-    // =========================================================================
-
-    // =========================================================================
     // PAGE RENDERERS — PER-SITE ADMIN
     // =========================================================================
 
@@ -1249,8 +1257,8 @@ class Scriptomatic {
         </h1>
         <p class="description" style="font-size:14px;margin-bottom:20px;">
             <?php esc_html_e('Version', 'scriptomatic'); ?>: <?php echo esc_html(SCRIPTOMATIC_VERSION); ?> |
-            <?php esc_html_e('Author', 'scriptomatic'); ?>: <a href="https://github.com/richardkentgates" target="_blank">Richard Kent Gates</a> |
-            <a href="https://github.com/richardkentgates/scriptomatic" target="_blank"><?php esc_html_e('Documentation', 'scriptomatic'); ?></a>
+            <?php esc_html_e('Author', 'scriptomatic'); ?>: <a href="https://github.com/richardkentgates" target="_blank" rel="noopener noreferrer">Richard Kent Gates</a> |
+            <a href="https://github.com/richardkentgates/scriptomatic" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Documentation', 'scriptomatic'); ?></a>
         </p>
         <?php if ($error_slug) { settings_errors($error_slug); } ?>
         <?php
@@ -1591,8 +1599,9 @@ class Scriptomatic {
             'id' => 'scriptomatic_overview',
             'title' => __('Overview', 'scriptomatic'),
             'content' => '<h3>' . __('Scriptomatic Overview', 'scriptomatic') . '</h3>' .
-                '<p>' . __('Scriptomatic allows you to safely inject custom JavaScript code into the head section of your WordPress site. The code is executed on every page, right before the closing </head> tag.', 'scriptomatic') . '</p>' .
-                '<p>' . __('This plugin is designed with security and performance in mind, providing input validation, sanitization, and audit logging.', 'scriptomatic') . '</p>',
+                '<p>' . __('Scriptomatic safely injects custom JavaScript into both the <strong>head</strong> (before &lt;/head&gt;) and the <strong>footer</strong> (before &lt;/body&gt;) of every page on your WordPress site.', 'scriptomatic') . '</p>' .
+                '<p>' . __('Use the <strong>Head Scripts</strong> page for analytics tags, pixel codes, and scripts that must load early. Use the <strong>Footer Scripts</strong> page for scripts that should run after page content has loaded.', 'scriptomatic') . '</p>' .
+                '<p>' . __('This plugin is designed with security and performance in mind, providing input validation, sanitisation, revision history, and audit logging.', 'scriptomatic') . '</p>',
         ));
 
         // Usage tab
@@ -1601,9 +1610,11 @@ class Scriptomatic {
             'title' => __('Usage', 'scriptomatic'),
             'content' => '<h3>' . __('How to Use', 'scriptomatic') . '</h3>' .
                 '<ol>' .
-                '<li><strong>' . __('Add Your Code:', 'scriptomatic') . '</strong> ' . __('Paste your JavaScript code into the textarea. Do not include <script> tags - they will be added automatically.', 'scriptomatic') . '</li>' .
-                '<li><strong>' . __('Save Changes:', 'scriptomatic') . '</strong> ' . __('Click the "Save Script" button to store your code.', 'scriptomatic') . '</li>' .
-                '<li><strong>' . __('Verify:', 'scriptomatic') . '</strong> ' . __('Check your website\'s source code to confirm the script is injected in the <head> section.', 'scriptomatic') . '</li>' .
+                '<li><strong>' . __('Choose a location:', 'scriptomatic') . '</strong> ' . __('Use <em>Head Scripts</em> for early-loading code (analytics, pixels) or <em>Footer Scripts</em> for deferred code.', 'scriptomatic') . '</li>' .
+                '<li><strong>' . __('Add Your Code:', 'scriptomatic') . '</strong> ' . __('Paste your JavaScript code into the textarea. Do not include &lt;script&gt; tags — they are added automatically.', 'scriptomatic') . '</li>' .
+                '<li><strong>' . __('Add external URLs (optional):', 'scriptomatic') . '</strong> ' . __('Enter remote script URLs in the External Script URLs section. They load before the inline block.', 'scriptomatic') . '</li>' .
+                '<li><strong>' . __('Save Changes:', 'scriptomatic') . '</strong> ' . __('Click the Save button at the bottom of the page.', 'scriptomatic') . '</li>' .
+                '<li><strong>' . __('Verify:', 'scriptomatic') . '</strong> ' . __('View your page source to confirm the script is injected in the correct location.', 'scriptomatic') . '</li>' .
                 '<li><strong>' . __('Test:', 'scriptomatic') . '</strong> ' . __('Thoroughly test your site to ensure the script functions correctly.', 'scriptomatic') . '</li>' .
                 '</ol>' .
                 '<p><strong>' . __('Example:', 'scriptomatic') . '</strong></p>' .
@@ -1649,10 +1660,10 @@ class Scriptomatic {
             'content' => '<h3>' . __('Troubleshooting', 'scriptomatic') . '</h3>' .
                 '<h4>' . __('Script not appearing:', 'scriptomatic') . '</h4>' .
                 '<ul>' .
-                '<li>' . __('Check that you clicked "Save Script" after entering your code.', 'scriptomatic') . '</li>' .
+                '<li>' . __('Check that you clicked the Save button after entering your code.', 'scriptomatic') . '</li>' .
                 '<li>' . __('Clear your site cache and browser cache.', 'scriptomatic') . '</li>' .
-                '<li>' . __('View page source to verify the script tag is present.', 'scriptomatic') . '</li>' .
-                '<li>' . __('Check if another plugin or theme is preventing wp_head from running.', 'scriptomatic') . '</li>' .
+                '<li>' . __('View page source to verify the script tag is present in the expected location (head or footer).', 'scriptomatic') . '</li>' .
+                '<li>' . __('Check if another plugin or theme is preventing wp_head() or wp_footer() from running.', 'scriptomatic') . '</li>' .
                 '</ul>' .
                 '<h4>' . __('Script causing errors:', 'scriptomatic') . '</h4>' .
                 '<ul>' .
@@ -1672,10 +1683,10 @@ class Scriptomatic {
         // Sidebar
         $screen->set_help_sidebar(
             '<p><strong>' . __('For more information:', 'scriptomatic') . '</strong></p>' .
-            '<p><a href="https://github.com/richardkentgates/scriptomatic" target="_blank">' . __('Plugin Documentation', 'scriptomatic') . '</a></p>' .
-            '<p><a href="https://github.com/richardkentgates/scriptomatic/issues" target="_blank">' . __('Report Issues', 'scriptomatic') . '</a></p>' .
-            '<p><a href="https://github.com/richardkentgates" target="_blank">' . __('Developer Profile', 'scriptomatic') . '</a></p>' .
-            '<p><a href="https://developer.wordpress.org/reference/hooks/wp_head/" target="_blank">' . __('WordPress wp_head Documentation', 'scriptomatic') . '</a></p>'
+            '<p><a href="https://github.com/richardkentgates/scriptomatic" target="_blank" rel="noopener noreferrer">' . __('Plugin Documentation', 'scriptomatic') . '</a></p>' .
+            '<p><a href="https://github.com/richardkentgates/scriptomatic/issues" target="_blank" rel="noopener noreferrer">' . __('Report Issues', 'scriptomatic') . '</a></p>' .
+            '<p><a href="https://github.com/richardkentgates" target="_blank" rel="noopener noreferrer">' . __('Developer Profile', 'scriptomatic') . '</a></p>' .
+            '<p><a href="https://developer.wordpress.org/reference/hooks/wp_head/" target="_blank" rel="noopener noreferrer">' . __('WordPress wp_head Documentation', 'scriptomatic') . '</a></p>'
         );
     }
 
@@ -2052,6 +2063,10 @@ jQuery(document).ready(function ($) {
 
         if ($has_inline) {
             echo '<script type="text/javascript">' . "\n";
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- content is
+            // intentionally unescaped: it must execute as valid JavaScript.  All security
+            // validation (type, length, control chars, PHP tags, dangerous HTML) is enforced
+            // at write-time inside sanitize_script_for().
             echo $script_content . "\n";
             echo '</script>' . "\n";
         }
