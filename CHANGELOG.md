@@ -13,7 +13,7 @@ Nothing pending.
 
 ---
 
-## [1.5.0] – 2026-03-04
+## [1.5.0] – 2026-02-26
 
 ### Added
 - **Audit Log admin page (per-site and network).** Script saves and rollbacks are now recorded in a persistent, WordPress-native log stored via `wp_options` / `wp_site_option` rather than the PHP error log. The log is accessible from the new **Audit Log** submenu in both the per-site and network admin menus. Each entry captures the timestamp, acting user, action (`save` or `rollback`), script location (`head` or `footer`), and character count of the content involved. The log is capped at 200 entries (oldest entries are discarded once the cap is exceeded). A **Clear Audit Log** button — guarded by a nonce and a capability check — lets admins wipe the log at any time.

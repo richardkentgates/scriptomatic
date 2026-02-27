@@ -14,12 +14,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Registers all Scriptomatic admin menus (per-site and network).
+ * Registers all Scriptomatic admin menus and sub-pages (per-site and network).
+ *
+ * Per-site:  Head Scripts, Footer Scripts, General Settings, Audit Log.
+ * Network:   Head Scripts, Footer Scripts, General Settings, Audit Log.
  */
 trait Scriptomatic_Menus {
 
     /**
-     * Register the top-level Scriptomatic menu and its three sub-pages for
+     * Register the top-level Scriptomatic menu and its four sub-pages for
      * the regular (per-site) admin area.
      *
      * Menu position 82 places the entry just after Settings (80),

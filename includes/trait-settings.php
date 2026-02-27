@@ -187,7 +187,13 @@ trait Scriptomatic_Settings {
     /**
      * Write a security-audit log entry when a script changes.
      *
+     * In v1.2.0–v1.4.x this wrote to the PHP error log.  Since v1.5.0 it
+     * delegates to {@see write_audit_log_entry()} which persists the entry
+     * to the WordPress options table, visible via Scriptomatic → Audit Log.
+     *
      * @since  1.2.0
+     * @since  1.5.0 Writes to the persistent in-admin audit log instead of
+     *               the PHP error log.
      * @access private
      * @param  string $new_content Sanitised content about to be saved.
      * @param  string $option_key  WordPress option key being updated.

@@ -12,11 +12,11 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 - **🔒 Security First**: Comprehensive input validation, sanitization, secondary nonce system, rate limiting, and audit logging
 - **👤 Capability Checks**: Only administrators with `manage_options` can modify scripts
 - **📝 Rich Admin Interface**: Clean, intuitive settings pages with live character counter (colour-coded at 75 % and 90 % of the 100 KB limit)
-- **📚 Contextual Help**: Built-in help tabs with detailed documentation on all three admin pages
+- **📚 Contextual Help**: Built-in help tabs with detailed documentation on the Head Scripts, Footer Scripts, and General Settings admin pages
 - **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages (8 condition types)
 - **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
-- **🔍 Audit Logging**: All saves and rollbacks logged to the PHP error log with username, user ID, and timestamp
+- **🔍 Audit Logging**: All saves and rollbacks recorded in the persistent in-admin **Audit Log** page (Scriptomatic → Audit Log); entries capture timestamp, user, action, location, and character count; capped at 200 entries with a one-click clear action
 - **⚡ Performance Optimized**: Minimal overhead; front-end injection only on pages matching load conditions
 - **🌐 Multisite Compatible**: Parallel Network Admin pages for Super Admins; per-site settings fall back to network-level option
 - **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
@@ -176,8 +176,10 @@ Scriptomatic is built with security as a top priority:
 - Saves submitted within the cooldown window are rejected with an admin notice
 
 ### Audit Logging
-- All script changes **and AJAX rollbacks** logged to the WordPress error log
-- Logs include: username, user ID, and timestamp (no IP addresses collected)
+- All script changes **and AJAX rollbacks** are recorded in the persistent in-admin **Audit Log** (Scriptomatic → Audit Log)
+- Each entry captures: timestamp, username, user ID, action (`save` or `rollback`), script location (`head` or `footer`), and character count
+- No IP addresses collected (intentional privacy decision)
+- Log is capped at 200 entries; a **Clear Audit Log** button (nonce and capability gated) lets admins wipe it at any time
 - Helps track changes and detect unauthorised modification
 
 ### Output Security

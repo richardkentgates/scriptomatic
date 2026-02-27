@@ -2,8 +2,10 @@
 /**
  * Trait: Admin page renderers for Scriptomatic.
  *
- * Covers all per-site and network-admin page rendering, the network save
- * handler, contextual help tabs, and plugins-page action links.
+ * Covers all per-site and network-admin page rendering (Head Scripts, Footer
+ * Scripts, General Settings, and Audit Log), the network save handler,
+ * contextual help tabs, the Clear Audit Log action handler, and plugins-page
+ * action links.
  *
  * @package  Scriptomatic
  * @since    1.2.0
@@ -14,7 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Admin page builders, network save handler, help tabs, and action links.
+ * Admin page builders, Audit Log renderers, network save handler, help tabs,
+ * and action links.
  */
 trait Scriptomatic_Pages {
 
@@ -447,16 +450,26 @@ trait Scriptomatic_Pages {
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ( $log as $entry ) : ?>
+                <?php foreach ( $log as $entry ) :
+                    if ( ! is_array( $entry ) ) { continue; }
+                    $ts       = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']          : 0;
+                    $ulogin   = isset( $entry['user_login'] ) ? (string) $entry['user_login']      : '';
+                    $uid      = isset( $entry['user_id'] )    ? (int) $entry['user_id']            : 0;
+                    $action   = isset( $entry['action'] )    ? ucfirst( (string) $entry['action'] )   : '—';
+                    $location = isset( $entry['location'] )  ? ucfirst( (string) $entry['location'] ) : '—';
+                    $chars    = isset( $entry['chars'] )     ? (int) $entry['chars']              : 0;
+                ?>
                 <tr>
-                    <td><?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $entry['timestamp'] ) ); ?></td>
+                    <td><?php echo esc_html( $ts ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) : '—' ); ?></td>
                     <td>
-                        <?php echo esc_html( $entry['user_login'] ); ?>
-                        <span class="description">(ID:&nbsp;<?php echo esc_html( $entry['user_id'] ); ?>)</span>
+                        <?php echo esc_html( $ulogin ); ?>
+                        <?php if ( $uid ) : ?>
+                        <span class="description">(ID:&nbsp;<?php echo esc_html( $uid ); ?>)</span>
+                        <?php endif; ?>
                     </td>
-                    <td><?php echo esc_html( ucfirst( $entry['action'] ) ); ?></td>
-                    <td><?php echo esc_html( ucfirst( $entry['location'] ) ); ?></td>
-                    <td><?php echo esc_html( number_format( $entry['chars'] ) ); ?></td>
+                    <td><?php echo esc_html( $action ); ?></td>
+                    <td><?php echo esc_html( $location ); ?></td>
+                    <td><?php echo esc_html( number_format( $chars ) ); ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -561,7 +574,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( '&lt;script&gt; tags are automatically stripped to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Audit Logging:', 'scriptomatic' ) . '</strong> ' . __( 'All saves and AJAX rollbacks are written to the WordPress error log with username, user ID, and timestamp.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Audit Logging:', 'scriptomatic' ) . '</strong> ' . __( 'All saves and AJAX rollbacks are recorded in the persistent in-admin <strong>Audit Log</strong> (Scriptomatic &rarr; Audit Log). Each entry captures the timestamp, acting user, action (save or rollback), script location, and character count. The log is capped at 200 entries. Admins can clear the log at any time using the Clear Audit Log button.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Output Escaping:', 'scriptomatic' ) . '</strong> ' . __( 'Content is properly escaped when displayed in the admin interface.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __( 'Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic' ) . '</p>',
