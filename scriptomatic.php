@@ -3,7 +3,7 @@
  * Plugin Name: Scriptomatic
  * Plugin URI: https://github.com/richardkentgates/scriptomatic
  * Description: Securely inject custom JavaScript into the head and footer of your WordPress site. Features per-location inline scripts, external URL management, full revision history with rollback, multisite support, and fine-grained admin controls.
- * Version: 1.3.0
+ * Version: 1.3.1
  * Requires at least: 5.3
  * Requires PHP: 7.2
  * Author: Richard Kent Gates
@@ -38,7 +38,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SCRIPTOMATIC_VERSION', '1.3.0');
+define('SCRIPTOMATIC_VERSION', '1.3.1');
 define('SCRIPTOMATIC_PLUGIN_FILE', __FILE__);
 define('SCRIPTOMATIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SCRIPTOMATIC_PLUGIN_URL', plugin_dir_url(__FILE__));
@@ -666,18 +666,6 @@ class Scriptomatic {
     }
 
     /**
-     * Public alias of sanitize_script_for('head') — kept for backward
-     * compatibility with any code that may call it directly.
-     *
-     * @since  1.0.0
-     * @param  mixed $input
-     * @return string
-     */
-    public function sanitize_script_content($input) {
-        return $this->sanitize_script_for($input, 'head');
-    }
-
-    /**
      * Determine whether the current user has exceeded the configured save rate
      * for the given location.
      *
@@ -976,6 +964,9 @@ class Scriptomatic {
 
         return wp_json_encode(array('type' => $type, 'values' => $clean_values));
     }
+
+    // =========================================================================
+    // PLUGIN SETTINGS
     // =========================================================================
 
     /**
@@ -1072,18 +1063,6 @@ class Scriptomatic {
         }
     }
 
-    /**
-     * Backward-compat alias for log_change().
-     *
-     * @since  1.0.0
-     * @access private
-     * @param  string $new_content
-     * @return void
-     */
-    private function log_script_change($new_content) {
-        $this->log_change($new_content, SCRIPTOMATIC_HEAD_SCRIPT, 'head');
-    }
-
     // =========================================================================
     // RENDER METHODS — HEAD SCRIPTS
     // =========================================================================
@@ -1096,7 +1075,7 @@ class Scriptomatic {
      */
     public function render_head_code_section() {
         echo '<p>';
-        esc_html_e('Add custom JavaScript that will be injected into every page <head>, right before the closing </head> tag.', 'scriptomatic');
+        esc_html_e('Add custom JavaScript to inject into the <head> of your site. Use Load Conditions below to control which pages receive this script.', 'scriptomatic');
         echo '</p>';
     }
 
@@ -1144,7 +1123,7 @@ class Scriptomatic {
      */
     public function render_footer_code_section() {
         echo '<p>';
-        esc_html_e('Add custom JavaScript that will be injected into every page before the closing </body> tag.', 'scriptomatic');
+        esc_html_e('Add custom JavaScript to inject before the closing </body> tag. Use Load Conditions below to control which pages receive this script.', 'scriptomatic');
         echo '</p>';
     }
 
@@ -1977,7 +1956,6 @@ class Scriptomatic {
             $raw_script  = isset($_POST[$script_key])  ? (string) wp_unslash($_POST[$script_key])  : '';
             $raw_linked  = isset($_POST[$linked_key])  ? (string) wp_unslash($_POST[$linked_key])  : '[]';
             $raw_cond    = isset($_POST[$cond_key])    ? (string) wp_unslash($_POST[$cond_key])    : '';
-            $raw_cond    = isset($_POST[$cond_key])    ? (string) wp_unslash($_POST[$cond_key])    : '';
 
             // Full content validation via validate_inline_script() — same checks as the
             // per-site save path (length, control chars, PHP tags, dangerous HTML).
@@ -2021,9 +1999,9 @@ class Scriptomatic {
             'id' => 'scriptomatic_overview',
             'title' => __('Overview', 'scriptomatic'),
             'content' => '<h3>' . __('Scriptomatic Overview', 'scriptomatic') . '</h3>' .
-                '<p>' . __('Scriptomatic safely injects custom JavaScript into both the <strong>head</strong> (before &lt;/head&gt;) and the <strong>footer</strong> (before &lt;/body&gt;) of every page on your WordPress site.', 'scriptomatic') . '</p>' .
+                '<p>' . __('Scriptomatic safely injects custom JavaScript into the <strong>head</strong> (before &lt;/head&gt;) and the <strong>footer</strong> (before &lt;/body&gt;) of your WordPress site. Use the <strong>Load Conditions</strong> setting on each page to control exactly which pages, post types, or user states receive the script.', 'scriptomatic') . '</p>' .
                 '<p>' . __('Use the <strong>Head Scripts</strong> page for analytics tags, pixel codes, and scripts that must load early. Use the <strong>Footer Scripts</strong> page for scripts that should run after page content has loaded.', 'scriptomatic') . '</p>' .
-                '<p>' . __('This plugin is designed with security and performance in mind, providing input validation, sanitisation, revision history, and audit logging.', 'scriptomatic') . '</p>',
+                '<p>' . __('This plugin is designed with security and performance in mind, providing input validation, sanitisation, revision history, conditional loading, and audit logging.', 'scriptomatic') . '</p>',
         ));
 
         // Usage tab
@@ -2035,6 +2013,7 @@ class Scriptomatic {
                 '<li><strong>' . __('Choose a location:', 'scriptomatic') . '</strong> ' . __('Use <em>Head Scripts</em> for early-loading code (analytics, pixels) or <em>Footer Scripts</em> for deferred code.', 'scriptomatic') . '</li>' .
                 '<li><strong>' . __('Add Your Code:', 'scriptomatic') . '</strong> ' . __('Paste your JavaScript code into the textarea. Do not include &lt;script&gt; tags — they are added automatically.', 'scriptomatic') . '</li>' .
                 '<li><strong>' . __('Add external URLs (optional):', 'scriptomatic') . '</strong> ' . __('Enter remote script URLs in the External Script URLs section. They load before the inline block.', 'scriptomatic') . '</li>' .
+                '<li><strong>' . __('Set Load Conditions (optional):', 'scriptomatic') . '</strong> ' . __('Use the Load Conditions drop-down to restrict injection to specific pages, post types, URL patterns, or user login state. Defaults to all pages.', 'scriptomatic') . '</li>' .
                 '<li><strong>' . __('Save Changes:', 'scriptomatic') . '</strong> ' . __('Click the Save button at the bottom of the page.', 'scriptomatic') . '</li>' .
                 '<li><strong>' . __('Verify:', 'scriptomatic') . '</strong> ' . __('View your page source to confirm the script is injected in the correct location.', 'scriptomatic') . '</li>' .
                 '<li><strong>' . __('Test:', 'scriptomatic') . '</strong> ' . __('Thoroughly test your site to ensure the script functions correctly.', 'scriptomatic') . '</li>' .
@@ -2085,6 +2064,7 @@ class Scriptomatic {
                 '<li>' . __('Check that you clicked the Save button after entering your code.', 'scriptomatic') . '</li>' .
                 '<li>' . __('Clear your site cache and browser cache.', 'scriptomatic') . '</li>' .
                 '<li>' . __('View page source to verify the script tag is present in the expected location (head or footer).', 'scriptomatic') . '</li>' .
+                '<li>' . __('Check the <strong>Load Conditions</strong> setting — if it is set to anything other than &ldquo;All pages&rdquo;, the script is intentionally suppressed on pages that do not match the condition.', 'scriptomatic') . '</li>' .
                 '<li>' . __('Check if another plugin or theme is preventing wp_head() or wp_footer() from running.', 'scriptomatic') . '</li>' .
                 '</ul>' .
                 '<h4>' . __('Script causing errors:', 'scriptomatic') . '</h4>' .
@@ -2175,8 +2155,12 @@ class Scriptomatic {
                 'duplicateUrl'    => __('This URL has already been added.', 'scriptomatic'),
                 'rollbackConfirm' => __('Restore this revision? The current script will be preserved in history.', 'scriptomatic'),
                 'rollbackSuccess' => __('Script restored successfully.', 'scriptomatic'),
-                'rollbackError'   => __('Restore failed. Please try again.', 'scriptomatic'),
-                'restoring'       => __('Restoring\u2026', 'scriptomatic'),
+                'rollbackError'    => __('Restore failed. Please try again.', 'scriptomatic'),
+                'restoring'        => __('Restoring\u2026', 'scriptomatic'),
+                'invalidId'        => __('Please enter a valid positive integer ID.', 'scriptomatic'),
+                'duplicateId'      => __('This ID has already been added.', 'scriptomatic'),
+                'emptyPattern'     => __('Please enter a URL path or pattern.', 'scriptomatic'),
+                'duplicatePattern' => __('This pattern has already been added.', 'scriptomatic'),
             ),
         ));
 
@@ -2429,7 +2413,7 @@ jQuery(document).ready(function ($) {
             alert(i18n.rollbackError);
             $btn.prop("disabled", false).text(orig);
         });
-    });  /* end document.ready */
+    });  /* end history restore handler */
 
     /* 4. Load Conditions */
     function initConditions($wrap) {
@@ -2491,12 +2475,12 @@ jQuery(document).ready(function ($) {
             var id = parseInt($idInput.val(), 10);
             $idError.hide().text("");
             if (!id || id < 1) {
-                $idError.text("Please enter a valid positive integer ID.").show();
+                $idError.text(i18n.invalidId || "Please enter a valid positive integer ID.").show();
                 $idInput.trigger("focus");
                 return;
             }
             if ($idList.find("[data-val=\"" + id + "\"]").length) {
-                $idError.text("This ID has already been added.").show();
+                $idError.text(i18n.duplicateId || "This ID has already been added.").show();
                 $idInput.trigger("focus");
                 return;
             }
@@ -2522,12 +2506,12 @@ jQuery(document).ready(function ($) {
             var pat = $.trim($urlInput.val());
             $urlError.hide().text("");
             if (!pat) {
-                $urlError.text("Please enter a URL path or pattern.").show();
+                $urlError.text(i18n.emptyPattern || "Please enter a URL path or pattern.").show();
                 $urlInput.trigger("focus");
                 return;
             }
             if ($urlList.find("[data-val=\"" + pat.replace(/\"/g, \'\\\"\') + "\"]").length) {
-                $urlError.text("This pattern has already been added.").show();
+                $urlError.text(i18n.duplicatePattern || "This pattern has already been added.").show();
                 $urlInput.trigger("focus");
                 return;
             }
@@ -2556,7 +2540,7 @@ jQuery(document).ready(function ($) {
         initConditions($(this));
     });
 
-});
+});  /* end document.ready */
 ';
     }
 

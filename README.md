@@ -1,18 +1,21 @@
 # Scriptomatic
 
-[![WordPress Plugin](https://img.shields.io/badge/WordPress-5.0%2B-blue)](https://wordpress.org/)
+[![WordPress Plugin](https://img.shields.io/badge/WordPress-5.3%2B-blue)](https://wordpress.org/)
 [![PHP Version](https://img.shields.io/badge/PHP-7.2%2B-purple)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-green)](LICENSE)
 [![Maintained](https://img.shields.io/badge/Maintained-Yes-brightgreen)]()
 
-A secure and production-ready WordPress plugin for injecting custom JavaScript code into the `<head>` and footer of your WordPress site, with external script URL management, revision history with rollback, and multisite support.
+A secure and production-ready WordPress plugin for injecting custom JavaScript code into the `<head>` and footer of your WordPress site, with conditional per-page loading, external script URL management, revision history with rollback, and multisite support.
 
 ## 🚀 Features
 
 - **🔒 Security First**: Comprehensive input validation, sanitization, and audit logging
 - **👤 Capability Checks**: Only administrators with `manage_options` can modify scripts
-- **📝 Rich Admin Interface**: Clean, intuitive settings page with character counter
+- **📝 Rich Admin Interface**: Clean, intuitive settings pages with character counter
 - **📚 Contextual Help**: Built-in help tabs with detailed documentation
+- **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages
+- **🔁 Revision History & Rollback**: Every save is stored as a revision; restore any previous version in one click
+- **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI
 - **🔍 Audit Logging**: All changes logged with user information (username and user ID)
 - **⚡ Performance Optimized**: Minimal overhead, script only loaded on front-end
 - **🌐 Multisite Compatible**: Works seamlessly with WordPress multisite
@@ -22,7 +25,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 
 ## 📋 Requirements
 
-- **WordPress**: 5.0 or higher
+- **WordPress**: 5.3 or higher
 - **PHP**: 7.2 or higher
 - **User Role**: Administrator (manage_options capability)
 
@@ -57,8 +60,9 @@ Then activate via WordPress admin.
 
 1. Navigate to **Scripts → Head Scripts** (or **Footer Scripts**) in your WordPress admin
 2. Enter your inline JavaScript in the textarea **or** add external script URLs via the URL manager
-3. Click **Save Changes**
-4. Your code will be automatically injected into the `<head>` or just before `</body>` depending on which page you used
+3. Optionally configure **Load Conditions** to restrict the script to specific pages, post types, URL patterns, or user login state
+4. Click **Save Head Scripts** (or **Save Footer Scripts**)
+5. Your code will be automatically injected into the `<head>` or just before `</body>` depending on which page you used
 
 ### Admin Pages
 
@@ -71,7 +75,7 @@ Then activate via WordPress admin.
 ### Important Notes
 
 - **Do NOT include** `<script>` tags — they are added automatically for inline code
-- The code executes on **every page** of your site
+- Scripts are injected on pages matching the configured **Load Conditions** (defaults to all pages)
 - External script URLs are loaded via `<script src="...">` tags; inline code is wrapped in `<script>` tags
 - Revision history is maintained per location (head and footer independently)
 - **Test thoroughly** before deploying to production
@@ -183,7 +187,7 @@ eval(someUntrustedString); // Never use eval!
 1. **Use Async Loading**: Load external scripts asynchronously when possible
 2. **Minimize Code**: Remove unnecessary whitespace and comments for production
 3. **Monitor Impact**: Use browser dev tools to check performance impact
-4. **Conditional Loading**: Consider if script is needed on every page
+4. **Conditional Loading**: Use the built-in **Load Conditions** feature to restrict scripts to only the pages that need them — head and footer each have independent conditions
 
 ### Security Tips
 
@@ -199,7 +203,7 @@ eval(someUntrustedString); // Never use eval!
 **Problem**: Code doesn't show in page source
 
 **Solutions**:
-- Verify you clicked "Save Script"
+- Verify you clicked **Save Head Scripts** or **Save Footer Scripts**
 - Clear WordPress and browser cache
 - Check if theme calls `wp_head()` properly
 - Disable other plugins to check for conflicts
