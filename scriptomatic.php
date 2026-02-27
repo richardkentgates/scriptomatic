@@ -3,7 +3,7 @@
  * Plugin Name: Scriptomatic
  * Plugin URI: https://github.com/richardkentgates/scriptomatic
  * Description: Securely inject custom JavaScript code into the head section of your WordPress site with advanced validation and safety features.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Requires at least: 5.0
  * Requires PHP: 7.2
  * Author: Richard Kent Gates
@@ -38,14 +38,19 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SCRIPTOMATIC_VERSION', '1.0.0');
+define('SCRIPTOMATIC_VERSION', '1.1.0');
 define('SCRIPTOMATIC_PLUGIN_FILE', __FILE__);
 define('SCRIPTOMATIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SCRIPTOMATIC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('SCRIPTOMATIC_OPTION_NAME', 'scriptomatic_script_content');
-define('SCRIPTOMATIC_MAX_SCRIPT_LENGTH', 100000);     // 100 KB hard limit on stored script size
-define('SCRIPTOMATIC_RATE_LIMIT_SECONDS', 10);        // Minimum seconds required between consecutive saves per user
-define('SCRIPTOMATIC_NONCE_ACTION', 'scriptomatic_save_script'); // Custom nonce action — separate from the WP settings-API nonce
+define('SCRIPTOMATIC_HISTORY_OPTION', 'scriptomatic_script_history');         // Stores array of past revisions
+define('SCRIPTOMATIC_LINKED_SCRIPTS_OPTION', 'scriptomatic_linked_scripts');  // Stores JSON array of external script URLs
+define('SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION', 'scriptomatic_plugin_settings'); // Stores plugin config (max history, uninstall behaviour)
+define('SCRIPTOMATIC_MAX_SCRIPT_LENGTH', 100000);        // 100 KB hard limit on stored inline script size
+define('SCRIPTOMATIC_RATE_LIMIT_SECONDS', 10);           // Minimum seconds required between consecutive saves per user
+define('SCRIPTOMATIC_DEFAULT_MAX_HISTORY', 25);          // Default number of revisions to retain
+define('SCRIPTOMATIC_NONCE_ACTION', 'scriptomatic_save_script');    // Nonce for the main settings form
+define('SCRIPTOMATIC_ROLLBACK_NONCE', 'scriptomatic_rollback');     // Nonce for AJAX history-rollback requests
 
 /**
  * Main plugin class.
@@ -113,6 +118,8 @@ class Scriptomatic {
         add_action('wp_head', array($this, 'inject_script'), 999);
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_filter('plugin_action_links_' . plugin_basename(SCRIPTOMATIC_PLUGIN_FILE), array($this, 'add_action_links'));
+        // AJAX handler — authenticated admins only (wp_ajax_ prefix).
+        add_action('wp_ajax_scriptomatic_rollback', array($this, 'ajax_rollback'));
     }
 
     /**
@@ -148,17 +155,46 @@ class Scriptomatic {
      * @return void
      */
     public function register_settings() {
+        // --- Inline script content ---
         register_setting(
             'scriptomatic_settings',
             SCRIPTOMATIC_OPTION_NAME,
             array(
-                'type' => 'string',
-                'description' => __('JavaScript code to inject into head section', 'scriptomatic'),
+                'type'              => 'string',
+                'description'       => __('JavaScript code to inject into head section', 'scriptomatic'),
                 'sanitize_callback' => array($this, 'sanitize_script_content'),
-                'default' => '',
+                'default'           => '',
             )
         );
 
+        // --- Linked (external) script URLs – stored as a JSON string ---
+        register_setting(
+            'scriptomatic_settings',
+            SCRIPTOMATIC_LINKED_SCRIPTS_OPTION,
+            array(
+                'type'              => 'string',
+                'description'       => __('JSON array of external script URLs to load in the page head.', 'scriptomatic'),
+                'sanitize_callback' => array($this, 'sanitize_linked_scripts'),
+                'default'           => '[]',
+            )
+        );
+
+        // --- Plugin-level configuration (max history, uninstall behaviour) ---
+        register_setting(
+            'scriptomatic_settings',
+            SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION,
+            array(
+                'type'              => 'array',
+                'description'       => __('Scriptomatic plugin configuration options.', 'scriptomatic'),
+                'sanitize_callback' => array($this, 'sanitize_plugin_settings'),
+                'default'           => array(
+                    'max_history'            => SCRIPTOMATIC_DEFAULT_MAX_HISTORY,
+                    'keep_data_on_uninstall' => false,
+                ),
+            )
+        );
+
+        // --- Sections ---
         add_settings_section(
             'scriptomatic_main_section',
             __('JavaScript Code Configuration', 'scriptomatic'),
@@ -166,12 +202,51 @@ class Scriptomatic {
             'scriptomatic_settings'
         );
 
+        add_settings_section(
+            'scriptomatic_linked_section',
+            __('External Script URLs', 'scriptomatic'),
+            array($this, 'render_linked_scripts_section'),
+            'scriptomatic_settings'
+        );
+
+        add_settings_section(
+            'scriptomatic_advanced_section',
+            __('Advanced Settings', 'scriptomatic'),
+            array($this, 'render_advanced_section'),
+            'scriptomatic_settings'
+        );
+
+        // --- Fields ---
         add_settings_field(
             'scriptomatic_script_content',
             __('Script Content', 'scriptomatic'),
             array($this, 'render_script_field'),
             'scriptomatic_settings',
             'scriptomatic_main_section'
+        );
+
+        add_settings_field(
+            SCRIPTOMATIC_LINKED_SCRIPTS_OPTION,
+            __('Script URLs', 'scriptomatic'),
+            array($this, 'render_linked_scripts_field'),
+            'scriptomatic_settings',
+            'scriptomatic_linked_section'
+        );
+
+        add_settings_field(
+            'scriptomatic_max_history',
+            __('History Limit', 'scriptomatic'),
+            array($this, 'render_max_history_field'),
+            'scriptomatic_settings',
+            'scriptomatic_advanced_section'
+        );
+
+        add_settings_field(
+            'scriptomatic_keep_data',
+            __('Data on Uninstall', 'scriptomatic'),
+            array($this, 'render_keep_data_field'),
+            'scriptomatic_settings',
+            'scriptomatic_advanced_section'
         );
     }
 
@@ -342,9 +417,10 @@ class Scriptomatic {
         // Trim whitespace
         $input = trim($input);
 
-        // Log the change for security audit
+        // Log the change for security audit and push a history snapshot.
         if (current_user_can('manage_options')) {
             $this->log_script_change($input);
+            $this->push_history($input);
         }
 
         // Record this successful save to enforce the rate limit on the next attempt.
@@ -387,6 +463,215 @@ class Scriptomatic {
         $transient_key = 'scriptomatic_save_' . $user_id;
 
         set_transient($transient_key, time(), SCRIPTOMATIC_RATE_LIMIT_SECONDS);
+    }
+
+    // =========================================================================
+    // HISTORY
+    // =========================================================================
+
+    /**
+     * Push a new revision snapshot onto the front of the history stack.
+     *
+     * Skips the push when the new content is identical to the most recent
+     * stored revision to avoid filling the stack with no-op saves.
+     * Trims the stack to the configured maximum after each push.
+     *
+     * @since  1.1.0
+     * @access private
+     * @param  string $content The sanitised script content that was just saved.
+     * @return void
+     */
+    private function push_history($content) {
+        $history = $this->get_history();
+        $max     = $this->get_max_history();
+        $user    = wp_get_current_user();
+
+        // Skip duplicate of the most-recent entry.
+        if (!empty($history) && isset($history[0]['content']) && $history[0]['content'] === $content) {
+            return;
+        }
+
+        array_unshift($history, array(
+            'content'    => $content,
+            'timestamp'  => time(),
+            'user_login' => $user->user_login,
+            'user_id'    => (int) $user->ID,
+            'ip'         => $this->get_client_ip(),
+            'length'     => strlen($content),
+        ));
+
+        if (count($history) > $max) {
+            $history = array_slice($history, 0, $max);
+        }
+
+        update_option(SCRIPTOMATIC_HISTORY_OPTION, $history);
+    }
+
+    /**
+     * Retrieve the stored revision history array.
+     *
+     * @since  1.1.0
+     * @access private
+     * @return array Indexed array of revision entries, newest first.
+     */
+    private function get_history() {
+        $history = get_option(SCRIPTOMATIC_HISTORY_OPTION, array());
+        return is_array($history) ? $history : array();
+    }
+
+    /**
+     * Return the configured maximum number of history entries to retain.
+     *
+     * @since  1.1.0
+     * @access private
+     * @return int
+     */
+    private function get_max_history() {
+        $settings = $this->get_plugin_settings();
+        return isset($settings['max_history']) ? (int) $settings['max_history'] : SCRIPTOMATIC_DEFAULT_MAX_HISTORY;
+    }
+
+    /**
+     * Handle the AJAX rollback request.
+     *
+     * Verifies capability and nonce, retrieves the requested history entry,
+     * writes it as the live option, and pushes it back onto the history stack
+     * so the rollback operation itself is auditable.
+     *
+     * @since  1.1.0
+     * @return void  Sends a JSON response and exits.
+     */
+    public function ajax_rollback() {
+        check_ajax_referer(SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'scriptomatic')));
+        }
+
+        $index   = isset($_POST['index']) ? absint($_POST['index']) : PHP_INT_MAX;
+        $history = $this->get_history();
+
+        if (!array_key_exists($index, $history)) {
+            wp_send_json_error(array('message' => __('History entry not found.', 'scriptomatic')));
+        }
+
+        $entry   = $history[$index];
+        $content = $entry['content'];
+
+        // Write directly; content was already sanitised when originally saved.
+        update_option(SCRIPTOMATIC_OPTION_NAME, $content);
+
+        // Record the rollback in history so it is auditable.
+        $this->push_history($content);
+
+        // Audit log.
+        $user = wp_get_current_user();
+        error_log(sprintf(
+            'Scriptomatic: Script rolled back to revision from %s by user %s (ID: %d) from IP: %s',
+            gmdate('Y-m-d H:i:s', $entry['timestamp']),
+            $user->user_login,
+            $user->ID,
+            $this->get_client_ip()
+        ));
+
+        wp_send_json_success(array(
+            'content' => $content,
+            'length'  => strlen($content),
+            'message' => __('Script restored successfully.', 'scriptomatic'),
+        ));
+    }
+
+    // =========================================================================
+    // LINKED SCRIPTS
+    // =========================================================================
+
+    /**
+     * Sanitise the JSON-encoded array of external script URLs submitted from
+     * the linked-scripts hidden field.
+     *
+     * Each URL is run through {@see esc_url_raw()} and verified to start with
+     * an http or https scheme.  Invalid entries are silently dropped.
+     *
+     * @since  1.1.0
+     * @param  mixed $input Raw value from the form field (expected: JSON string).
+     * @return string JSON-encoded array of sanitised URLs.
+     */
+    public function sanitize_linked_scripts($input) {
+        if (empty($input)) {
+            return '[]';
+        }
+
+        $decoded = json_decode(wp_unslash($input), true);
+
+        if (!is_array($decoded)) {
+            return get_option(SCRIPTOMATIC_LINKED_SCRIPTS_OPTION, '[]');
+        }
+
+        $clean = array();
+        foreach ($decoded as $url) {
+            $url = esc_url_raw(trim((string) $url));
+            if (!empty($url) && preg_match('/^https?:\/\//i', $url)) {
+                $clean[] = $url;
+            }
+        }
+
+        return wp_json_encode($clean);
+    }
+
+    // =========================================================================
+    // PLUGIN SETTINGS
+    // =========================================================================
+
+    /**
+     * Return the merged plugin settings, filling missing keys with defaults.
+     *
+     * @since  1.1.0
+     * @return array Associative array: 'max_history' (int), 'keep_data_on_uninstall' (bool).
+     */
+    public function get_plugin_settings() {
+        $defaults = array(
+            'max_history'            => SCRIPTOMATIC_DEFAULT_MAX_HISTORY,
+            'keep_data_on_uninstall' => false,
+        );
+        $saved = get_option(SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array());
+        return wp_parse_args(is_array($saved) ? $saved : array(), $defaults);
+    }
+
+    /**
+     * Sanitise and validate the plugin settings array submitted from the form.
+     *
+     * If `max_history` is being reduced, the stored history is immediately
+     * trimmed so it never exceeds the new limit.
+     *
+     * @since  1.1.0
+     * @param  mixed $input Raw array value from the settings form.
+     * @return array Sanitised settings array.
+     */
+    public function sanitize_plugin_settings($input) {
+        $current = $this->get_plugin_settings();
+
+        if (!is_array($input)) {
+            return $current;
+        }
+
+        $clean = array();
+
+        // max_history: integer clamped to 1–100.
+        $max                   = isset($input['max_history']) ? (int) $input['max_history'] : $current['max_history'];
+        $clean['max_history']  = max(1, min(100, $max));
+
+        // keep_data_on_uninstall: boolean.
+        $clean['keep_data_on_uninstall'] = !empty($input['keep_data_on_uninstall']);
+
+        // If the limit was reduced, immediately trim the history stack.
+        if ($clean['max_history'] < $this->get_max_history()) {
+            $history = $this->get_history();
+            if (count($history) > $clean['max_history']) {
+                update_option(SCRIPTOMATIC_HISTORY_OPTION, array_slice($history, 0, $clean['max_history']));
+            }
+        }
+
+        return $clean;
     }
 
     /**
@@ -530,6 +815,164 @@ class Scriptomatic {
         <?php
     }
 
+    // =========================================================================
+    // RENDER METHODS — LINKED SCRIPTS
+    // =========================================================================
+
+    /**
+     * Output the description for the External Script URLs settings section.
+     *
+     * @since  1.1.0
+     * @return void
+     */
+    public function render_linked_scripts_section() {
+        echo '<p>';
+        esc_html_e('Add URLs to external JavaScript files. Each URL will be output as a <script src="..."> tag in the page head, loaded before the inline script block.', 'scriptomatic');
+        echo '</p>';
+    }
+
+    /**
+     * Render the chicklet-based URL manager field.
+     *
+     * Outputs a hidden JSON input that holds the canonical URL list, a visual
+     * chicklet list (populated from that JSON), a URL text input, and an
+     * Add button.  Client-side JS keeps the hidden input and the chicklets in
+     * sync.  The form POST then carries the hidden input value through the
+     * normal Settings API flow into {@see sanitize_linked_scripts()}.
+     *
+     * @since  1.1.0
+     * @return void
+     */
+    public function render_linked_scripts_field() {
+        $raw  = get_option(SCRIPTOMATIC_LINKED_SCRIPTS_OPTION, '[]');
+        $urls = json_decode($raw, true);
+        if (!is_array($urls)) {
+            $urls = array();
+        }
+        ?>
+        <div id="scriptomatic-url-manager">
+            <div
+                id="scriptomatic-url-chicklets"
+                class="scriptomatic-chicklet-list"
+                aria-label="<?php esc_attr_e('Added script URLs', 'scriptomatic'); ?>"
+            >
+                <?php foreach ($urls as $url) : ?>
+                <span class="scriptomatic-chicklet" data-url="<?php echo esc_attr($url); ?>">
+                    <span class="chicklet-label" title="<?php echo esc_attr($url); ?>"><?php echo esc_html($url); ?></span>
+                    <button type="button" class="scriptomatic-remove-url" aria-label="<?php esc_attr_e('Remove URL', 'scriptomatic'); ?>">&times;</button>
+                </span>
+                <?php endforeach; ?>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:8px; align-items:center; max-width:600px;">
+                <input
+                    type="url"
+                    id="scriptomatic-new-url"
+                    class="regular-text"
+                    placeholder="https://cdn.example.com/script.js"
+                    aria-label="<?php esc_attr_e('External script URL', 'scriptomatic'); ?>"
+                    style="flex:1;"
+                >
+                <button type="button" id="scriptomatic-add-url" class="button button-secondary">
+                    <?php esc_html_e('Add URL', 'scriptomatic'); ?>
+                </button>
+            </div>
+
+            <p id="scriptomatic-url-error" class="scriptomatic-url-error" style="color:#dc3545; display:none; margin-top:4px;"></p>
+
+            <input
+                type="hidden"
+                id="scriptomatic-linked-scripts-input"
+                name="<?php echo esc_attr(SCRIPTOMATIC_LINKED_SCRIPTS_OPTION); ?>"
+                value="<?php echo esc_attr(wp_json_encode($urls)); ?>"
+            >
+            <p class="description" style="margin-top:8px; max-width:600px;">
+                <?php esc_html_e('Only HTTP and HTTPS URLs are accepted. Scripts are loaded in the order listed.', 'scriptomatic'); ?>
+            </p>
+        </div>
+        <?php
+    }
+
+    // =========================================================================
+    // RENDER METHODS — ADVANCED SETTINGS
+    // =========================================================================
+
+    /**
+     * Output the description for the Advanced Settings section.
+     *
+     * @since  1.1.0
+     * @return void
+     */
+    public function render_advanced_section() {
+        echo '<p>';
+        esc_html_e('Configure history retention and data lifecycle behaviour for this plugin.', 'scriptomatic');
+        echo '</p>';
+    }
+
+    /**
+     * Render the max-history number input field.
+     *
+     * @since  1.1.0
+     * @return void
+     */
+    public function render_max_history_field() {
+        $settings    = $this->get_plugin_settings();
+        $max_history = (int) $settings['max_history'];
+        ?>
+        <input
+            type="number"
+            id="scriptomatic_max_history"
+            name="<?php echo esc_attr(SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION); ?>[max_history]"
+            value="<?php echo esc_attr($max_history); ?>"
+            min="1"
+            max="100"
+            step="1"
+            class="small-text"
+            aria-describedby="max-history-description"
+        >
+        <p id="max-history-description" class="description">
+            <?php
+            printf(
+                /* translators: %d: default max history entries */
+                esc_html__('Maximum number of script revisions to retain (1\u2013100). Default: %d. Reducing this value will immediately trim the existing history.', 'scriptomatic'),
+                SCRIPTOMATIC_DEFAULT_MAX_HISTORY
+            );
+            ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Render the keep-data-on-uninstall checkbox field.
+     *
+     * @since  1.1.0
+     * @return void
+     */
+    public function render_keep_data_field() {
+        $settings = $this->get_plugin_settings();
+        $keep     = !empty($settings['keep_data_on_uninstall']);
+        ?>
+        <label for="scriptomatic_keep_data_on_uninstall">
+            <input
+                type="checkbox"
+                id="scriptomatic_keep_data_on_uninstall"
+                name="<?php echo esc_attr(SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION); ?>[keep_data_on_uninstall]"
+                value="1"
+                <?php checked($keep, true); ?>
+                aria-describedby="keep-data-description"
+            >
+            <?php esc_html_e('Preserve all plugin data when Scriptomatic is uninstalled.', 'scriptomatic'); ?>
+        </label>
+        <p id="keep-data-description" class="description">
+            <?php esc_html_e('When unchecked (default), all scripts, history, linked URLs, and settings are permanently deleted on uninstall.', 'scriptomatic'); ?>
+        </p>
+        <?php
+    }
+
+    // =========================================================================
+    // SETTINGS PAGE
+    // =========================================================================
+
     /**
      * Output the full HTML for the Scriptomatic settings page.
      *
@@ -540,7 +983,7 @@ class Scriptomatic {
      * - A secondary, plugin-specific nonce verified independently inside
      *   {@see Scriptomatic::sanitize_script_content()}.
      * - All registered settings sections and fields.
-     * - A submit button and a quick-start guide.
+     * - A submit button, a quick-start guide, and the revision history panel.
      *
      * @since  1.0.0
      * @return void
@@ -604,6 +1047,66 @@ class Scriptomatic {
                     <li><?php esc_html_e('Performance monitoring tools', 'scriptomatic'); ?></li>
                 </ul>
             </div>
+
+            <?php
+            // ---- Revision History Panel ----
+            $history = $this->get_history();
+            if (!empty($history)) :
+            ?>
+            <hr style="margin: 30px 0;">
+            <div class="scriptomatic-history-section">
+                <h2>
+                    <span class="dashicons dashicons-backup" style="font-size:24px; width:24px; height:24px; margin-right:4px; vertical-align:middle;"></span>
+                    <?php esc_html_e('Script History', 'scriptomatic'); ?>
+                </h2>
+                <p class="description">
+                    <?php
+                    printf(
+                        /* translators: %d: number of stored revisions */
+                        esc_html(_n(
+                            'Showing %d saved revision. Click Restore to roll back to a previous version.',
+                            'Showing %d saved revisions. Click Restore to roll back to a previous version.',
+                            count($history),
+                            'scriptomatic'
+                        )),
+                        count($history)
+                    );
+                    ?>
+                </p>
+                <table class="widefat scriptomatic-history-table" style="max-width:900px;">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;"><?php esc_html_e('#', 'scriptomatic'); ?></th>
+                            <th><?php esc_html_e('Saved', 'scriptomatic'); ?></th>
+                            <th><?php esc_html_e('By', 'scriptomatic'); ?></th>
+                            <th style="width:100px;"><?php esc_html_e('Characters', 'scriptomatic'); ?></th>
+                            <th style="width:110px;"><?php esc_html_e('Action', 'scriptomatic'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($history as $index => $entry) : ?>
+                        <tr>
+                            <td><?php echo esc_html($index + 1); ?></td>
+                            <td><?php echo esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $entry['timestamp'])); ?></td>
+                            <td><?php echo esc_html($entry['user_login']); ?></td>
+                            <td><?php echo esc_html(number_format($entry['length'])); ?></td>
+                            <td>
+                                <button
+                                    type="button"
+                                    class="button button-small scriptomatic-history-restore"
+                                    data-index="<?php echo esc_attr($index); ?>"
+                                    data-original-text="<?php esc_attr_e('Restore', 'scriptomatic'); ?>"
+                                >
+                                    <?php esc_html_e('Restore', 'scriptomatic'); ?>
+                                </button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+
         </div>
         <?php
     }
@@ -723,52 +1226,248 @@ class Scriptomatic {
     /**
      * Enqueue (or inline) scripts and styles for the plugin's admin page.
      *
-     * Hooked on {@see 'admin_enqueue_scripts'} and exits immediately when
-     * `$hook` does not match the Scriptomatic settings page, keeping the admin
-     * area free of unnecessary asset loading.
-     *
-     * Currently inlines a small jQuery snippet that:
-     * - Counts characters as the user types in the textarea.
-     * - Colours the counter yellow (>75% of limit) or red (>90%) as a live
-     *   visual warning before the hard server-side limit is reached.
+     * Registers an empty style handle to attach inline CSS (chicklet UI,
+     * history table), and localises data for the inline JavaScript that drives
+     * the character counter, URL chicklet manager, and AJAX rollback.
      *
      * @since  1.0.0
      * @param  string $hook The hook suffix for the current admin page.
      * @return void
      */
     public function enqueue_admin_scripts($hook) {
-        // Only load on our settings page
         if ('settings_page_scriptomatic' !== $hook) {
             return;
         }
 
-        // Inline script for character counter
-        wp_add_inline_script('jquery', "
-            jQuery(document).ready(function($) {
-                var textarea = $('#scriptomatic_script_content');
-                var counter = $('#current-char-count');
-                var maxLength = " . SCRIPTOMATIC_MAX_SCRIPT_LENGTH . ";
+        // Attach inline CSS via a registered (empty-src) style handle.
+        wp_register_style('scriptomatic-admin', false, array(), SCRIPTOMATIC_VERSION);
+        wp_enqueue_style('scriptomatic-admin');
+        wp_add_inline_style('scriptomatic-admin', $this->get_admin_css());
 
-                if (textarea.length && counter.length) {
-                    textarea.on('input', function() {
-                        var length = $(this).val().length;
-                        counter.text(length.toLocaleString());
+        // Pass PHP data to JS.
+        wp_localize_script('jquery', 'scriptomaticData', array(
+            'ajaxUrl'       => admin_url('admin-ajax.php'),
+            'rollbackNonce' => wp_create_nonce(SCRIPTOMATIC_ROLLBACK_NONCE),
+            'maxLength'     => SCRIPTOMATIC_MAX_SCRIPT_LENGTH,
+            'i18n'          => array(
+                'invalidUrl'      => __('Please enter a valid http:// or https:// URL.', 'scriptomatic'),
+                'duplicateUrl'    => __('This URL has already been added.', 'scriptomatic'),
+                'rollbackConfirm' => __('Restore this revision? The current script will be preserved in history.', 'scriptomatic'),
+                'rollbackSuccess' => __('Script restored successfully.', 'scriptomatic'),
+                'rollbackError'   => __('Restore failed. Please try again.', 'scriptomatic'),
+                'restoring'       => __('Restoring\u2026', 'scriptomatic'),
+            ),
+        ));
 
-                        // Visual feedback for approaching limit
-                        if (length > maxLength * 0.9) {
-                            counter.css('color', '#dc3545');
-                            counter.css('font-weight', 'bold');
-                        } else if (length > maxLength * 0.75) {
-                            counter.css('color', '#ffc107');
-                            counter.css('font-weight', 'bold');
-                        } else {
-                            counter.css('color', '');
-                            counter.css('font-weight', '');
-                        }
-                    });
+        wp_add_inline_script('jquery', $this->get_admin_js());
+    }
+
+    /**
+     * Return the inline CSS string for the Scriptomatic admin page.
+     *
+     * Styles the chicklet URL manager and history table.
+     *
+     * @since  1.1.0
+     * @access private
+     * @return string Raw CSS.
+     */
+    private function get_admin_css() {
+        return '
+/* Chicklet URL list */
+.scriptomatic-chicklet-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 40px;
+    padding: 8px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-width: 600px;
+    align-items: flex-start;
+    align-content: flex-start;
+}
+.scriptomatic-chicklet {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px 4px 12px;
+    background: #2271b1;
+    color: #fff;
+    border-radius: 20px;
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 380px;
+}
+.scriptomatic-chicklet .chicklet-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 320px;
+}
+.scriptomatic-remove-url {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+.scriptomatic-remove-url:hover { color: #fff; }
+
+/* History table */
+.scriptomatic-history-table th,
+.scriptomatic-history-table td {
+    padding: 8px 12px;
+    vertical-align: middle;
+}
+.scriptomatic-history-table th { font-weight: 600; }
+.scriptomatic-history-table tbody tr:hover { background: #f6f7f7; }
+';
+    }
+
+    /**
+     * Return the inline JavaScript string for the Scriptomatic admin page.
+     *
+     * Implements three independent features:
+     * 1. Live character counter with proximity colour coding.
+     * 2. Chicklet-based external URL manager (add / remove, hidden JSON field).
+     * 3. AJAX history-rollback with optimistic UI update.
+     *
+     * @since  1.1.0
+     * @access private
+     * @return string Raw JavaScript (no <script> wrapper).
+     */
+    private function get_admin_js() {
+        return '
+jQuery(document).ready(function ($) {
+    var data     = window.scriptomaticData || {};
+    var maxLen   = data.maxLength || ' . SCRIPTOMATIC_MAX_SCRIPT_LENGTH . ';
+    var i18n     = data.i18n     || {};
+
+    /* ------------------------------------------------------------------ */
+    /* 1. Character counter                                                 */
+    /* ------------------------------------------------------------------ */
+    var $textarea = $("#scriptomatic_script_content");
+    var $counter  = $("#current-char-count");
+
+    function updateCounter(len) {
+        $counter.text(len.toLocaleString());
+        if (len > maxLen * 0.9) {
+            $counter.css({ color: "#dc3545", fontWeight: "bold" });
+        } else if (len > maxLen * 0.75) {
+            $counter.css({ color: "#ffc107", fontWeight: "bold" });
+        } else {
+            $counter.css({ color: "", fontWeight: "" });
+        }
+    }
+
+    if ($textarea.length && $counter.length) {
+        $textarea.on("input", function () { updateCounter(this.value.length); });
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* 2. Chicklet URL manager                                              */
+    /* ------------------------------------------------------------------ */
+    var $chicklets   = $("#scriptomatic-url-chicklets");
+    var $urlInput    = $("#scriptomatic-new-url");
+    var $addBtn      = $("#scriptomatic-add-url");
+    var $hiddenInput = $("#scriptomatic-linked-scripts-input");
+    var $urlError    = $("#scriptomatic-url-error");
+
+    function getUrls() {
+        try { return JSON.parse($hiddenInput.val()) || []; } catch (e) { return []; }
+    }
+
+    function setUrls(urls) {
+        $hiddenInput.val(JSON.stringify(urls));
+    }
+
+    function makeChicklet(url) {
+        var $c = $("<span>").addClass("scriptomatic-chicklet").attr("data-url", url);
+        $("<span>").addClass("chicklet-label").attr("title", url).text(url).appendTo($c);
+        $("<button>").attr({ type: "button", "aria-label": "Remove URL" })
+            .addClass("scriptomatic-remove-url").html("&times;").appendTo($c);
+        return $c;
+    }
+
+    function addUrl() {
+        var url = $urlInput.val().trim();
+        $urlError.hide().text("");
+
+        if (!url.match(/^https?:\/\/.+/i)) {
+            $urlError.text(i18n.invalidUrl).show();
+            $urlInput.trigger("focus");
+            return;
+        }
+        var urls = getUrls();
+        if (urls.indexOf(url) !== -1) {
+            $urlError.text(i18n.duplicateUrl).show();
+            $urlInput.trigger("focus");
+            return;
+        }
+        urls.push(url);
+        setUrls(urls);
+        $chicklets.append(makeChicklet(url));
+        $urlInput.val("").trigger("focus");
+    }
+
+    $addBtn.on("click", addUrl);
+    $urlInput.on("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); addUrl(); }
+    });
+    $chicklets.on("click", ".scriptomatic-remove-url", function () {
+        var $chicklet = $(this).closest(".scriptomatic-chicklet");
+        var url       = $chicklet.data("url");
+        setUrls(getUrls().filter(function (u) { return u !== url; }));
+        $chicklet.remove();
+    });
+
+    /* ------------------------------------------------------------------ */
+    /* 3. AJAX history rollback                                             */
+    /* ------------------------------------------------------------------ */
+    $(document).on("click", ".scriptomatic-history-restore", function () {
+        if (!confirm(i18n.rollbackConfirm)) { return; }
+
+        var $btn  = $(this);
+        var index = $btn.data("index");
+        var orig  = $btn.data("original-text") || "Restore";
+
+        $btn.prop("disabled", true).text(i18n.restoring || "Restoring\u2026");
+
+        $.post(
+            data.ajaxUrl,
+            {
+                action : "scriptomatic_rollback",
+                nonce  : data.rollbackNonce,
+                index  : index
+            },
+            function (response) {
+                if (response.success) {
+                    $textarea.val(response.data.content).trigger("input");
+                    var $notice = $("<div>")
+                        .addClass("notice notice-success is-dismissible")
+                        .html("<p>" + i18n.rollbackSuccess + "</p>");
+                    $(".wp-header-end").after($notice);
+                    /* Reload page so the history table reflects the new entry */
+                    setTimeout(function () { location.reload(); }, 800);
+                } else {
+                    var msg = (response.data && response.data.message)
+                        ? response.data.message : "";
+                    alert(i18n.rollbackError + (msg ? " " + msg : ""));
+                    $btn.prop("disabled", false).text(orig);
                 }
-            });
-        ");
+            }
+        ).fail(function () {
+            alert(i18n.rollbackError);
+            $btn.prop("disabled", false).text(orig);
+        });
+    });
+});
+';
     }
 
     /**
@@ -796,42 +1495,54 @@ class Scriptomatic {
     }
 
     /**
-     * Output the stored JavaScript into the page `<head>` on the front-end.
+     * Output the stored scripts into the page `<head>` on the front-end.
      *
-     * Hooked on {@see 'wp_head'} with priority 999 so the script is injected
-     * as late as possible — just before the closing `</head>` tag — which
-     * keeps it out of the way of theme and plugin scripts that use earlier
-     * priorities.
+     * Handles two sources in a single output block:
+     * 1. **Linked URLs** — each emitted as `<script src="...">` tags, in
+     *    stored order, before the inline block.
+     * 2. **Inline content** — wrapped in a `<script>` block.
      *
-     * The method short-circuits on admin pages and when the stored script is
-     * empty to avoid any unnecessary output.  The content is intentionally
-     * NOT escaped on output because it is JavaScript code that must remain
-     * executable; all security enforcement is applied at write-time inside
-     * {@see Scriptomatic::sanitize_script_content()}.
+     * Both sources are checked; the hook returns early only when both are
+     * empty, avoiding unnecessary output overhead.
      *
      * @since  1.0.0
      * @return void
      */
     public function inject_script() {
-        // Only inject on front-end
         if (is_admin()) {
             return;
         }
 
         $script_content = get_option(SCRIPTOMATIC_OPTION_NAME, '');
+        $linked_raw     = get_option(SCRIPTOMATIC_LINKED_SCRIPTS_OPTION, '[]');
+        $linked_urls    = json_decode($linked_raw, true);
+        if (!is_array($linked_urls)) {
+            $linked_urls = array();
+        }
 
-        // Validate content exists and is not empty
-        if (empty(trim($script_content))) {
+        $has_inline = !empty(trim($script_content));
+        $has_linked = !empty($linked_urls);
+
+        if (!$has_inline && !$has_linked) {
             return;
         }
 
-        // Output the script with proper formatting
         echo "\n<!-- Scriptomatic v" . esc_attr(SCRIPTOMATIC_VERSION) . " -->\n";
-        echo '<script type="text/javascript">' . "\n";
-        // Don't escape the script content as it needs to execute as-is
-        // Security is handled during save via sanitize_script_content()
-        echo $script_content . "\n";
-        echo '</script>' . "\n";
+
+        // External script URLs — output first so they can be referenced inline.
+        foreach ($linked_urls as $url) {
+            echo '<script type="text/javascript" src="' . esc_url($url) . '"></script>' . "\n";
+        }
+
+        // Inline script block.
+        // The content is NOT escaped here because it must execute as-is.
+        // All security validation is applied at write-time in sanitize_script_content().
+        if ($has_inline) {
+            echo '<script type="text/javascript">' . "\n";
+            echo $script_content . "\n";
+            echo '</script>' . "\n";
+        }
+
         echo "<!-- /Scriptomatic -->\n";
     }
 }
