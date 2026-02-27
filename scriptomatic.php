@@ -3,8 +3,8 @@
  * Plugin Name: Scriptomatic
  * Plugin URI: https://github.com/richardkentgates/scriptomatic
  * Description: Securely inject custom JavaScript into the head and footer of your WordPress site. Features per-location inline scripts, external URL management, full revision history with rollback, multisite support, and fine-grained admin controls.
- * Version: 1.2.0
- * Requires at least: 5.0
+ * Version: 1.2.1
+ * Requires at least: 5.3
  * Requires PHP: 7.2
  * Author: Richard Kent Gates
  * Author URI: https://github.com/richardkentgates
@@ -38,7 +38,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SCRIPTOMATIC_VERSION', '1.2.0');
+define('SCRIPTOMATIC_VERSION', '1.2.1');
 define('SCRIPTOMATIC_PLUGIN_FILE', __FILE__);
 define('SCRIPTOMATIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SCRIPTOMATIC_PLUGIN_URL', plugin_dir_url(__FILE__));
@@ -218,6 +218,81 @@ class Scriptomatic {
             require_once ABSPATH . '/wp-admin/includes/plugin.php';
         }
         return is_plugin_active_for_network(plugin_basename(SCRIPTOMATIC_PLUGIN_FILE));
+    }
+
+    /**
+     * Read a plugin option for front-end injection, falling back to the
+     * network-level site option when the per-site option has never been set.
+     *
+     * On a network-activated install, scripts saved via the Network Admin are
+     * stored with `update_site_option()`.  Per-site overrides use the regular
+     * `update_option()` path.  This helper tries the per-site option first;
+     * when it has never been written (`get_option` returns `false`), it falls
+     * back to the network option so that network-admin-saved scripts appear on
+     * every site.
+     *
+     * @since  1.2.1
+     * @access private
+     * @param  string $key     Option name.
+     * @param  string $default Value returned when neither option is set.
+     * @return string
+     */
+    private function get_front_end_option($key, $default = '') {
+        $value = get_option($key, false);
+        if (false === $value && is_multisite()) {
+            return get_site_option($key, $default);
+        }
+        return (false !== $value) ? $value : $default;
+    }
+
+    /**
+     * Validate and sanitise raw script content without security-gate checks.
+     *
+     * Runs the same content checks as {@see sanitize_script_for()} — length
+     * cap, control characters, PHP-tag detection, dangerous HTML detection,
+     * and script-tag stripping — but omits the capability, nonce, and
+     * rate-limit gates.  Used by the network admin save handler, which
+     * performs its own capability and nonce verification before calling this.
+     *
+     * @since  1.2.1
+     * @access private
+     * @param  string $input    Raw script content.
+     * @param  string $location `'head'` or `'footer'`.
+     * @return string Sanitised content, or the existing stored value on failure.
+     */
+    private function validate_inline_script($input, $location) {
+        $option_key = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
+        $fallback   = get_option($option_key, '');
+
+        if (!is_string($input)) {
+            return $fallback;
+        }
+
+        $input = wp_kses_no_null(str_replace("\r\n", "\n", wp_unslash($input)));
+
+        $validated = wp_check_invalid_utf8($input, true);
+        if ('' === $validated && '' !== $input) {
+            return $fallback;
+        }
+        $input = $validated;
+
+        if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $input)) {
+            return $fallback;
+        }
+
+        if (preg_match('/<\?(php|=)?/i', $input)) {
+            return $fallback;
+        }
+
+        if (preg_match('/<\s*script[^>]*>(.*?)<\s*\/\s*script\s*>/is', $input)) {
+            $input = preg_replace('/<\s*script[^>]*>(.*?)<\s*\/\s*script\s*>/is', '$1', $input);
+        }
+
+        if (strlen($input) > SCRIPTOMATIC_MAX_SCRIPT_LENGTH) {
+            return $fallback;
+        }
+
+        return trim($input);
     }
 
     // =========================================================================
@@ -819,6 +894,22 @@ class Scriptomatic {
             return $current;
         }
 
+        // Secondary nonce — only present (and enforced) when saving via the Settings API
+        // form (options.php).  Skipped when called directly from handle_network_settings_save,
+        // which performs its own nonce verification before reaching this method.
+        if (isset($_POST['scriptomatic_general_nonce'])) {
+            $secondary = sanitize_text_field(wp_unslash($_POST['scriptomatic_general_nonce']));
+            if (!wp_verify_nonce($secondary, SCRIPTOMATIC_GENERAL_NONCE)) {
+                add_settings_error(
+                    SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION,
+                    'nonce_invalid',
+                    __('Security check failed. Please refresh the page and try again.', 'scriptomatic'),
+                    'error'
+                );
+                return $current;
+            }
+        }
+
         $clean = array();
 
         // max_history: integer clamped to 1–100.
@@ -1282,7 +1373,7 @@ class Scriptomatic {
                     <?php foreach ($history as $index => $entry) : ?>
                     <tr>
                         <td><?php echo esc_html($index + 1); ?></td>
-                        <td><?php echo esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $entry['timestamp'])); ?></td>
+                        <td><?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $entry['timestamp'])); ?></td>
                         <td><?php echo esc_html($entry['user_login']); ?></td>
                         <td><?php echo esc_html(number_format($entry['length'])); ?></td>
                         <td>
@@ -1519,12 +1610,12 @@ class Scriptomatic {
             $script_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_SCRIPT  : SCRIPTOMATIC_HEAD_SCRIPT;
             $linked_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_LINKED  : SCRIPTOMATIC_HEAD_LINKED;
 
-            $raw_script  = isset($_POST[$script_key])  ? wp_unslash($_POST[$script_key])  : '';
-            $raw_linked  = isset($_POST[$linked_key])  ? wp_unslash($_POST[$linked_key])  : '[]';
+            $raw_script  = isset($_POST[$script_key])  ? (string) wp_unslash($_POST[$script_key])  : '';
+            $raw_linked  = isset($_POST[$linked_key])  ? (string) wp_unslash($_POST[$linked_key])  : '[]';
 
-            // Basic sanitisation (full validation via sanitize_script_for is designed for the Settings API).
-            $raw_script = wp_kses_no_null(str_replace("\r\n", "\n", $raw_script));
-            update_site_option($script_key, $raw_script);
+            // Full content validation via validate_inline_script() — same checks as the
+            // per-site save path (length, control chars, PHP tags, dangerous HTML).
+            update_site_option($script_key, $this->validate_inline_script($raw_script, $location));
             update_site_option($linked_key, $this->sanitize_linked_for($raw_linked, $location));
 
         } elseif ('general' === $location) {
@@ -2004,8 +2095,8 @@ jQuery(document).ready(function ($) {
         $script_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_SCRIPT  : SCRIPTOMATIC_HEAD_SCRIPT;
         $linked_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_LINKED  : SCRIPTOMATIC_HEAD_LINKED;
 
-        $script_content = get_option($script_key, '');
-        $linked_raw     = get_option($linked_key, '[]');
+        $script_content = $this->get_front_end_option($script_key, '');
+        $linked_raw     = $this->get_front_end_option($linked_key, '[]');
         $linked_urls    = json_decode($linked_raw, true);
         if (!is_array($linked_urls)) {
             $linked_urls = array();
@@ -2022,11 +2113,11 @@ jQuery(document).ready(function ($) {
         echo "\n<!-- Scriptomatic v" . esc_attr(SCRIPTOMATIC_VERSION) . " ({$label}) -->\n";
 
         foreach ($linked_urls as $url) {
-            echo '<script type="text/javascript" src="' . esc_url($url) . '"></script>' . "\n";
+            echo '<script src="' . esc_url($url) . '"></script>' . "\n";
         }
 
         if ($has_inline) {
-            echo '<script type="text/javascript">' . "\n";
+            echo '<script>' . "\n";
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- content is
             // intentionally unescaped: it must execute as valid JavaScript.  All security
             // validation (type, length, control chars, PHP tags, dangerous HTML) is enforced
