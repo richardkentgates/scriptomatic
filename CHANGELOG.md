@@ -13,6 +13,23 @@ Nothing pending.
 
 ---
 
+## [1.4.4] – 2026-02-26
+
+### Fixed
+- **`esc_attr()` used in HTML comment context.** `inject_scripts_for()` escaped the version string with `esc_attr()` inside an HTML comment (`<!-- Scriptomatic v... -->`). The correct function for HTML content context is `esc_html()`. Changed accordingly.
+
+### Documentation
+- **SECURITY.md**: Removed false claim that IP addresses are audit-logged. IP collection was removed in v1.2.1 for privacy; the policy still listed it as a logged field.
+- **SECURITY.md**: Supported Versions table updated from `1.0.x` to `1.4.x`; version footer updated from `1.0.0` to `1.4.3`.
+- **SECURITY.md**: "Type Safety: Strict parameter and return type declarations" replaced with an accurate description: "Defensive Type Checks: All input types verified at runtime via `is_string()`, `is_array()`, `absint()`, and similar guards."
+- **README.md**: Replaced dead `/wiki` link in the Links section with a link to `README.md`.
+- **CONTRIBUTING.md**: Prerequisites WordPress minimum corrected from 5.0 to 5.3 (matching the actual plugin header).
+- **CONTRIBUTING.md**: Bug-report navigation example corrected from `Settings → Scriptomatic` to `Scriptomatic → Head Scripts` (the plugin has a top-level menu, not a Settings sub-item).
+- **CONTRIBUTING.md**: Code Organization directory tree completely rewritten to reflect the actual v1.4.4 file structure (trait-based architecture, real `assets/` and `languages/` contents; removed "(planned)" labels for things that already exist).
+- **`trait-menus.php`**: Fixed comment on menu position 82 — described it as "between Comments (60) and Appearance (60+)", but WordPress default positions are Comments=25, Appearance=60, Settings=80; position 82 is just after Settings.
+
+---
+
 ## [1.4.3] – 2026-02-26
 
 ### Removed
@@ -197,6 +214,7 @@ Nothing pending.
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 1.4.4   | 2026-02-26 | Pre-release audit: doc accuracy, esc_html fix       |
 | 1.4.3   | 2026-02-26 | Remove all backward-compat aliases and dead constants |
 | 1.4.2   | 2026-02-26 | Code-quality fixes, dead-code removal, doc accuracy |
 | 1.4.1   | 2026-02-26 | Multisite network-admin bug fixes              |
@@ -210,7 +228,8 @@ Nothing pending.
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.3...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.4...HEAD
+[1.4.4]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.0...v1.4.1

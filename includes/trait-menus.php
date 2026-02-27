@@ -22,7 +22,7 @@ trait Scriptomatic_Menus {
      * Register the top-level Scriptomatic menu and its three sub-pages for
      * the regular (per-site) admin area.
      *
-     * Menu position 82 places the entry between Comments (60) and Appearance (60+)
+     * Menu position 82 places the entry just after Settings (80),
      * without conflicting with any default WordPress items.
      *
      * @since  1.2.0

@@ -10,8 +10,8 @@ We provide security updates for the following versions:
 
 | Version | Supported          | Status        |
 | ------- | ------------------ | ------------- |
-| 1.0.x   | :white_check_mark: | Active Support |
-| < 1.0   | :x:                | Not Released  |
+| 1.4.x   | :white_check_mark: | Active Support |
+| < 1.4   | :x:                | Unsupported    |
 
 ## Security Features
 
@@ -35,9 +35,10 @@ We provide security updates for the following versions:
 
 - **Change Logging**: All script modifications logged with:
   - User ID and username
-  - IP address
   - Timestamp
   - Action performed
+
+  Note: IP addresses are intentionally not logged to protect user privacy.
 - **Error Logging**: Security events written to WordPress error log
 - **Settings Errors**: User-facing error messages for validation failures
 
@@ -61,7 +62,7 @@ We provide security updates for the following versions:
 - **OOP Architecture**: Clean object-oriented design with singleton pattern
 - **No Deprecated Functions**: Uses current WordPress APIs only
 - **SQL Injection Protection**: No raw SQL from user input; data access is via WordPress options APIs
-- **Type Safety**: Strict parameter and return type declarations
+- **Defensive Type Checks**: All input types verified at runtime via `is_string()`, `is_array()`, `absint()`, and similar guards throughout all sanitisation methods
 
 ## Known Limitations
 
@@ -212,6 +213,6 @@ We appreciate responsible security researchers who help keep Scriptomatic secure
 ---
 
 **Last Updated**: February 26, 2026
-**Version**: 1.0.0
+**Version**: 1.4.3
 
 Thank you for helping keep Scriptomatic secure!

@@ -87,7 +87,7 @@ trait Scriptomatic_Injector {
         }
 
         $label = ( 'footer' === $location ) ? 'footer' : 'head';
-        echo "\n<!-- Scriptomatic v" . esc_attr( SCRIPTOMATIC_VERSION ) . " ({$label}) -->\n";
+        echo "\n<!-- Scriptomatic v" . esc_html( SCRIPTOMATIC_VERSION ) . " ({$label}) -->\n";
 
         foreach ( $linked_urls as $url ) {
             echo '<script src="' . esc_url( $url ) . '"></script>' . "\n";

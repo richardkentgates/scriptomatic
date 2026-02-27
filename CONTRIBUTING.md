@@ -56,7 +56,7 @@ Environment:
 - Browser: Chrome 121
 
 Steps to Reproduce:
-1. Go to Settings → Scriptomatic
+1. Go to Scriptomatic → Head Scripts
 2. Copy text from external source
 3. Paste into textarea
 4. Observe character counter
@@ -169,7 +169,7 @@ Fixes #123
   - [Docker](https://github.com/docker/docker.github.io)
   - [VVV](https://varyingvagrantvagrants.org/)
 - PHP 7.2 or higher
-- WordPress 5.0 or higher
+- WordPress 5.3 or higher
 - Text editor or IDE (VS Code, PHPStorm, etc.)
 
 ### Setup Steps
@@ -283,21 +283,30 @@ Follow [WordPress CSS Coding Standards](https://developer.wordpress.org/coding-s
 
 ```
 scriptomatic/
-├── scriptomatic.php       # Main plugin file
-├── uninstall.php          # Uninstall handler
-├── README.md              # Main documentation
-├── CHANGELOG.md           # Version history
-├── SECURITY.md            # Security policy
-├── CONTRIBUTING.md        # This file
-├── CODE_OF_CONDUCT.md     # Community guidelines
-├── LICENSE                # GPL v2 license
-├── .gitignore            # Git ignore rules
-├── assets/               # Plugin assets (planned)
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── languages/            # Translation files (planned)
-└── tests/                # Unit tests (planned)
+├── scriptomatic.php              # Entry point: header, constants, require_once, bootstrap
+├── uninstall.php                 # Multisite-aware cleanup; honours keep_data setting
+├── README.md                     # Main documentation
+├── CHANGELOG.md                  # Version history
+├── SECURITY.md                   # Security policy
+├── CONTRIBUTING.md               # This file
+├── CODE_OF_CONDUCT.md            # Community guidelines
+├── LICENSE                       # GPL v2 license
+├── .gitignore                    # Git ignore rules
+├── assets/
+│   ├── admin.css                 # Admin stylesheet (enqueued via wp_enqueue_style)
+│   └── admin.js                  # Admin JS (enqueued via wp_enqueue_script + wp_localize_script)
+├── languages/
+│   └── scriptomatic.pot          # Translation template
+└── includes/
+    ├── class-scriptomatic.php    # Singleton class — uses all eight traits, registers hooks
+    ├── trait-menus.php           # Admin menu & submenu registration; help-tab hooks
+    ├── trait-sanitizer.php       # Input validation and sanitisation
+    ├── trait-history.php         # Revision history storage and AJAX rollback
+    ├── trait-settings.php        # Settings API wiring and plugin-settings CRUD
+    ├── trait-renderer.php        # Settings-field callbacks; load-condition evaluator
+    ├── trait-pages.php           # Page renderers, network save handler, help tabs, action links
+    ├── trait-enqueue.php         # Admin-asset enqueuing
+    └── trait-injector.php        # Front-end HTML injection
 ```
 
 ## Testing Guidelines

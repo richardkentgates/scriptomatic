@@ -339,7 +339,7 @@ If you find this plugin helpful, please:
 
 - **Plugin Homepage**: [https://github.com/richardkentgates/scriptomatic](https://github.com/richardkentgates/scriptomatic)
 - **Issue Tracker**: [https://github.com/richardkentgates/scriptomatic/issues](https://github.com/richardkentgates/scriptomatic/issues)
-- **Documentation**: [https://github.com/richardkentgates/scriptomatic/wiki](https://github.com/richardkentgates/scriptomatic/wiki)
+- **Documentation**: [README.md](README.md)
 
 ## 📊 Changelog
 
