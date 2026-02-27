@@ -18,56 +18,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 trait Scriptomatic_Sanitizer {
 
-    /**
-     * Validate and sanitise raw script content without security-gate checks.
-     *
-     * Runs the same content checks as {@see sanitize_script_for()} — length
-     * cap, control characters, PHP-tag detection, dangerous HTML detection,
-     * and script-tag stripping — but omits the capability, nonce, and
-     * rate-limit gates.  Used by the network admin save handler, which
-     * performs its own capability and nonce verification before calling this.
-     *
-     * @since  1.2.1
-     * @access private
-     * @param  string $input    Raw script content.
-     * @param  string $location `'head'` or `'footer'`.
-     * @return string Sanitised content, or the existing stored value on failure.
-     */
-    private function validate_inline_script( $input, $location ) {
-        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-        $fallback   = get_option( $option_key, '' );
-
-        if ( ! is_string( $input ) ) {
-            return $fallback;
-        }
-
-        $input = wp_kses_no_null( str_replace( "\r\n", "\n", wp_unslash( $input ) ) );
-
-        $validated = wp_check_invalid_utf8( $input, true );
-        if ( '' === $validated && '' !== $input ) {
-            return $fallback;
-        }
-        $input = $validated;
-
-        if ( preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $input ) ) {
-            return $fallback;
-        }
-
-        if ( preg_match( '/<\?(php|=)?/i', $input ) ) {
-            return $fallback;
-        }
-
-        if ( preg_match( '/<\s*script[^>]*>(.*?)<\s*\/\s*script\s*>/is', $input ) ) {
-            $input = preg_replace( '/<\s*script[^>]*>(.*?)<\s*\/\s*script\s*>/is', '$1', $input );
-        }
-
-        if ( strlen( $input ) > SCRIPTOMATIC_MAX_SCRIPT_LENGTH ) {
-            return $fallback;
-        }
-
-        return trim( $input );
-    }
-
     // =========================================================================
     // SCRIPT SANITISATION
     // =========================================================================

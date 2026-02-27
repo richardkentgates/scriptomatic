@@ -16,9 +16,9 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 - **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages (8 condition types)
 - **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
-- **🔍 Audit Logging**: All saves and rollbacks recorded in the persistent in-admin **Audit Log** page (Scriptomatic → Audit Log); entries capture timestamp, user, action, location, and character count; capped at 200 entries with a one-click clear action
+- **🔍 Audit Logging**: All saves and rollbacks recorded in the persistent **Audit Log**, embedded at the bottom of the Head Scripts and Footer Scripts pages; entries capture timestamp, user, action, location, and character count; configurable limit (10–1000, default 200) with a one-click clear action
 - **⚡ Performance Optimized**: Minimal overhead; front-end injection only on pages matching load conditions
-- **🌐 Multisite Compatible**: Parallel Network Admin pages for Super Admins; per-site settings fall back to network-level option
+- **🌐 Multisite Compatible**: Works in multisite networks; all script management is per-site. Install, activate, and deactivate can be performed network-wide. Uninstall iterates every sub-site.
 - **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
 - **🎨 WordPress Standards**: WP CS formatting, `esc_*()`, `sanitize_*()`, `wp_*()` throughout
 - **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion; fully multisite-aware
@@ -48,7 +48,7 @@ scriptomatic/
     ├── trait-history.php         # Revision history storage and AJAX rollback
     ├── trait-settings.php        # Settings API wiring and plugin-settings CRUD
     ├── trait-renderer.php        # Settings-field callbacks; load-condition evaluator
-    ├── trait-pages.php           # Page renderers, network save handler, help tabs, action links
+    ├── trait-pages.php           # Page renderers, embedded Audit Log, help tabs, action links
     ├── trait-enqueue.php         # Admin-asset enqueuing
     └── trait-injector.php        # Front-end HTML injection
 ```
@@ -94,12 +94,9 @@ Then activate via WordPress admin.
 
 | Page | Path | Purpose |
 |------|------|---------|
-| Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>` |
-| Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>` |
-| General Settings | Scriptomatic → General Settings | History limit, uninstall data retention |
-| Network Head Scripts | Scriptomatic → Head Scripts *(Network Admin)* | Network-level head scripts for Super Admins |
-| Network Footer Scripts | Scriptomatic → Footer Scripts *(Network Admin)* | Network-level footer scripts for Super Admins |
-| Network General Settings | Scriptomatic → General Settings *(Network Admin)* | Network-level history limit / data retention |
+| Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>`; includes Audit Log |
+| Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>`; includes Audit Log |
+| General Settings | Scriptomatic → General Settings | History limit, audit log limit, uninstall data retention |
 
 ### Important Notes
 
@@ -167,7 +164,7 @@ Scriptomatic is built with security as a top priority:
 - Admin notices for failed validation checks and automatic cleanup
 
 ### Access Control
-- Restricts access to users with `manage_options` capability (per-site) or `manage_network_options` (network admin)
+- Restricts access to users with `manage_options` capability (Administrators)
 - Nonce verification on all form submissions — both the WordPress Settings API nonce **and** a secondary location-specific nonce
 - Capability checks on every admin page load
 
@@ -176,10 +173,10 @@ Scriptomatic is built with security as a top priority:
 - Saves submitted within the cooldown window are rejected with an admin notice
 
 ### Audit Logging
-- All script changes **and AJAX rollbacks** are recorded in the persistent in-admin **Audit Log** (Scriptomatic → Audit Log)
+- All script changes **and AJAX rollbacks** are recorded in the persistent **Audit Log**, embedded at the bottom of the Head Scripts and Footer Scripts pages
 - Each entry captures: timestamp, username, user ID, action (`save` or `rollback`), script location (`head` or `footer`), and character count
 - No IP addresses collected (intentional privacy decision)
-- Log is capped at 200 entries; a **Clear Audit Log** button (nonce and capability gated) lets admins wipe it at any time
+- Log limit is configurable (10–1000, default 200 entries); a **Clear Audit Log** button (nonce and capability gated) lets admins wipe it at any time
 - Helps track changes and detect unauthorised modification
 
 ### Output Security

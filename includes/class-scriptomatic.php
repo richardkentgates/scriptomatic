@@ -35,7 +35,7 @@ require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-injector.php';
  * - Scriptomatic_History   — revision history and AJAX rollback.
  * - Scriptomatic_Settings  — Settings API wiring + plugin-settings CRUD.
  * - Scriptomatic_Renderer  — settings-field callbacks + load conditions.
- * - Scriptomatic_Pages     — page renderers (Audit Log, help tabs, clear-audit-log action, and action links).
+ * - Scriptomatic_Pages     — page renderers (Head/Footer/General pages, embedded Audit Log, help tabs, clear-audit-log action, and action links).
  * - Scriptomatic_Enqueue   — admin asset enqueueing.
  * - Scriptomatic_Injector  — front-end script injection.
  *

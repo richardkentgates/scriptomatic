@@ -2,10 +2,9 @@
 /**
  * Trait: Admin page renderers for Scriptomatic.
  *
- * Covers all per-site and network-admin page rendering (Head Scripts, Footer
- * Scripts, General Settings, and Audit Log), the network save handler,
- * contextual help tabs, the Clear Audit Log action handler, and plugins-page
- * action links.
+ * Covers per-site page rendering (Head Scripts, Footer Scripts, General
+ * Settings), the embedded Audit Log table, contextual help tabs, the
+ * Clear Audit Log action handler, and plugins-page action links.
  *
  * @package  Scriptomatic
  * @since    1.2.0
@@ -16,8 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Admin page builders, Audit Log renderers, network save handler, help tabs,
- * and action links.
+ * Admin page builders, Audit Log renderers, help tabs, and action links.
  */
 trait Scriptomatic_Pages {
 
@@ -207,8 +205,9 @@ trait Scriptomatic_Pages {
      * Output the audit log table (or an empty-state message).
      *
      * @since  1.5.0
+     * @since  1.7.0 Accepts a page-slug string instead of a network boolean.
      * @access private
-     * @param  bool $network Whether to read the network-level log.
+     * @param  string $page_slug The admin page slug used to build the clear-log URL.
      * @return void
      */
     private function render_audit_log_table( $page_slug ) {
@@ -288,8 +287,8 @@ trait Scriptomatic_Pages {
     /**
      * Handle the “Clear Audit Log” action before any output is sent.
      *
-     * Hooked to `admin_init` — fires in both regular and network admin contexts.
-     * Validates a nonce and capability gate before wiping the stored log.
+     * Hooked to `admin_init`. Validates a nonce and capability gate before
+     * wiping the stored log.
      *
      * @since  1.5.0
      * @return void
@@ -365,7 +364,7 @@ trait Scriptomatic_Pages {
             'content' =>
                 '<h3>' . __( 'Security Features', 'scriptomatic' ) . '</h3>' .
                 '<ul>' .
-                '<li><strong>' . __( 'Capability Check:', 'scriptomatic' ) . '</strong> ' . __( 'Only users with &ldquo;manage_options&rdquo; capability (administrators) can modify per-site scripts. Network admin pages require &ldquo;manage_network_options&rdquo;.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Capability Check:', 'scriptomatic' ) . '</strong> ' . __( 'Only users with &ldquo;manage_options&rdquo; capability (Administrators) can access any Scriptomatic page or modify scripts.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Dual Nonce Verification:', 'scriptomatic' ) . '</strong> ' . __( 'Each form carries both the WordPress Settings API nonce and a secondary location-specific nonce, verified on every save.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .

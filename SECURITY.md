@@ -39,7 +39,7 @@ We provide security updates for the following versions:
   - Action performed
 
   Note: IP addresses are intentionally not logged to protect user privacy.
-- **Audit Log**: Script save and rollback events recorded in the persistent in-admin Audit Log page (Scriptomatic → Audit Log); entries capture timestamp, user, action, and character count
+- **Audit Log**: Script save and rollback events recorded in the persistent Audit Log, embedded at the bottom of the Head Scripts and Footer Scripts pages; entries capture timestamp, user, action, and character count
 - **Settings Errors**: User-facing error messages for validation failures
 
 ### Output Escaping
@@ -156,7 +156,7 @@ We classify vulnerabilities using the following severity levels:
 2. **Two-Factor Authentication**: Enable 2FA on all admin accounts
 3. **Limited Access**: Only give `manage_options` capability to trusted users
 4. **Regular Audits**: Review scripts regularly for unauthorized changes
-5. **Monitoring**: Review the Audit Log page (Scriptomatic → Audit Log) for unexpected script changes; check server error logs for other security events
+5. **Monitoring**: Review the Audit Log (bottom of the Head Scripts and Footer Scripts pages) for unexpected script changes; check server error logs for other security events
 6. **Updates**: Keep WordPress, themes, and plugins updated
 7. **Backups**: Maintain regular backups before making script changes
 

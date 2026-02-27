@@ -239,8 +239,8 @@ trait Scriptomatic_Settings {
     /**
      * Append an entry to the persistent audit log.
      *
-     * Writes to site options on network admin, regular options otherwise.
-     * The log is capped at {@see SCRIPTOMATIC_MAX_LOG_ENTRIES} to bound storage.
+     * Always writes to per-site options.
+     * The log is capped at {@see get_max_log_entries()} to bound storage.
      *
      * @since  1.5.0
      * @access private
@@ -274,7 +274,6 @@ trait Scriptomatic_Settings {
      *
      * @since  1.5.0
      * @access private
-     * @param  bool $network Whether to read the network-level log.
      * @return array
      */
     private function get_audit_log() {
