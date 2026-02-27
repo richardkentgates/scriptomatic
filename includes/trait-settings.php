@@ -94,6 +94,7 @@ trait Scriptomatic_Settings {
             'sanitize_callback' => array( $this, 'sanitize_plugin_settings' ),
             'default'           => array(
                 'max_history'            => SCRIPTOMATIC_DEFAULT_MAX_HISTORY,
+                'max_log_entries'        => SCRIPTOMATIC_MAX_LOG_ENTRIES,
                 'keep_data_on_uninstall' => false,
             ),
         ) );
@@ -102,6 +103,8 @@ trait Scriptomatic_Settings {
 
         add_settings_field( 'scriptomatic_max_history', __( 'History Limit', 'scriptomatic' ),
             array( $this, 'render_max_history_field' ), 'scriptomatic_general_page', 'sm_advanced' );
+        add_settings_field( 'scriptomatic_max_log_entries', __( 'Audit Log Limit', 'scriptomatic' ),
+            array( $this, 'render_max_log_field' ), 'scriptomatic_general_page', 'sm_advanced' );
         add_settings_field( 'scriptomatic_keep_data', __( 'Data on Uninstall', 'scriptomatic' ),
             array( $this, 'render_keep_data_field' ), 'scriptomatic_general_page', 'sm_advanced' );
     }
@@ -115,16 +118,10 @@ trait Scriptomatic_Settings {
     public function get_plugin_settings() {
         $defaults = array(
             'max_history'            => SCRIPTOMATIC_DEFAULT_MAX_HISTORY,
+            'max_log_entries'        => SCRIPTOMATIC_MAX_LOG_ENTRIES,
             'keep_data_on_uninstall' => false,
         );
-        if ( is_network_admin() ) {
-            $saved = get_site_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array() );
-        } else {
-            $saved = get_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, false );
-            if ( false === $saved && is_multisite() ) {
-                $saved = get_site_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array() );
-            }
-        }
+        $saved = get_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, false );
         return wp_parse_args( is_array( $saved ) ? $saved : array(), $defaults );
     }
 
@@ -145,9 +142,7 @@ trait Scriptomatic_Settings {
             return $current;
         }
 
-        // Secondary nonce — only present (and enforced) when saving via the Settings API form
-        // (options.php).  Skipped when called directly from handle_network_settings_save,
-        // which performs its own nonce verification before reaching this method.
+        // Secondary nonce — only present (and enforced) when saving via the Settings API form.
         if ( isset( $_POST['scriptomatic_general_nonce'] ) ) {
             $secondary = sanitize_text_field( wp_unslash( $_POST['scriptomatic_general_nonce'] ) );
             if ( ! wp_verify_nonce( $secondary, SCRIPTOMATIC_GENERAL_NONCE ) ) {
@@ -167,6 +162,18 @@ trait Scriptomatic_Settings {
         $max                  = isset( $input['max_history'] ) ? (int) $input['max_history'] : $current['max_history'];
         $clean['max_history'] = max( 1, min( 100, $max ) );
 
+        // max_log_entries: integer clamped to 10–1000.
+        $max_log                  = isset( $input['max_log_entries'] ) ? (int) $input['max_log_entries'] : $current['max_log_entries'];
+        $clean['max_log_entries'] = max( 10, min( 1000, $max_log ) );
+
+        // If the log limit was reduced, immediately trim the stored log.
+        if ( $clean['max_log_entries'] < $this->get_max_log_entries() ) {
+            $current_log = (array) get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+            if ( count( $current_log ) > $clean['max_log_entries'] ) {
+                update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array_slice( $current_log, 0, $clean['max_log_entries'] ) );
+            }
+        }
+
         // keep_data_on_uninstall: boolean.
         $clean['keep_data_on_uninstall'] = ! empty( $input['keep_data_on_uninstall'] );
 
@@ -182,6 +189,20 @@ trait Scriptomatic_Settings {
         }
 
         return $clean;
+    }
+
+    /**
+     * Return the configured maximum number of audit log entries to retain.
+     *
+     * Falls back to the {@see SCRIPTOMATIC_MAX_LOG_ENTRIES} constant when no
+     * saved setting exists.
+     *
+     * @since  1.7.0
+     * @return int
+     */
+    public function get_max_log_entries() {
+        $settings = $this->get_plugin_settings();
+        return isset( $settings['max_log_entries'] ) ? (int) $settings['max_log_entries'] : SCRIPTOMATIC_MAX_LOG_ENTRIES;
     }
 
     /**
@@ -201,9 +222,7 @@ trait Scriptomatic_Settings {
      * @return void
      */
     private function log_change( $new_content, $option_key, $location ) {
-        $old_content = is_network_admin()
-            ? get_site_option( $option_key, '' )
-            : get_option( $option_key, '' );
+        $old_content = get_option( $option_key, '' );
         if ( $old_content !== $new_content ) {
             $this->write_audit_log_entry( array(
                 'action'   => 'save',
@@ -240,21 +259,14 @@ trait Scriptomatic_Settings {
             $data
         );
 
-        $is_network = is_network_admin();
-        $log        = $is_network
-            ? (array) get_site_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() )
-            : (array) get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+        $log = (array) get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
 
         array_unshift( $log, $entry );
-        if ( count( $log ) > SCRIPTOMATIC_MAX_LOG_ENTRIES ) {
-            $log = array_slice( $log, 0, SCRIPTOMATIC_MAX_LOG_ENTRIES );
+        if ( count( $log ) > $this->get_max_log_entries() ) {
+            $log = array_slice( $log, 0, $this->get_max_log_entries() );
         }
 
-        if ( $is_network ) {
-            update_site_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, $log );
-        } else {
-            update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, $log );
-        }
+        update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, $log );
     }
 
     /**
@@ -265,10 +277,8 @@ trait Scriptomatic_Settings {
      * @param  bool $network Whether to read the network-level log.
      * @return array
      */
-    private function get_audit_log( $network = false ) {
-        $log = $network
-            ? get_site_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() )
-            : get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+    private function get_audit_log() {
+        $log = get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
         return is_array( $log ) ? $log : array();
     }
 }

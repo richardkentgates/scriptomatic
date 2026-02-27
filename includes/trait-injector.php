@@ -64,8 +64,8 @@ trait Scriptomatic_Injector {
     private function inject_scripts_for( $location ) {
         $script_key     = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
         $linked_key     = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $script_content = $this->get_front_end_option( $script_key, '' );
-        $linked_raw     = $this->get_front_end_option( $linked_key, '[]' );
+        $script_content = get_option( $script_key, '' );
+        $linked_raw     = get_option( $linked_key, '[]' );
         $linked_entries = json_decode( $linked_raw, true );
         if ( ! is_array( $linked_entries ) ) {
             $linked_entries = array();

@@ -134,9 +134,7 @@ trait Scriptomatic_Renderer {
      */
     private function render_script_field_for( $location ) {
         $option_key     = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-        $script_content = is_network_admin()
-            ? get_site_option( $option_key, '' )
-            : get_option( $option_key, '' );
+        $script_content = get_option( $option_key, '' );
         $char_count     = strlen( $script_content );
         $max_length     = SCRIPTOMATIC_MAX_SCRIPT_LENGTH;
         $textarea_id    = 'scriptomatic-' . $location . '-script';
@@ -187,9 +185,7 @@ trait Scriptomatic_Renderer {
      */
     private function render_linked_field_for( $location ) {
         $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $raw        = is_network_admin()
-            ? get_site_option( $option_key, '[]' )
-            : get_option( $option_key, '[]' );
+        $raw        = get_option( $option_key, '[]' );
         $entries    = json_decode( $raw, true );
         if ( ! is_array( $entries ) ) {
             $entries = array();
@@ -487,7 +483,7 @@ trait Scriptomatic_Renderer {
      */
     private function check_load_conditions( $location ) {
         $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-        $raw        = $this->get_front_end_option( $option_key, '' );
+        $raw        = get_option( $option_key, '' );
         $conditions = json_decode( $raw, true );
 
         if ( ! is_array( $conditions ) ) {
@@ -560,9 +556,7 @@ trait Scriptomatic_Renderer {
      */
     private function render_conditions_field_for( $location ) {
         $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-        $raw        = is_network_admin()
-            ? get_site_option( $option_key, '' )
-            : get_option( $option_key, '' );
+        $raw        = get_option( $option_key, '' );
         $conditions = json_decode( $raw, true );
         $type       = ( is_array( $conditions ) && ! empty( $conditions['type'] ) ) ? $conditions['type'] : 'all';
         $values     = ( is_array( $conditions ) && isset( $conditions['values'] ) && is_array( $conditions['values'] ) ) ? $conditions['values'] : array();
@@ -720,6 +714,39 @@ trait Scriptomatic_Renderer {
                 /* translators: %d: default max history entries */
                 esc_html__( 'Maximum number of script revisions to retain (1\u2013100). Default: %d. Reducing this value will immediately trim the existing history.', 'scriptomatic' ),
                 SCRIPTOMATIC_DEFAULT_MAX_HISTORY
+            );
+            ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Render the audit log limit number input field.
+     *
+     * @since  1.7.0
+     * @return void
+     */
+    public function render_max_log_field() {
+        $settings  = $this->get_plugin_settings();
+        $max_log   = (int) $settings['max_log_entries'];
+        ?>
+        <input
+            type="number"
+            id="scriptomatic_max_log_entries"
+            name="<?php echo esc_attr( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ); ?>[max_log_entries]"
+            value="<?php echo esc_attr( $max_log ); ?>"
+            min="10"
+            max="1000"
+            step="10"
+            class="small-text"
+            aria-describedby="max-log-description"
+        >
+        <p id="max-log-description" class="description">
+            <?php
+            printf(
+                /* translators: %d: default max audit log entries */
+                esc_html__( 'Maximum number of audit log entries to retain (10\u20131000). Default: %d. Reducing this value will immediately trim the existing log.', 'scriptomatic' ),
+                SCRIPTOMATIC_MAX_LOG_ENTRIES
             );
             ?>
         </p>

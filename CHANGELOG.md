@@ -13,6 +13,22 @@ Nothing pending.
 
 ---
 
+## [1.7.0] – 2026-02-27
+
+### Added
+- **Configurable audit log limit.** The maximum number of retained audit log entries is now a setting on the General Settings page (10–1000, default 200). Previously the cap was a hard-coded constant.
+
+### Fixed
+- **`addUrl()` template clone.** The JS `addUrl()` function was using `$.parseHTML( html.trim() ).filter( '.sm-url-entry' )` to extract the cloned entry from the template, which returned an empty set because `$.parseHTML` produces a flat array whose root element is the entry itself. Changed to `$( '<div>' ).html( html ).children( '.sm-url-entry' )`, which reliably wraps and extracts the element. Fixes: no entry card appearing when clicking **Add URL**.
+
+### Changed
+- **Network admin UI removed.** Scriptomatic is now strictly per-site. All network admin menus, page renderers, save handlers, and multisite-branching code have been removed (`add_network_admin_menus()`, `render_network_head_page()`, `render_network_footer_page()`, `render_network_general_page()`, `handle_network_settings_save()`, `add_network_action_links()`, `get_network_cap()`, `is_network_active()`, `get_front_end_option()`). All `is_network_admin()` guards, `get_site_option()` reads, and `update_site_option()` writes replaced with direct `get_option()` / `update_option()` calls. Network-level install, activate, and deactivate hooks remain standard WordPress behaviour and are unaffected.
+- **Audit log moved to Head Scripts and Footer Scripts pages.** The audit log table is now embedded at the bottom of each scripts page, below the revision history panel. The separate Audit Log submenu page has been removed.
+- **Page header simplified.** The author and documentation info paragraph has been removed from every admin page header. Documentation links remain accessible from the page help tab.
+- **`SCRIPTOMATIC_NETWORK_NONCE` constant removed** (no longer needed after network admin removal).
+
+---
+
 ## [1.6.0] – 2026-02-27
 
 ### Added

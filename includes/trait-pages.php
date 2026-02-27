@@ -50,11 +50,6 @@ trait Scriptomatic_Pages {
             <span class="dashicons dashicons-editor-code" style="font-size:32px;width:32px;height:32px;"></span>
             <?php echo esc_html( get_admin_page_title() ); ?>
         </h1>
-        <p class="description" style="font-size:14px;margin-bottom:20px;">
-            <?php esc_html_e( 'Version', 'scriptomatic' ); ?>: <?php echo esc_html( SCRIPTOMATIC_VERSION ); ?> |
-            <?php esc_html_e( 'Author', 'scriptomatic' ); ?>: <a href="https://github.com/richardkentgates" target="_blank" rel="noopener noreferrer">Richard Kent Gates</a> |
-            <a href="https://github.com/richardkentgates/scriptomatic" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Documentation', 'scriptomatic' ); ?></a>
-        </p>
         <?php if ( $error_slug ) { settings_errors( $error_slug ); } ?>
         <?php
     }
@@ -156,6 +151,7 @@ trait Scriptomatic_Pages {
         </form>
         <?php
         $this->render_history_panel( 'head' );
+        $this->render_audit_log_table( 'scriptomatic' );
         echo '</div>'; // .wrap
     }
 
@@ -178,6 +174,7 @@ trait Scriptomatic_Pages {
         </form>
         <?php
         $this->render_history_panel( 'footer' );
+        $this->render_audit_log_table( 'scriptomatic-footer' );
         echo '</div>'; // .wrap
     }
 
@@ -203,198 +200,8 @@ trait Scriptomatic_Pages {
     }
 
     // =========================================================================
-    // PAGE RENDERERS — NETWORK ADMIN
+    // AUDIT LOG TABLE (embedded in Head Scripts and Footer Scripts pages)
     // =========================================================================
-
-    /**
-     * Shared header for network-admin Scriptomatic pages.
-     *
-     * @since  1.2.0
-     * @access private
-     * @return void
-     */
-    private function render_network_page_header() {
-        if ( ! current_user_can( $this->get_network_cap() ) ) {
-            wp_die(
-                esc_html__( 'You do not have sufficient permissions to access this page.', 'scriptomatic' ),
-                esc_html__( 'Permission Denied', 'scriptomatic' ),
-                array( 'response' => 403 )
-            );
-        }
-
-        if ( isset( $_GET['updated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-            ?>
-            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'scriptomatic' ); ?></p></div>
-            <?php
-        }
-        if ( isset( $_GET['error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-            ?>
-            <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Security check failed. Settings not saved.', 'scriptomatic' ); ?></p></div>
-            <?php
-        }
-        ?>
-        <div class="wrap" id="scriptomatic-settings">
-        <h1>
-            <span class="dashicons dashicons-editor-code" style="font-size:32px;width:32px;height:32px;"></span>
-            <?php echo esc_html( get_admin_page_title() ); ?>
-        </h1>
-        <p class="description" style="font-size:14px;margin-bottom:20px;">
-            <?php esc_html_e( 'Version', 'scriptomatic' ); ?>: <?php echo esc_html( SCRIPTOMATIC_VERSION ); ?> |
-            <?php esc_html_e( 'Author', 'scriptomatic' ); ?>: <a href="https://github.com/richardkentgates" target="_blank" rel="noopener noreferrer">Richard Kent Gates</a> |
-            <a href="https://github.com/richardkentgates/scriptomatic" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Documentation', 'scriptomatic' ); ?></a>
-        </p>
-        <?php
-    }
-
-    /**
-     * Render the Network Admin — Head Scripts page.
-     *
-     * @since  1.2.0
-     * @return void
-     */
-    public function render_network_head_page() {
-        $this->render_network_page_header();
-        ?>
-        <form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=scriptomatic_network_save' ) ); ?>">
-            <?php
-            wp_nonce_field( SCRIPTOMATIC_NETWORK_NONCE, 'scriptomatic_network_nonce' );
-            echo '<input type="hidden" name="scriptomatic_network_location" value="head">';
-            do_settings_sections( 'scriptomatic_head_page' );
-            submit_button( __( 'Save Network Head Scripts', 'scriptomatic' ), 'primary large' );
-            ?>
-        </form>
-        <?php $this->render_history_panel( 'head' ); ?>
-        </div><!-- .wrap -->
-        <?php
-    }
-
-    /**
-     * Render the Network Admin — Footer Scripts page.
-     *
-     * @since  1.2.0
-     * @return void
-     */
-    public function render_network_footer_page() {
-        $this->render_network_page_header();
-        ?>
-        <form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=scriptomatic_network_save' ) ); ?>">
-            <?php
-            wp_nonce_field( SCRIPTOMATIC_NETWORK_NONCE, 'scriptomatic_network_nonce' );
-            echo '<input type="hidden" name="scriptomatic_network_location" value="footer">';
-            do_settings_sections( 'scriptomatic_footer_page' );
-            submit_button( __( 'Save Network Footer Scripts', 'scriptomatic' ), 'primary large' );
-            ?>
-        </form>
-        <?php $this->render_history_panel( 'footer' ); ?>
-        </div><!-- .wrap -->
-        <?php
-    }
-
-    /**
-     * Render the Network Admin — General Settings page.
-     *
-     * @since  1.2.0
-     * @return void
-     */
-    public function render_network_general_page() {
-        $this->render_network_page_header();
-        ?>
-        <form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=scriptomatic_network_save' ) ); ?>">
-            <?php
-            wp_nonce_field( SCRIPTOMATIC_NETWORK_NONCE, 'scriptomatic_network_nonce' );
-            echo '<input type="hidden" name="scriptomatic_network_location" value="general">';
-            do_settings_sections( 'scriptomatic_general_page' );
-            submit_button( __( 'Save Network Settings', 'scriptomatic' ), 'primary large' );
-            ?>
-        </form>
-        </div><!-- .wrap -->
-        <?php
-    }
-
-    // =========================================================================
-    // NETWORK ADMIN SAVE HANDLER
-    // =========================================================================
-
-    /**
-     * Process the custom POST from all three network-admin forms.
-     *
-     * WordPress network admin does not route through `options.php`, so saves
-     * are handled via a `network_admin_edit_` action hook.  The hidden field
-     * `scriptomatic_network_location` distinguishes head / footer / general.
-     *
-     * Security gates: nonce verification + `manage_network_options` capability.
-     *
-     * @since  1.2.0
-     * @return void  Redirects on completion (or terminates on error).
-     */
-    public function handle_network_settings_save() {
-        if ( ! isset( $_POST['scriptomatic_network_nonce'] ) ||
-             ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['scriptomatic_network_nonce'] ) ), SCRIPTOMATIC_NETWORK_NONCE ) ) {
-            wp_redirect( esc_url_raw( add_query_arg( 'error', '1', wp_get_referer() ) ) );
-            exit;
-        }
-
-        if ( ! current_user_can( $this->get_network_cap() ) ) {
-            wp_die( esc_html__( 'Permission denied.', 'scriptomatic' ), 403 );
-        }
-
-        $location = isset( $_POST['scriptomatic_network_location'] )
-            ? sanitize_key( $_POST['scriptomatic_network_location'] )
-            : '';
-
-        if ( 'head' === $location || 'footer' === $location ) {
-            $script_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT     : SCRIPTOMATIC_HEAD_SCRIPT;
-            $linked_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED     : SCRIPTOMATIC_HEAD_LINKED;
-            $cond_key   = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-
-            $raw_script = isset( $_POST[ $script_key ] ) ? (string) wp_unslash( $_POST[ $script_key ] ) : '';
-            $raw_linked = isset( $_POST[ $linked_key ] ) ? (string) wp_unslash( $_POST[ $linked_key ] ) : '[]';
-            $raw_cond   = isset( $_POST[ $cond_key ] )   ? (string) wp_unslash( $_POST[ $cond_key ] )   : '';
-
-            $sanitised_script = $this->validate_inline_script( $raw_script, $location );
-            $this->log_change( $sanitised_script, $script_key, $location );
-            update_site_option( $script_key, $sanitised_script );
-            update_site_option( $linked_key, $this->sanitize_linked_for( $raw_linked, $location ) );
-            update_site_option( $cond_key,   $this->sanitize_conditions_for( $raw_cond, $location ) );
-
-        } elseif ( 'general' === $location ) {
-            $raw = isset( $_POST[ SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ] )
-                ? (array) wp_unslash( $_POST[ SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ] )
-                : array();
-            update_site_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, $this->sanitize_plugin_settings( $raw ) );
-        }
-
-        wp_redirect( esc_url_raw( add_query_arg( 'updated', '1', wp_get_referer() ) ) );
-        exit;
-    }
-
-    // =========================================================================
-    // PAGE RENDERERS — AUDIT LOG
-    // =========================================================================
-
-    /**
-     * Render the per-site Audit Log admin page.
-     *
-     * @since  1.5.0
-     * @return void
-     */
-    public function render_audit_log_page() {
-        $this->render_page_header( '' );
-        $this->render_audit_log_table( false );
-        echo '</div><!-- .wrap -->';
-    }
-
-    /**
-     * Render the network-admin Audit Log page.
-     *
-     * @since  1.5.0
-     * @return void
-     */
-    public function render_network_audit_log_page() {
-        $this->render_network_page_header();
-        $this->render_audit_log_table( true );
-        echo '</div><!-- .wrap -->';
-    }
 
     /**
      * Output the audit log table (or an empty-state message).
@@ -404,12 +211,9 @@ trait Scriptomatic_Pages {
      * @param  bool $network Whether to read the network-level log.
      * @return void
      */
-    private function render_audit_log_table( $network ) {
-        $page_slug = $network ? 'scriptomatic-network-audit-log' : 'scriptomatic-audit-log';
-        $base_url  = $network
-            ? network_admin_url( 'admin.php?page=' . $page_slug )
-            : admin_url( 'admin.php?page=' . $page_slug );
-        $log       = $this->get_audit_log( $network );
+    private function render_audit_log_table( $page_slug ) {
+        $base_url  = admin_url( 'admin.php?page=' . $page_slug );
+        $log       = $this->get_audit_log();
         $clear_url = wp_nonce_url(
             add_query_arg( 'action', 'clear', $base_url ),
             SCRIPTOMATIC_CLEAR_LOG_NONCE,
@@ -427,7 +231,7 @@ trait Scriptomatic_Pages {
             printf(
                 /* translators: %d: maximum number of retained log entries */
                 esc_html__( 'A record of all script saves and rollbacks on this site. The most recent %d entries are retained.', 'scriptomatic' ),
-                SCRIPTOMATIC_MAX_LOG_ENTRIES
+                $this->get_max_log_entries()
             );
             ?>
         </p>
@@ -495,25 +299,17 @@ trait Scriptomatic_Pages {
             return;
         }
         $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-        if ( ! in_array( $page, array( 'scriptomatic-audit-log', 'scriptomatic-network-audit-log' ), true ) ) {
+        if ( ! in_array( $page, array( 'scriptomatic', 'scriptomatic-footer' ), true ) ) {
             return;
         }
 
         check_admin_referer( SCRIPTOMATIC_CLEAR_LOG_NONCE, 'scriptomatic_clear_nonce' );
 
-        if ( 'scriptomatic-network-audit-log' === $page ) {
-            if ( ! current_user_can( $this->get_network_cap() ) ) {
-                wp_die( esc_html__( 'Permission denied.', 'scriptomatic' ), 403 );
-            }
-            update_site_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
-            wp_redirect( esc_url_raw( network_admin_url( 'admin.php?page=scriptomatic-network-audit-log&cleared=1' ) ) );
-        } else {
-            if ( ! current_user_can( $this->get_required_cap() ) ) {
-                wp_die( esc_html__( 'Permission denied.', 'scriptomatic' ), 403 );
-            }
-            update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
-            wp_redirect( esc_url_raw( admin_url( 'admin.php?page=scriptomatic-audit-log&cleared=1' ) ) );
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_die( esc_html__( 'Permission denied.', 'scriptomatic' ), 403 );
         }
+        update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+        wp_redirect( esc_url_raw( add_query_arg( 'cleared', '1', wp_get_referer() ) ) );
         exit;
     }
 
@@ -574,7 +370,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( '&lt;script&gt; tags are automatically stripped to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Audit Logging:', 'scriptomatic' ) . '</strong> ' . __( 'All saves and AJAX rollbacks are recorded in the persistent in-admin <strong>Audit Log</strong> (Scriptomatic &rarr; Audit Log). Each entry captures the timestamp, acting user, action (save or rollback), script location, and character count. The log is capped at 200 entries. Admins can clear the log at any time using the Clear Audit Log button.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Audit Logging:', 'scriptomatic' ) . '</strong> ' . __( 'All saves and AJAX rollbacks are recorded in the persistent in-admin <strong>Audit Log</strong> (Scriptomatic &rarr; General Settings). Each entry captures the timestamp, acting user, action (save or rollback), script location, and character count. The log limit is configurable in General Settings. Admins can clear the log at any time using the Clear Audit Log button.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Output Escaping:', 'scriptomatic' ) . '</strong> ' . __( 'Content is properly escaped when displayed in the admin interface.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __( 'Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic' ) . '</p>',
@@ -655,23 +451,6 @@ trait Scriptomatic_Pages {
         $settings_link = sprintf(
             '<a href="%s">%s</a>',
             admin_url( 'admin.php?page=scriptomatic' ),
-            __( 'Head Scripts', 'scriptomatic' )
-        );
-        array_unshift( $links, $settings_link );
-        return $links;
-    }
-
-    /**
-     * Prepend a Settings link on the Network Plugins screen.
-     *
-     * @since  1.2.0
-     * @param  string[] $links Existing action-link HTML strings.
-     * @return string[] Modified array with the Network Head Scripts link prepended.
-     */
-    public function add_network_action_links( $links ) {
-        $settings_link = sprintf(
-            '<a href="%s">%s</a>',
-            network_admin_url( 'admin.php?page=scriptomatic-network' ),
             __( 'Head Scripts', 'scriptomatic' )
         );
         array_unshift( $links, $settings_link );

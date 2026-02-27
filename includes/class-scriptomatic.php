@@ -35,7 +35,7 @@ require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-injector.php';
  * - Scriptomatic_History   — revision history and AJAX rollback.
  * - Scriptomatic_Settings  — Settings API wiring + plugin-settings CRUD.
  * - Scriptomatic_Renderer  — settings-field callbacks + load conditions.
- * - Scriptomatic_Pages     — page renderers (including Audit Log), network pages, help tabs, clear-audit-log action, and action links.
+ * - Scriptomatic_Pages     — page renderers (Audit Log, help tabs, clear-audit-log action, and action links).
  * - Scriptomatic_Enqueue   — admin asset enqueueing.
  * - Scriptomatic_Injector  — front-end script injection.
  *
@@ -117,18 +117,6 @@ class Scriptomatic {
 
         // Audit log — clear action must run before any output.
         add_action( 'admin_init', array( $this, 'maybe_clear_audit_log' ) );
-
-        // Multisite: network-admin menu + custom save handler + settings registration.
-        if ( is_multisite() ) {
-            add_action( 'network_admin_menu',                                  array( $this, 'add_network_admin_menus' ) );
-            add_action( 'network_admin_init',                                  array( $this, 'register_settings' ) );
-            add_action( 'network_admin_edit_scriptomatic_network_save',        array( $this, 'handle_network_settings_save' ) );
-            add_action( 'network_admin_enqueue_scripts',                       array( $this, 'enqueue_admin_scripts' ) );
-            add_filter(
-                'network_admin_plugin_action_links_' . plugin_basename( SCRIPTOMATIC_PLUGIN_FILE ),
-                array( $this, 'add_network_action_links' )
-            );
-        }
     }
 
     // =========================================================================
@@ -153,7 +141,7 @@ class Scriptomatic {
     }
 
     // =========================================================================
-    // CAPABILITY HELPERS
+    // CAPABILITY HELPER
     // =========================================================================
 
     /**
@@ -168,60 +156,4 @@ class Scriptomatic {
         return 'manage_options';
     }
 
-    /**
-     * The capability required to manage Scriptomatic in the network admin.
-     *
-     * `manage_network_options` is held exclusively by Super Admins.
-     *
-     * @since  1.2.0
-     * @return string
-     */
-    private function get_network_cap() {
-        return 'manage_network_options';
-    }
-
-    /**
-     * Return true when this plugin is network-activated on a multisite install.
-     *
-     * @since  1.2.0
-     * @return bool
-     */
-    private function is_network_active() {
-        if ( ! is_multisite() ) {
-            return false;
-        }
-        if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
-            require_once ABSPATH . '/wp-admin/includes/plugin.php';
-        }
-        return is_plugin_active_for_network( plugin_basename( SCRIPTOMATIC_PLUGIN_FILE ) );
-    }
-
-    // =========================================================================
-    // NETWORK / PER-SITE OPTION HELPER
-    // =========================================================================
-
-    /**
-     * Read a plugin option for front-end injection, falling back to the
-     * network-level site option when the per-site option has never been set.
-     *
-     * On a network-activated install, scripts saved via the Network Admin are
-     * stored with `update_site_option()`.  Per-site overrides use the regular
-     * `update_option()` path.  This helper tries the per-site option first;
-     * when it has never been written (`get_option` returns `false`), it falls
-     * back to the network option so that network-admin-saved scripts appear on
-     * every site.
-     *
-     * @since  1.2.1
-     * @access private
-     * @param  string $key     Option name.
-     * @param  string $default Value returned when neither option is set.
-     * @return string
-     */
-    private function get_front_end_option( $key, $default = '' ) {
-        $value = get_option( $key, false );
-        if ( false === $value && is_multisite() ) {
-            return get_site_option( $key, $default );
-        }
-        return ( false !== $value ) ? $value : $default;
-    }
 }

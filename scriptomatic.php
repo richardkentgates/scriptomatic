@@ -3,7 +3,7 @@
  * Plugin Name: Scriptomatic
  * Plugin URI: https://github.com/richardkentgates/scriptomatic
  * Description: Securely inject custom JavaScript into the head and footer of your WordPress site. Features per-location inline scripts, external URL management, full revision history with rollback, multisite support, and fine-grained admin controls.
- * Version: 1.6.0
+ * Version: 1.7.0
  * Requires at least: 5.3
  * Requires PHP: 7.2
  * Author: Richard Kent Gates
@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ---- Core ----
-define( 'SCRIPTOMATIC_VERSION',     '1.6.0' );
+define( 'SCRIPTOMATIC_VERSION',     '1.7.0' );
 define( 'SCRIPTOMATIC_PLUGIN_FILE', __FILE__ );
 define( 'SCRIPTOMATIC_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'SCRIPTOMATIC_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -69,7 +69,6 @@ define( 'SCRIPTOMATIC_HEAD_NONCE',     'scriptomatic_save_head' );    // Head sc
 define( 'SCRIPTOMATIC_FOOTER_NONCE',   'scriptomatic_save_footer' );  // Footer script form secondary nonce
 define( 'SCRIPTOMATIC_GENERAL_NONCE',  'scriptomatic_save_general' ); // General settings form secondary nonce
 define( 'SCRIPTOMATIC_ROLLBACK_NONCE', 'scriptomatic_rollback' );     // AJAX rollback nonce
-define( 'SCRIPTOMATIC_NETWORK_NONCE',  'scriptomatic_network_save' ); // Network admin save nonce
 
 // ---- Audit log ----
 define( 'SCRIPTOMATIC_AUDIT_LOG_OPTION', 'scriptomatic_audit_log' );  // DB option key for the audit log

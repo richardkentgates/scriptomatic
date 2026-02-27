@@ -268,7 +268,7 @@ jQuery( document ).ready( function ( $ ) {
             var idx  = entryIdx++;
             /* Clone template: replace __IDX__ placeholder with real index. */
             var html = tmplEl.innerHTML.replace( /__IDX__/g, String( idx ) );
-            var $e   = $( $.parseHTML( html.trim() ) ).filter( '.sm-url-entry' );
+            var $e   = $( '<div>' ).html( html ).children( '.sm-url-entry' );
 
             $e.attr( { 'data-url': url, 'data-index': String( idx ) } );
             $e.find( '.sm-url-entry__label' ).text( url ).attr( 'title', url );
