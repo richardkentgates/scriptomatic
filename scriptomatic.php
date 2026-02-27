@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Scriptomatic
  * Plugin URI: https://github.com/richardkentgates/scriptomatic
- * Description: Securely inject custom JavaScript into the head and footer of your WordPress site. Features per-location inline scripts, external URL management, full revision history with rollback, multisite support, and fine-grained admin controls.
+ * Description: Inject custom JavaScript into the head and footer of your WordPress site with revision history, rollback, and fine-grained admin controls.
  * Version: 1.7.0
  * Requires at least: 5.3
  * Requires PHP: 7.2
