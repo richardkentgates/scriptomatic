@@ -391,7 +391,8 @@ trait Scriptomatic_Pages {
                 '<h3>' . __( 'Scriptomatic Overview', 'scriptomatic' ) . '</h3>' .
                 '<p>' . __( 'Scriptomatic safely injects custom JavaScript into the <strong>head</strong> (before &lt;/head&gt;) and the <strong>footer</strong> (before &lt;/body&gt;) of your WordPress site. Use the <strong>Load Conditions</strong> setting on each page to control exactly which pages, post types, or user states receive the script.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'Use the <strong>Head Scripts</strong> page for analytics tags, pixel codes, and scripts that must load early. Use the <strong>Footer Scripts</strong> page for scripts that should run after page content has loaded.', 'scriptomatic' ) . '</p>' .
-                '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, revision history, conditional loading, and audit logging.', 'scriptomatic' ) . '</p>',
+                '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and a <strong>Revision History</strong> panel so you can restore any previous version in one click.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, revision history, conditional loading, and audit logging.', 'scriptomatic' ) . '</p>',
         ) );
 
         $screen->add_help_tab( array(
@@ -419,10 +420,12 @@ trait Scriptomatic_Pages {
             'content' =>
                 '<h3>' . __( 'Security Features', 'scriptomatic' ) . '</h3>' .
                 '<ul>' .
-                '<li><strong>' . __( 'Capability Check:', 'scriptomatic' ) . '</strong> ' . __( 'Only users with "manage_options" capability (typically administrators) can modify scripts.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated for length and potentially dangerous content.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( 'Script tags are automatically removed to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Audit Logging:', 'scriptomatic' ) . '</strong> ' . __( 'All changes are logged with user information (username and user ID).', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Capability Check:', 'scriptomatic' ) . '</strong> ' . __( 'Only users with &ldquo;manage_options&rdquo; capability (administrators) can modify per-site scripts. Network admin pages require &ldquo;manage_network_options&rdquo;.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Dual Nonce Verification:', 'scriptomatic' ) . '</strong> ' . __( 'Each form carries both the WordPress Settings API nonce and a secondary location-specific nonce, verified on every save.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( '&lt;script&gt; tags are automatically stripped to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Audit Logging:', 'scriptomatic' ) . '</strong> ' . __( 'All saves and AJAX rollbacks are written to the WordPress error log with username, user ID, and timestamp.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Output Escaping:', 'scriptomatic' ) . '</strong> ' . __( 'Content is properly escaped when displayed in the admin interface.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __( 'Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic' ) . '</p>',
@@ -439,7 +442,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Keep It Clean:', 'scriptomatic' ) . '</strong> ' . __( 'Remove unused or outdated scripts regularly.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Verify Sources:', 'scriptomatic' ) . '</strong> ' . __( 'Only use code from trusted sources. Review all third-party scripts.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Monitor Performance:', 'scriptomatic' ) . '</strong> ' . __( 'Heavy scripts can slow down your site. Use browser dev tools to monitor impact.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Backup:', 'scriptomatic' ) . '</strong> ' . __( 'Keep a backup of your script content before making major changes.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Backup:', 'scriptomatic' ) . '</strong> ' . __( 'Use the built-in <em>Revision History</em> panel to restore previous versions. Click <em>Restore</em> next to any entry to roll back instantly without losing subsequent revisions.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Async/Defer:', 'scriptomatic' ) . '</strong> ' . __( 'Consider using async or defer attributes for external scripts to improve page load times.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );
@@ -464,11 +467,18 @@ trait Scriptomatic_Pages {
                 '<li>' . __( 'Ensure external resources are loading properly (check network tab).', 'scriptomatic' ) . '</li>' .
                 '<li>' . __( 'Test with a simple console.log() first to verify injection is working.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
-                '<h4>' . __( 'Cannot save:', 'scriptomatic' ) . '</h4>' .
+                '<h4>' . __( 'Cannot save / changes ignored:', 'scriptomatic' ) . '</h4>' .
                 '<ul>' .
                 '<li>' . __( 'Verify you have administrator privileges.', 'scriptomatic' ) . '</li>' .
-                '<li>' . __( 'Check if script exceeds the maximum length limit.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'Check if script exceeds the 100 KB maximum length.', 'scriptomatic' ) . '</li>' .
                 '<li>' . __( 'Remove any HTML tags (only JavaScript is allowed).', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'The <strong>rate limiter</strong> enforces a 10-second cooldown per user per location. If you saved very recently, wait a moment and try again.', 'scriptomatic' ) . '</li>' .
+                '</ul>' .
+                '<h4>' . __( 'Restore a previous version:', 'scriptomatic' ) . '</h4>' .
+                '<ul>' .
+                '<li>' . __( 'Scroll to the <strong>Revision History</strong> panel at the bottom of the page.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'Click <strong>Restore</strong> next to the desired revision \u2014 the textarea updates instantly via AJAX.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'Click the Save button to persist the restored content.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );
 

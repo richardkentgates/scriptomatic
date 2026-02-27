@@ -5,29 +5,56 @@
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-green)](LICENSE)
 [![Maintained](https://img.shields.io/badge/Maintained-Yes-brightgreen)]()
 
-A secure and production-ready WordPress plugin for injecting custom JavaScript code into the `<head>` and footer of your WordPress site, with conditional per-page loading, external script URL management, revision history with rollback, and multisite support.
+A secure and production-ready WordPress plugin for injecting custom JavaScript code into the `<head>` and footer of your WordPress site, with conditional per-page loading, external script URL management, revision history with rollback, multisite support, and a modular trait-based architecture.
 
 ## 🚀 Features
 
-- **🔒 Security First**: Comprehensive input validation, sanitization, and audit logging
+- **🔒 Security First**: Comprehensive input validation, sanitization, secondary nonce system, rate limiting, and audit logging
 - **👤 Capability Checks**: Only administrators with `manage_options` can modify scripts
-- **📝 Rich Admin Interface**: Clean, intuitive settings pages with character counter
-- **📚 Contextual Help**: Built-in help tabs with detailed documentation
-- **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages
-- **🔁 Revision History & Rollback**: Every save is stored as a revision; restore any previous version in one click
-- **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI
-- **🔍 Audit Logging**: All changes logged with user information (username and user ID)
-- **⚡ Performance Optimized**: Minimal overhead, script only loaded on front-end
-- **🌐 Multisite Compatible**: Works seamlessly with WordPress multisite
-- **♿ Accessibility**: ARIA labels and semantic HTML for screen readers
-- **🎨 WordPress Standards**: Follows WordPress coding standards and best practices
-- **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion, controlled via General Settings; fully multisite-aware
+- **📝 Rich Admin Interface**: Clean, intuitive settings pages with live character counter (colour-coded at 75 % and 90 % of the 100 KB limit)
+- **📚 Contextual Help**: Built-in help tabs with detailed documentation on all three admin pages
+- **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages (8 condition types)
+- **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
+- **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
+- **🔍 Audit Logging**: All saves and rollbacks logged to the PHP error log with username, user ID, and timestamp
+- **⚡ Performance Optimized**: Minimal overhead; front-end injection only on pages matching load conditions
+- **🌐 Multisite Compatible**: Parallel Network Admin pages for Super Admins; per-site settings fall back to network-level option
+- **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
+- **🎨 WordPress Standards**: WP CS formatting, `esc_*()`, `sanitize_*()`, `wp_*()` throughout
+- **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion; fully multisite-aware
+- **🏗️ Modular Architecture**: Eight PHP traits in separate files; static `assets/admin.css` and `assets/admin.js` enqueued via `wp_enqueue_style` / `wp_enqueue_script`
+- **🔄 Backward Compatible**: Legacy constant and method aliases retained for pre-1.2.0 integrations
 
 ## 📋 Requirements
 
 - **WordPress**: 5.3 or higher
 - **PHP**: 7.2 or higher
 - **User Role**: Administrator (manage_options capability)
+
+## 🏗️ Architecture
+
+Since v1.4.0 the plugin uses a modular PHP-trait structure:
+
+```
+scriptomatic/
+├── scriptomatic.php              # Entry point: header, constants, require_once, bootstrap
+├── uninstall.php                 # Multisite-aware cleanup; honours keep_data setting
+├── assets/
+│   ├── admin.css                 # Admin stylesheet (enqueued via wp_enqueue_style)
+│   └── admin.js                  # Admin JS (enqueued via wp_enqueue_script + wp_localize_script)
+└── includes/
+    ├── class-scriptomatic.php    # Singleton class — uses all eight traits, registers hooks
+    ├── trait-menus.php           # Admin menu & submenu registration; help-tab hooks
+    ├── trait-sanitizer.php       # Input validation and sanitisation
+    ├── trait-history.php         # Revision history storage and AJAX rollback
+    ├── trait-settings.php        # Settings API wiring and plugin-settings CRUD
+    ├── trait-renderer.php        # Settings-field callbacks; load-condition evaluator
+    ├── trait-pages.php           # Page renderers, network save handler, help tabs, action links
+    ├── trait-enqueue.php         # Admin-asset enqueuing
+    └── trait-injector.php        # Front-end HTML injection
+```
+
+All traits are `use`d by `class Scriptomatic`, so cross-trait `$this->method()` calls work correctly.
 
 ## 📥 Installation
 
@@ -58,7 +85,7 @@ Then activate via WordPress admin.
 
 ### Basic Setup
 
-1. Navigate to **Scripts → Head Scripts** (or **Footer Scripts**) in your WordPress admin
+1. Navigate to **Scriptomatic → Head Scripts** (or **Footer Scripts**) in your WordPress admin
 2. Enter your inline JavaScript in the textarea **or** add external script URLs via the URL manager
 3. Optionally configure **Load Conditions** to restrict the script to specific pages, post types, URL patterns, or user login state
 4. Click **Save Head Scripts** (or **Save Footer Scripts**)
@@ -68,9 +95,12 @@ Then activate via WordPress admin.
 
 | Page | Path | Purpose |
 |------|------|---------|
-| Head Scripts | Scripts → Head Scripts | Inline JS + external URLs injected in `<head>` |
-| Footer Scripts | Scripts → Footer Scripts | Inline JS + external URLs injected before `</body>` |
-| General Settings | Scripts → General Settings | History limit, uninstall data retention |
+| Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>` |
+| Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>` |
+| General Settings | Scriptomatic → General Settings | History limit, uninstall data retention |
+| Network Head Scripts | Scriptomatic → Head Scripts *(Network Admin)* | Network-level head scripts for Super Admins |
+| Network Footer Scripts | Scriptomatic → Footer Scripts *(Network Admin)* | Network-level footer scripts for Super Admins |
+| Network General Settings | Scriptomatic → General Settings *(Network Admin)* | Network-level history limit / data retention |
 
 ### Important Notes
 
@@ -138,14 +168,18 @@ Scriptomatic is built with security as a top priority:
 - Admin notices for failed validation checks and automatic cleanup
 
 ### Access Control
-- Restricts access to users with `manage_options` capability only
-- Nonce verification on all form submissions
+- Restricts access to users with `manage_options` capability (per-site) or `manage_network_options` (network admin)
+- Nonce verification on all form submissions — both the WordPress Settings API nonce **and** a secondary location-specific nonce
 - Capability checks on every admin page load
 
+### Rate Limiting
+- A transient-based per-user, per-location cooldown (10 seconds) prevents rapid repeated saves
+- Saves submitted within the cooldown window are rejected with an admin notice
+
 ### Audit Logging
-- All script changes logged to the WordPress error log
-- Logs include: user ID, username, timestamp
-- Helps track unauthorized changes
+- All script changes **and AJAX rollbacks** logged to the WordPress error log
+- Logs include: username, user ID, and timestamp (no IP addresses collected)
+- Helps track changes and detect unauthorised modification
 
 ### Output Security
 - Proper escaping of all admin interface text
@@ -220,13 +254,23 @@ eval(someUntrustedString); // Never use eval!
 
 ### Cannot Save Changes
 
-**Problem**: Save button doesn't work
+**Problem**: Save button doesn't work or changes appear to be ignored
 
 **Solutions**:
 - Verify you have administrator privileges
-- Check if script exceeds 100KB limit
+- Check if script exceeds the 100 KB limit
 - Remove any HTML tags (JavaScript only)
 - Check browser console for JavaScript errors
+- If you saved very recently, the **rate limiter** (10-second cooldown per user/location) may have rejected the save — wait a moment and try again
+
+### Restoring a Previous Version
+
+**Problem**: A script change introduced an error and you need to roll back
+
+**Solutions**:
+- Scroll to the **Revision History** panel at the bottom of the Head Scripts or Footer Scripts page
+- Click **Restore** next to any prior revision to instantly roll back via AJAX
+- The current script is pushed to history before being overwritten, so you can always recover it
 
 ### Performance Issues
 

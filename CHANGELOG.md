@@ -13,7 +13,7 @@ Nothing pending.
 
 ---
 
-## [1.4.0] – 2026-05-06
+## [1.4.0] – 2026-02-26
 
 ### Changed
 - Refactored the monolithic `scriptomatic.php` (2 696 lines) into a clean multi-file structure:
@@ -153,6 +153,7 @@ Nothing pending.
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 1.4.0   | 2026-02-26 | Trait refactor, static assets, modular architecture |
 | 1.3.1   | 2026-02-26 | Dead-code removal, doc accuracy, i18n fix      |
 | 1.3.0   | 2026-02-26 | Conditional per-page loading                   |
 | 1.2.1   | 2026-02-26 | Multisite bug fixes, security hardening        |
@@ -162,7 +163,8 @@ Nothing pending.
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/richardkentgates/scriptomatic/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/richardkentgates/scriptomatic/compare/v1.2.0...v1.2.1

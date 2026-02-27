@@ -115,7 +115,7 @@ trait Scriptomatic_Menus {
             array( $this, 'render_network_head_page' )
         );
 
-        add_submenu_page(
+        $net_footer_hook = add_submenu_page(
             'scriptomatic-network',
             __( 'Footer Scripts — Scriptomatic Network', 'scriptomatic' ),
             __( 'Footer Scripts', 'scriptomatic' ),
@@ -124,7 +124,7 @@ trait Scriptomatic_Menus {
             array( $this, 'render_network_footer_page' )
         );
 
-        add_submenu_page(
+        $net_general_hook = add_submenu_page(
             'scriptomatic-network',
             __( 'General Settings — Scriptomatic Network', 'scriptomatic' ),
             __( 'General Settings', 'scriptomatic' ),
@@ -132,5 +132,10 @@ trait Scriptomatic_Menus {
             'scriptomatic-network-settings',
             array( $this, 'render_network_general_page' )
         );
+
+        // Attach contextual help to each network sub-page.
+        add_action( 'load-toplevel_page_scriptomatic-network', array( $this, 'add_help_tab' ) );
+        add_action( 'load-' . $net_footer_hook,                array( $this, 'add_help_tab' ) );
+        add_action( 'load-' . $net_general_hook,               array( $this, 'add_help_tab' ) );
     }
 }
