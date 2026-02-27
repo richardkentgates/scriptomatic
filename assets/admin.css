@@ -110,3 +110,17 @@
     min-height: 36px;
 }
 .scriptomatic-url-error { color: #dc3545; margin-top: 4px; }
+
+/* Security notice */
+.scriptomatic-security-notice {
+    margin-top: 12px;
+    padding: 10px;
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+.scriptomatic-security-notice h4 {
+    margin-top: 0;
+}
+.scriptomatic-security-notice .dashicons {
+    color: #ffc107;
+}

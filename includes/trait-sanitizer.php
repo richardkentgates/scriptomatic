@@ -35,7 +35,9 @@ trait Scriptomatic_Sanitizer {
      */
     private function validate_inline_script( $input, $location ) {
         $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-        $fallback   = get_option( $option_key, '' );
+        $fallback   = is_network_admin()
+            ? get_site_option( $option_key, '' )
+            : get_option( $option_key, '' );
 
         if ( ! is_string( $input ) ) {
             return $fallback;
@@ -292,7 +294,9 @@ trait Scriptomatic_Sanitizer {
 
         $decoded = json_decode( wp_unslash( $input ), true );
         if ( ! is_array( $decoded ) ) {
-            return get_option( $option_key, '[]' );
+            return is_network_admin()
+                ? get_site_option( $option_key, '[]' )
+                : get_option( $option_key, '[]' );
         }
 
         $clean = array();
@@ -365,7 +369,9 @@ trait Scriptomatic_Sanitizer {
 
         $decoded = json_decode( wp_unslash( $input ), true );
         if ( ! is_array( $decoded ) ) {
-            return get_option( $option_key, $default );
+            return is_network_admin()
+                ? get_site_option( $option_key, $default )
+                : get_option( $option_key, $default );
         }
 
         $allowed_types = array( 'all', 'front_page', 'singular', 'post_type', 'page_id', 'url_contains', 'logged_in', 'logged_out' );

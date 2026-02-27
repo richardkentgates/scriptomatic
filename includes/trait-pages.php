@@ -353,7 +353,9 @@ trait Scriptomatic_Pages {
             $raw_linked = isset( $_POST[ $linked_key ] ) ? (string) wp_unslash( $_POST[ $linked_key ] ) : '[]';
             $raw_cond   = isset( $_POST[ $cond_key ] )   ? (string) wp_unslash( $_POST[ $cond_key ] )   : '';
 
-            update_site_option( $script_key, $this->validate_inline_script( $raw_script, $location ) );
+            $sanitised_script = $this->validate_inline_script( $raw_script, $location );
+            $this->log_change( $sanitised_script, $script_key, $location );
+            update_site_option( $script_key, $sanitised_script );
             update_site_option( $linked_key, $this->sanitize_linked_for( $raw_linked, $location ) );
             update_site_option( $cond_key,   $this->sanitize_conditions_for( $raw_cond, $location ) );
 

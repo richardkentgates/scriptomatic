@@ -117,7 +117,14 @@ trait Scriptomatic_Settings {
             'max_history'            => SCRIPTOMATIC_DEFAULT_MAX_HISTORY,
             'keep_data_on_uninstall' => false,
         );
-        $saved = get_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array() );
+        if ( is_network_admin() ) {
+            $saved = get_site_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array() );
+        } else {
+            $saved = get_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, false );
+            if ( false === $saved && is_multisite() ) {
+                $saved = get_site_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array() );
+            }
+        }
         return wp_parse_args( is_array( $saved ) ? $saved : array(), $defaults );
     }
 
@@ -188,7 +195,9 @@ trait Scriptomatic_Settings {
      * @return void
      */
     private function log_change( $new_content, $option_key, $location ) {
-        $old_content = get_option( $option_key, '' );
+        $old_content = is_network_admin()
+            ? get_site_option( $option_key, '' )
+            : get_option( $option_key, '' );
         if ( $old_content !== $new_content ) {
             $user = wp_get_current_user();
             error_log( sprintf(

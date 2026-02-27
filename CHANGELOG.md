@@ -13,6 +13,20 @@ Nothing pending.
 
 ---
 
+## [1.4.1] – 2026-02-26
+
+### Fixed
+- **Network admin: fields displayed wrong values.** `render_script_field_for()`, `render_linked_field_for()`, and `render_conditions_field_for()` all called `get_option()` when rendering network-admin pages. Because network-admin values are stored via `update_site_option()`, the script textarea, linked-URL chicklets, and load-condition selector always appeared empty (or showed per-site values) on the network admin screens. All three helpers now call `get_site_option()` when `is_network_admin()` is true.
+- **Network admin: validation fallback returned wrong value.** `validate_inline_script()`, `sanitize_linked_for()`, and `sanitize_conditions_for()` each used `get_option()` as their fallback return on parse/decode failure. When called from `handle_network_settings_save()`, a failed validation would return the per-site option value (possibly empty) instead of the stored site option. All three now check `is_network_admin()` to choose the correct storage API.
+- **`get_plugin_settings()` not network-aware.** The method always read from `get_option()`. On the network-admin General Settings page the History Limit and Keep Data fields showed per-site values instead of the network-level settings. The method now reads `get_site_option()` on network-admin and falls back to it on multisite front-end/per-site requests (mirroring `get_front_end_option()`).
+- **`log_change()` always logged on network-admin saves.** The old-value comparison used `get_option()`, but network scripts are stored under `get_site_option()`. Content that was unchanged would still be logged as a change because the per-site option was (typically) empty. The method now reads the correct API based on `is_network_admin()`.
+- **Network admin script saves were not audit-logged.** `handle_network_settings_save()` called `validate_inline_script()` (which has no logging) and immediately passed the result to `update_site_option()`. Script changes via network admin were therefore never written to the error log. The handler now captures the validated value, calls `log_change()`, and then persists it.
+
+### Changed
+- Moved `.scriptomatic-security-notice` inline styles from `render_script_field_for()` into `assets/admin.css`.
+
+---
+
 ## [1.4.0] – 2026-02-26
 
 ### Changed
@@ -153,6 +167,7 @@ Nothing pending.
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 1.4.1   | 2026-02-26 | Multisite network-admin bug fixes              |
 | 1.4.0   | 2026-02-26 | Trait refactor, static assets, modular architecture |
 | 1.3.1   | 2026-02-26 | Dead-code removal, doc accuracy, i18n fix      |
 | 1.3.0   | 2026-02-26 | Conditional per-page loading                   |
@@ -163,7 +178,8 @@ Nothing pending.
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/richardkentgates/scriptomatic/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.2.1...v1.3.0

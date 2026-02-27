@@ -135,7 +135,9 @@ trait Scriptomatic_Renderer {
      */
     private function render_script_field_for( $location ) {
         $option_key     = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-        $script_content = get_option( $option_key, '' );
+        $script_content = is_network_admin()
+            ? get_site_option( $option_key, '' )
+            : get_option( $option_key, '' );
         $char_count     = strlen( $script_content );
         $max_length     = SCRIPTOMATIC_MAX_SCRIPT_LENGTH;
         $textarea_id    = 'scriptomatic-' . $location . '-script';
@@ -164,8 +166,8 @@ trait Scriptomatic_Renderer {
             <strong><?php esc_html_e( 'Important:', 'scriptomatic' ); ?></strong>
             <?php esc_html_e( 'Enter only JavaScript code. Do not include <script> tags — they are added automatically.', 'scriptomatic' ); ?>
         </p>
-        <div class="scriptomatic-security-notice" style="margin-top:12px;padding:10px;background:#fff3cd;border-left:4px solid #ffc107;">
-            <h4 style="margin-top:0;"><span class="dashicons dashicons-shield" style="color:#ffc107;"></span>
+        <div class="scriptomatic-security-notice">
+            <h4><span class="dashicons dashicons-shield"></span>
             <?php esc_html_e( 'Security Notice', 'scriptomatic' ); ?></h4>
             <ul style="margin:0;padding-left:20px;">
                 <li><?php esc_html_e( 'Only administrators can modify this content.', 'scriptomatic' ); ?></li>
@@ -186,7 +188,9 @@ trait Scriptomatic_Renderer {
      */
     private function render_linked_field_for( $location ) {
         $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $raw        = get_option( $option_key, '[]' );
+        $raw        = is_network_admin()
+            ? get_site_option( $option_key, '[]' )
+            : get_option( $option_key, '[]' );
         $urls       = json_decode( $raw, true );
         if ( ! is_array( $urls ) ) {
             $urls = array();
@@ -407,7 +411,9 @@ trait Scriptomatic_Renderer {
      */
     private function render_conditions_field_for( $location ) {
         $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-        $raw        = get_option( $option_key, '' );
+        $raw        = is_network_admin()
+            ? get_site_option( $option_key, '' )
+            : get_option( $option_key, '' );
         $conditions = json_decode( $raw, true );
         $type       = ( is_array( $conditions ) && ! empty( $conditions['type'] ) ) ? $conditions['type'] : 'all';
         $values     = ( is_array( $conditions ) && isset( $conditions['values'] ) && is_array( $conditions['values'] ) ) ? $conditions['values'] : array();
