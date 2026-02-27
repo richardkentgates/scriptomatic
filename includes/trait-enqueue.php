@@ -38,11 +38,14 @@ trait Scriptomatic_Enqueue {
         $footer_hooks = array(
             'scriptomatic_page_scriptomatic-footer',
         );
+        $files_hooks = array(
+            'scriptomatic_page_scriptomatic-files',
+        );
         $general_hooks = array(
             'scriptomatic_page_scriptomatic-settings',
         );
 
-        $all_hooks = array_merge( $head_hooks, $footer_hooks, $general_hooks );
+        $all_hooks = array_merge( $head_hooks, $footer_hooks, $files_hooks, $general_hooks );
 
         if ( ! in_array( $hook, $all_hooks, true ) ) {
             return;
@@ -51,6 +54,8 @@ trait Scriptomatic_Enqueue {
         // Determine the active location for the JS context object.
         if ( in_array( $hook, $footer_hooks, true ) ) {
             $location = 'footer';
+        } elseif ( in_array( $hook, $files_hooks, true ) ) {
+            $location = 'files';
         } elseif ( in_array( $hook, $general_hooks, true ) ) {
             $location = 'general';
         } else {
@@ -65,11 +70,12 @@ trait Scriptomatic_Enqueue {
             SCRIPTOMATIC_VERSION
         );
 
-        // For script pages (head/footer), activate the WP code editor.
+        // For script/files pages, activate the WP code editor.
         // wp_enqueue_code_editor() returns false when the user has disabled
         // syntax highlighting in their profile — JS falls back gracefully.
         $code_editor_settings = false;
-        if ( in_array( $hook, array_merge( $head_hooks, $footer_hooks ), true ) ) {
+        $editor_pages         = array_merge( $head_hooks, $footer_hooks, $files_hooks );
+        if ( in_array( $hook, $editor_pages, true ) ) {
             $code_editor_settings = wp_enqueue_code_editor( array( 'type' => 'text/javascript' ) );
             if ( $code_editor_settings ) {
                 wp_enqueue_style( 'code-editor' );
@@ -89,7 +95,9 @@ trait Scriptomatic_Enqueue {
         wp_localize_script( 'scriptomatic-admin-js', 'scriptomaticData', array(
             'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
             'rollbackNonce'       => wp_create_nonce( SCRIPTOMATIC_ROLLBACK_NONCE ),
+            'filesNonce'          => wp_create_nonce( SCRIPTOMATIC_FILES_NONCE ),
             'maxLength'           => SCRIPTOMATIC_MAX_SCRIPT_LENGTH,
+            'maxUploadSize'       => wp_max_upload_size(),
             'location'            => $location,
             'codeEditorSettings'  => $code_editor_settings,
             'i18n'               => array(
@@ -107,6 +115,9 @@ trait Scriptomatic_Enqueue {
                 'loading'          => __( "Loading\u2026", 'scriptomatic' ),
                 'emptyScript'      => __( '(empty)', 'scriptomatic' ),
                 'viewError'        => __( 'Could not load revision. Please try again.', 'scriptomatic' ),
+                'deleteFileConfirm' => __( 'Delete "$1"? This cannot be undone.', 'scriptomatic' ),
+                'deleteFileError'   => __( 'Delete failed. Please try again.', 'scriptomatic' ),
+                'deleting'          => __( "Deleting\u2026", 'scriptomatic' ),
             ),
         ) );
     }

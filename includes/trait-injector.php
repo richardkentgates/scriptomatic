@@ -101,6 +101,25 @@ trait Scriptomatic_Injector {
             }
         }
 
+        // Managed JS files targeted at this location.
+        $js_files = $this->get_js_files_meta();
+        foreach ( $js_files as $file ) {
+            if ( ! isset( $file['location'] ) || $file['location'] !== $location ) {
+                continue;
+            }
+            if ( empty( $file['filename'] ) ) {
+                continue;
+            }
+            $conditions = ( isset( $file['conditions'] ) && is_array( $file['conditions'] ) )
+                ? $file['conditions']
+                : array( 'type' => 'all', 'values' => array() );
+
+            if ( $this->evaluate_conditions_object( $conditions ) ) {
+                $file_url       = $this->get_js_files_url() . $file['filename'];
+                $output_parts[] = '<script src="' . esc_url( $file_url ) . '"></script>';
+            }
+        }
+
         // Inline script: check the location-level conditions option.
         if ( ! empty( trim( $script_content ) ) && $this->check_load_conditions( $location ) ) {
             $output_parts[] = '<script>';

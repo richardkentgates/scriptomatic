@@ -39,6 +39,8 @@ function scriptomatic_uninstall_cleanup() {
         // Load conditions (v1.3+)
         'scriptomatic_head_conditions',
         'scriptomatic_footer_conditions',
+        // Managed JS files (v1.8+)
+        'scriptomatic_js_files',
         // General settings
         'scriptomatic_plugin_settings',
         // Audit log
@@ -59,6 +61,7 @@ function scriptomatic_uninstall_cleanup() {
     foreach ($options as $option_key) {
         delete_option($option_key);
     }
+    scriptomatic_delete_uploads_dir();
 
     // Multisite: iterate every sub-site.
     if (is_multisite()) {
@@ -71,6 +74,7 @@ function scriptomatic_uninstall_cleanup() {
             foreach ($options as $option_key) {
                 delete_option($option_key);
             }
+            scriptomatic_delete_uploads_dir();
             restore_current_blog();
         }
 
@@ -81,6 +85,33 @@ function scriptomatic_uninstall_cleanup() {
     }
 
     error_log('Scriptomatic: Plugin uninstalled and all data removed.');
+}
+
+/**
+ * Remove the wp-content/uploads/scriptomatic/ directory and all files in it.
+ *
+ * Called once per site during uninstall.
+ *
+ * @return void
+ */
+function scriptomatic_delete_uploads_dir() {
+    $upload = wp_upload_dir();
+    $dir    = trailingslashit($upload['basedir']) . 'scriptomatic/';
+
+    if (!is_dir($dir)) {
+        return;
+    }
+
+    // Remove all files, then the directory itself.
+    $files = glob($dir . '*', GLOB_NOSORT);
+    if (is_array($files)) {
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                @unlink($file); // phpcs:ignore
+            }
+        }
+    }
+    @rmdir($dir); // phpcs:ignore
 }
 
 scriptomatic_uninstall_cleanup();

@@ -70,9 +70,15 @@ define( 'SCRIPTOMATIC_FOOTER_NONCE',   'scriptomatic_save_footer' );  // Footer 
 define( 'SCRIPTOMATIC_GENERAL_NONCE',  'scriptomatic_save_general' ); // General settings form secondary nonce
 define( 'SCRIPTOMATIC_ROLLBACK_NONCE', 'scriptomatic_rollback' );     // AJAX rollback nonce
 
+// ---- Option keys: managed JS files ----
+define( 'SCRIPTOMATIC_JS_FILES_OPTION', 'scriptomatic_js_files' );    // DB option key for JS file metadata array
+
 // ---- Audit log ----
 define( 'SCRIPTOMATIC_AUDIT_LOG_OPTION', 'scriptomatic_audit_log' );  // DB option key for the audit log
 define( 'SCRIPTOMATIC_MAX_LOG_ENTRIES',  200 );                        // Maximum entries retained
+
+// ---- Nonces: JS files ----
+define( 'SCRIPTOMATIC_FILES_NONCE', 'scriptomatic_save_js_file' );    // File edit form + AJAX delete nonce
 
 // Load the main class (also requires all trait files).
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/class-scriptomatic.php';

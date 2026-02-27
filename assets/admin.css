@@ -317,3 +317,46 @@
 .scriptomatic-code-editor-wrap + .description {
     margin-top: 4px;
 }
+
+/* =============================================================================
+   JS Files list page
+   ============================================================================= */
+
+.sm-files-table {
+    margin-top: 16px;
+    max-width: 100%;
+}
+
+.sm-files-table .column-primary {
+    width: 22%;
+}
+
+.sm-files-table td code {
+    font-size: 12px;
+    background: #f0f0f1;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+.sm-files-table .button-link-delete {
+    color: #b32d2e;
+    text-decoration: none;
+    border: 1px solid #b32d2e;
+    margin-left: 4px;
+}
+
+.sm-files-table .button-link-delete:hover {
+    color: #dc3232;
+    border-color: #dc3232;
+    background: #fce8e8;
+}
+
+.sm-files-empty {
+    margin-top: 20px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+    color: #555;
+}

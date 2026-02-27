@@ -19,20 +19,32 @@ jQuery( document ).ready( function ( $ ) {
     var maxLen = data.maxLength || 100000;
     var i18n   = data.i18n    || {};
 
+    // On the files page, honour the server's upload limit instead of the
+    // inline-script 100 KB cap.
+    if ( loc === 'files' && data.maxUploadSize ) {
+        maxLen = parseInt( data.maxUploadSize, 10 ) || maxLen;
+    }
+
     /* =========================================================================
      * 1. Code editor (CodeMirror via wp.codeEditor) + character counter
      *
      * Initialises a full JS code editor on the inline-script textarea when
      * wp.codeEditor is available and the user has not disabled syntax
      * highlighting in their WP profile.  Falls back to a plain <textarea>.
+     * The files page feeds the same init path; its textarea id follows the
+     * same pattern: #scriptomatic-files-script.
      * ====================================================================== */
     var $textarea     = $( '#scriptomatic-' + loc + '-script' );
     var $counter      = $( '#scriptomatic-' + loc + '-char-count' );
     var cmEditor      = null;
     var codeEditorCfg = data.codeEditorSettings || false;
 
-    /* WP-specific globals and jQuery patterns surfaced by the Ctrl-Space hint. */
-    var wpHintWords = [
+    /* Format raw byte count as a human-readable string (files page). */
+    function formatBytes( n ) {
+        if ( n < 1024 ) { return n + ' B'; }
+        if ( n < 1024 * 1024 ) { return ( n / 1024 ).toFixed( 1 ) + ' KB'; }
+        return ( n / ( 1024 * 1024 ) ).toFixed( 2 ) + ' MB';
+    }    var wpHintWords = [
         'jQuery', 'jQuery(document).ready(', 'jQuery(function($){',
         '$', '$.ajax(', '$.post(', '$.get(', '$.fn',
         'wp', 'wp.ajax', 'wp.ajax.post(', 'wp.ajax.send(',
@@ -47,7 +59,8 @@ jQuery( document ).ready( function ( $ ) {
     ];
 
     function updateCounter( len ) {
-        $counter.text( len.toLocaleString() );
+        var display = ( loc === 'files' ) ? formatBytes( len ) : len.toLocaleString();
+        $counter.text( display );
         if ( len > maxLen * 0.9 ) {
             $counter.css( { color: '#dc3545', fontWeight: 'bold' } );
         } else if ( len > maxLen * 0.75 ) {
@@ -480,5 +493,68 @@ jQuery( document ).ready( function ( $ ) {
     $( '.scriptomatic-conditions-wrap' ).not( '.sm-url-conditions-wrap' ).each( function () {
         initConditions( $( this ) );
     } );
+
+    /* =========================================================================
+     * 5. JS Files page
+     * ====================================================================== */
+    if ( loc === 'files' ) {
+
+        /* 5a. Auto-slug: mirror label → filename while the filename has not
+         *     been manually edited.  Stops syncing the moment the user types
+         *     in the filename field themselves. */
+        var $fileLabel = $( '#sm-file-label' );
+        var $fileSlug  = $( '#sm-file-name' );
+        var slugEdited = $fileSlug.length && $fileSlug.val() !== '';
+
+        if ( $fileLabel.length && $fileSlug.length ) {
+            $fileLabel.on( 'input', function () {
+                if ( ! slugEdited ) {
+                    var slug = $fileLabel.val()
+                        .toLowerCase()
+                        .replace( /[^a-z0-9]+/g, '-' )
+                        .replace( /^-+|-+$/g, '' );
+                    $fileSlug.val( slug ? slug + '.js' : '' );
+                }
+            } );
+            $fileSlug.on( 'input', function () {
+                slugEdited = true;
+            } );
+        }
+
+        /* 5b. AJAX delete: confirm, POST, remove row on success. */
+        $( document ).on( 'click', '.sm-file-delete', function ( e ) {
+            e.preventDefault();
+            var $btn   = $( this );
+            var fileId = $btn.data( 'file-id' );
+            var label  = $btn.data( 'label' ) || fileId;
+            var confirmMsg = ( i18n.deleteFileConfirm || 'Delete "$1"? This cannot be undone.' )
+                .replace( '$1', label );
+
+            if ( ! confirm( confirmMsg ) ) { return; }
+
+            var origText = $btn.text();
+            $btn.prop( 'disabled', true ).text( i18n.deleting || 'Deleting…' );
+
+            $.post( data.ajaxUrl, {
+                action:  'scriptomatic_delete_js_file',
+                nonce:   data.filesNonce,
+                file_id: fileId
+            }, function ( response ) {
+                if ( response.success ) {
+                    $btn.closest( 'tr' ).fadeOut( 300, function () {
+                        $( this ).remove();
+                    } );
+                } else {
+                    var msg = ( response.data && response.data.message ) ? response.data.message : '';
+                    alert( ( i18n.deleteFileError || 'Delete failed.' ) + ( msg ? ' ' + msg : '' ) );
+                    $btn.prop( 'disabled', false ).text( origText );
+                }
+            } ).fail( function () {
+                alert( i18n.deleteFileError || 'Delete failed.' );
+                $btn.prop( 'disabled', false ).text( origText );
+            } );
+        } );
+
+    } /* end loc === 'files' */
 
 } );  /* end document.ready */

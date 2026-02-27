@@ -781,4 +781,138 @@ trait Scriptomatic_Renderer {
         </p>
         <?php
     }
+
+    // =========================================================================
+    // FILE CONDITIONS WIDGET
+    // =========================================================================
+
+    /**
+     * Render a fully self-contained Load Conditions picker for the JS File
+     * edit form.
+     *
+     * Unlike render_conditions_field_for(), this method accepts the data
+     * directly (no DB read) and writes to a custom hidden-input name so the
+     * file save handler can read it from $_POST.
+     *
+     * @since  1.8.0
+     * @param  string $pfx         Unique HTML ID prefix (e.g. 'sm-file-cond').
+     * @param  array  $conditions  Decoded conditions array with 'type' and 'values' keys.
+     * @return void
+     */
+    public function render_file_conditions_widget( $pfx, array $conditions ) {
+        $type       = ( ! empty( $conditions['type'] ) && is_string( $conditions['type'] ) )
+            ? $conditions['type']
+            : 'all';
+        $values     = ( isset( $conditions['values'] ) && is_array( $conditions['values'] ) )
+            ? $conditions['values']
+            : array();
+        $post_types = get_post_types( array( 'public' => true ), 'objects' );
+
+        $condition_labels = array(
+            'all'          => __( 'All pages (default)', 'scriptomatic' ),
+            'front_page'   => __( 'Front page only', 'scriptomatic' ),
+            'singular'     => __( 'Any single post or page', 'scriptomatic' ),
+            'post_type'    => __( 'Specific post types', 'scriptomatic' ),
+            'page_id'      => __( 'Specific pages / posts by ID', 'scriptomatic' ),
+            'url_contains' => __( 'URL contains (any match)', 'scriptomatic' ),
+            'logged_in'    => __( 'Logged-in users only', 'scriptomatic' ),
+            'logged_out'   => __( 'Logged-out visitors only', 'scriptomatic' ),
+        );
+        ?>
+        <div class="scriptomatic-conditions-wrap" data-prefix="<?php echo esc_attr( $pfx ); ?>">
+
+            <select
+                id="<?php echo esc_attr( $pfx ); ?>-type"
+                class="scriptomatic-condition-type"
+                style="min-width:280px;"
+                aria-label="<?php esc_attr_e( 'Load condition', 'scriptomatic' ); ?>"
+            >
+                <?php foreach ( $condition_labels as $val => $label ) : ?>
+                <option value="<?php echo esc_attr( $val ); ?>" <?php selected( $type, $val ); ?>><?php echo esc_html( $label ); ?></option>
+                <?php endforeach; ?>
+            </select>
+
+            <?php /* --- Panel: post_type --- */ ?>
+            <div class="sm-cond-panel" data-panel="post_type" <?php echo 'post_type' !== $type ? 'hidden' : ''; ?>>
+                <fieldset class="sm-cond-fieldset">
+                    <legend><?php esc_html_e( 'Load on these post types:', 'scriptomatic' ); ?></legend>
+                    <div class="sm-pt-grid">
+                    <?php foreach ( $post_types as $pt ) :
+                        $checked = in_array( $pt->name, $values, true ); ?>
+                        <label class="sm-pt-label">
+                            <input type="checkbox" class="sm-pt-checkbox"
+                                data-prefix="<?php echo esc_attr( $pfx ); ?>"
+                                value="<?php echo esc_attr( $pt->name ); ?>"
+                                <?php checked( $checked ); ?>
+                            >
+                            <span>
+                                <strong><?php echo esc_html( $pt->labels->singular_name ); ?></strong>
+                                <code><?php echo esc_html( $pt->name ); ?></code>
+                            </span>
+                        </label>
+                    <?php endforeach; ?>
+                    </div>
+                </fieldset>
+            </div>
+
+            <?php /* --- Panel: page_id --- */ ?>
+            <div class="sm-cond-panel" data-panel="page_id" <?php echo 'page_id' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e( 'Add the numeric ID of each post, page, or custom post entry.', 'scriptomatic' ); ?></p>
+                    <div id="<?php echo esc_attr( $pfx ); ?>-id-chicklets" class="scriptomatic-chicklet-list scriptomatic-chicklet-list--alt" aria-label="<?php esc_attr_e( 'Added page IDs', 'scriptomatic' ); ?>">
+                        <?php foreach ( $values as $id ) :
+                            $id    = absint( $id );
+                            if ( ! $id ) { continue; }
+                            $title = get_the_title( $id );
+                            $lbl   = $title ? $id . ' — ' . $title : (string) $id;
+                        ?>
+                        <span class="scriptomatic-chicklet" data-val="<?php echo esc_attr( $id ); ?>">
+                            <span class="chicklet-label" title="<?php echo esc_attr( $lbl ); ?>"><?php echo esc_html( $lbl ); ?></span>
+                            <button type="button" class="scriptomatic-remove-url" aria-label="<?php esc_attr_e( 'Remove ID', 'scriptomatic' ); ?>">&times;</button>
+                        </span>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="sm-cond-add-row">
+                        <input type="number" id="<?php echo esc_attr( $pfx ); ?>-id-new" class="small-text" min="1" step="1"
+                            placeholder="<?php esc_attr_e( 'ID', 'scriptomatic' ); ?>"
+                            aria-label="<?php esc_attr_e( 'Post or page ID to add', 'scriptomatic' ); ?>">
+                        <button type="button" id="<?php echo esc_attr( $pfx ); ?>-id-add" class="button button-secondary"><?php esc_html_e( 'Add ID', 'scriptomatic' ); ?></button>
+                    </div>
+                    <p id="<?php echo esc_attr( $pfx ); ?>-id-error" class="scriptomatic-url-error" style="display:none;"></p>
+                </div>
+            </div>
+
+            <?php /* --- Panel: url_contains --- */ ?>
+            <div class="sm-cond-panel" data-panel="url_contains" <?php echo 'url_contains' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e( 'File loads when the request URL contains any of the listed strings.', 'scriptomatic' ); ?></p>
+                    <div id="<?php echo esc_attr( $pfx ); ?>-url-chicklets" class="scriptomatic-chicklet-list scriptomatic-chicklet-list--alt" aria-label="<?php esc_attr_e( 'Added URL patterns', 'scriptomatic' ); ?>">
+                        <?php foreach ( $values as $pattern ) :
+                            $pattern = sanitize_text_field( (string) $pattern );
+                            if ( '' === $pattern ) { continue; }
+                        ?>
+                        <span class="scriptomatic-chicklet" data-val="<?php echo esc_attr( $pattern ); ?>">
+                            <span class="chicklet-label" title="<?php echo esc_attr( $pattern ); ?>"><?php echo esc_html( $pattern ); ?></span>
+                            <button type="button" class="scriptomatic-remove-url" aria-label="<?php esc_attr_e( 'Remove pattern', 'scriptomatic' ); ?>">&times;</button>
+                        </span>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="sm-cond-add-row">
+                        <input type="text" id="<?php echo esc_attr( $pfx ); ?>-url-new" class="regular-text"
+                            placeholder="<?php esc_attr_e( '/my-page or /category/name', 'scriptomatic' ); ?>"
+                            aria-label="<?php esc_attr_e( 'URL pattern to add', 'scriptomatic' ); ?>">
+                        <button type="button" id="<?php echo esc_attr( $pfx ); ?>-url-add" class="button button-secondary"><?php esc_html_e( 'Add Pattern', 'scriptomatic' ); ?></button>
+                    </div>
+                    <p id="<?php echo esc_attr( $pfx ); ?>-url-error" class="scriptomatic-url-error" style="display:none;"></p>
+                </div>
+            </div>
+
+            <input type="hidden"
+                id="<?php echo esc_attr( $pfx ); ?>-json"
+                name="sm_file_conditions"
+                value="<?php echo esc_attr( wp_json_encode( array( 'type' => $type, 'values' => $values ) ) ); ?>"
+            >
+        </div><!-- .scriptomatic-conditions-wrap -->
+        <?php
+    }
 }

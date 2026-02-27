@@ -65,6 +65,16 @@ trait Scriptomatic_Menus {
             array( $this, 'render_footer_page' )
         );
 
+        // Sub-page: JS Files.
+        $files_hook = add_submenu_page(
+            'scriptomatic',
+            __( 'JS Files — Scriptomatic', 'scriptomatic' ),
+            __( 'JS Files', 'scriptomatic' ),
+            $cap,
+            'scriptomatic-files',
+            array( $this, 'render_js_files_page' )
+        );
+
         // Sub-page: Preferences.
         $general_hook = add_submenu_page(
             'scriptomatic',
@@ -78,6 +88,7 @@ trait Scriptomatic_Menus {
         // Attach contextual help to each sub-page.
         add_action( 'load-' . $head_hook,    array( $this, 'add_help_tab' ) );
         add_action( 'load-' . $footer_hook,  array( $this, 'add_help_tab' ) );
+        add_action( 'load-' . $files_hook,   array( $this, 'add_help_tab' ) );
         add_action( 'load-' . $general_hook, array( $this, 'add_help_tab' ) );
     }
 

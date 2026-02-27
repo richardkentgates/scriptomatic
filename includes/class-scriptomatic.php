@@ -21,6 +21,7 @@ require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-renderer.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-pages.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-enqueue.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-injector.php';
+require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-files.php';
 
 /**
  * Main plugin class.
@@ -54,6 +55,7 @@ class Scriptomatic {
     use Scriptomatic_Pages;
     use Scriptomatic_Enqueue;
     use Scriptomatic_Injector;
+    use Scriptomatic_Files;
 
     // =========================================================================
     // SINGLETON
@@ -115,6 +117,10 @@ class Scriptomatic {
         // AJAX — wp_ajax_ prefix ensures only logged-in users can trigger it.
         add_action( 'wp_ajax_scriptomatic_rollback',             array( $this, 'ajax_rollback' ) );
         add_action( 'wp_ajax_scriptomatic_get_history_content',  array( $this, 'ajax_get_history_content' ) );
+        add_action( 'wp_ajax_scriptomatic_delete_js_file',       array( $this, 'ajax_delete_js_file' ) );
+
+        // Admin-post: JS file save form.
+        add_action( 'admin_post_scriptomatic_save_js_file',      array( $this, 'handle_save_js_file' ) );
     }
 
     /**

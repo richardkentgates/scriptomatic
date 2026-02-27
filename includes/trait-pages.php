@@ -217,8 +217,294 @@ trait Scriptomatic_Pages {
     }
 
     // =========================================================================
-    // AUDIT LOG TABLE (embedded in Head Scripts and Footer Scripts pages)
+    // JS FILES PAGE
     // =========================================================================
+
+    /**
+     * Render the JS Files admin page.
+     *
+     * Dispatches to the list view or the edit/new-file view based on the
+     * `action` query parameter.
+     *
+     * @since  1.8.0
+     * @return void
+     */
+    public function render_js_files_page() {
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_die( esc_html__( 'You do not have permission to access this page.', 'scriptomatic' ) );
+        }
+
+        $action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
+
+        if ( 'edit' === $action ) {
+            $this->render_js_file_edit_view();
+        } else {
+            $this->render_js_file_list_view();
+        }
+    }
+
+    /**
+     * Render the JS Files list table.
+     *
+     * @since  1.8.0
+     * @access private
+     * @return void
+     */
+    private function render_js_file_list_view() {
+        $files = $this->get_js_files_meta();
+
+        $saved_notice = isset( $_GET['saved'] ) && '1' === $_GET['saved'];
+
+        $condition_labels = array(
+            'all'          => __( 'All pages', 'scriptomatic' ),
+            'front_page'   => __( 'Front page only', 'scriptomatic' ),
+            'singular'     => __( 'Any singular', 'scriptomatic' ),
+            'post_type'    => __( 'Specific post types', 'scriptomatic' ),
+            'page_id'      => __( 'Specific page IDs', 'scriptomatic' ),
+            'url_contains' => __( 'URL contains', 'scriptomatic' ),
+            'logged_in'    => __( 'Logged-in only', 'scriptomatic' ),
+            'logged_out'   => __( 'Logged-out only', 'scriptomatic' ),
+        );
+        ?>
+        <div class="wrap">
+            <h1 class="wp-heading-inline"><?php esc_html_e( 'JS Files', 'scriptomatic' ); ?></h1>
+            <a href="<?php echo esc_url( add_query_arg( array( 'page' => 'scriptomatic-files', 'action' => 'edit' ), admin_url( 'admin.php' ) ) ); ?>" class="page-title-action">
+                <?php esc_html_e( 'Add New', 'scriptomatic' ); ?>
+            </a>
+            <hr class="wp-header-end">
+
+            <?php if ( $saved_notice ) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'File saved.', 'scriptomatic' ); ?></p></div>
+            <?php endif; ?>
+
+            <p class="description" style="margin-top:8px;">
+                <?php esc_html_e( 'Manage standalone JavaScript files stored on this server. Each file can be loaded in the head or footer with its own conditions.', 'scriptomatic' ); ?>
+            </p>
+
+            <?php if ( empty( $files ) ) : ?>
+            <div class="sm-files-empty">
+                <p><?php esc_html_e( 'No JS files yet.', 'scriptomatic' ); ?> <a href="<?php echo esc_url( add_query_arg( array( 'page' => 'scriptomatic-files', 'action' => 'edit' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Add your first file.', 'scriptomatic' ); ?></a></p>
+            </div>
+            <?php else : ?>
+            <table class="wp-list-table widefat fixed striped sm-files-table" style="margin-top:16px;">
+                <thead>
+                    <tr>
+                        <th scope="col" class="column-primary"><?php esc_html_e( 'Label', 'scriptomatic' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Filename', 'scriptomatic' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Inject In', 'scriptomatic' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Conditions', 'scriptomatic' ); ?></th>
+                        <th scope="col"><?php esc_html_e( 'Actions', 'scriptomatic' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $files as $file ) :
+                        $fid       = isset( $file['id'] )       ? $file['id']       : '';
+                        $flabel    = isset( $file['label'] )    ? $file['label']    : $fid;
+                        $fname     = isset( $file['filename'] ) ? $file['filename'] : '';
+                        $floc      = ( isset( $file['location'] ) && 'footer' === $file['location'] ) ? 'footer' : 'head';
+                        $fcond     = ( isset( $file['conditions'] ) && is_array( $file['conditions'] ) ) ? $file['conditions'] : array( 'type' => 'all', 'values' => array() );
+                        $cond_type = isset( $fcond['type'] ) ? $fcond['type'] : 'all';
+                        $cond_lbl  = isset( $condition_labels[ $cond_type ] ) ? $condition_labels[ $cond_type ] : $cond_type;
+
+                        $edit_url = add_query_arg(
+                            array( 'page' => 'scriptomatic-files', 'action' => 'edit', 'file' => $fid ),
+                            admin_url( 'admin.php' )
+                        );
+                    ?>
+                    <tr>
+                        <td class="column-primary">
+                            <strong><a href="<?php echo esc_url( $edit_url ); ?>"><?php echo esc_html( $flabel ); ?></a></strong>
+                        </td>
+                        <td><code><?php echo esc_html( $fname ); ?></code></td>
+                        <td><?php echo 'footer' === $floc ? esc_html__( 'Footer', 'scriptomatic' ) : esc_html__( 'Head', 'scriptomatic' ); ?></td>
+                        <td><?php echo esc_html( $cond_lbl ); ?></td>
+                        <td>
+                            <a href="<?php echo esc_url( $edit_url ); ?>" class="button button-small"><?php esc_html_e( 'Edit', 'scriptomatic' ); ?></a>
+                            <button
+                                type="button"
+                                class="button button-small button-link-delete sm-file-delete"
+                                data-file-id="<?php echo esc_attr( $fid ); ?>"
+                                data-label="<?php echo esc_attr( $flabel ); ?>"
+                            ><?php esc_html_e( 'Delete', 'scriptomatic' ); ?></button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php endif; ?>
+        </div><!-- .wrap -->
+        <?php
+    }
+
+    /**
+     * Render the JS File edit / new-file view.
+     *
+     * @since  1.8.0
+     * @access private
+     * @return void
+     */
+    private function render_js_file_edit_view() {
+        // Error messages.
+        $error_messages = array(
+            'missing_label'    => __( 'Please enter a label.', 'scriptomatic' ),
+            'invalid_filename' => __( 'The filename is invalid. Use letters, numbers, dashes and underscores only.', 'scriptomatic' ),
+            'too_large'        => __( 'The file exceeds the maximum upload size allowed by this server.', 'scriptomatic' ),
+            'write_failed'     => __( 'Could not write the file to disk. Please check directory permissions.', 'scriptomatic' ),
+        );
+
+        $error_code = isset( $_GET['error'] ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : '';
+        $error_msg  = isset( $error_messages[ $error_code ] ) ? $error_messages[ $error_code ] : '';
+
+        // Determine if editing an existing file.
+        $file_id = isset( $_GET['file'] ) ? sanitize_key( wp_unslash( $_GET['file'] ) ) : '';
+        $entry   = null;
+
+        if ( '' !== $file_id ) {
+            foreach ( $this->get_js_files_meta() as $f ) {
+                if ( $f['id'] === $file_id ) {
+                    $entry = $f;
+                    break;
+                }
+            }
+        }
+
+        // Populate form values.
+        $label      = $entry ? $entry['label']    : '';
+        $filename   = $entry ? $entry['filename'] : '';
+        $location   = ( $entry && 'footer' === $entry['location'] ) ? 'footer' : 'head';
+        $conditions = ( $entry && isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
+            ? $entry['conditions']
+            : array( 'type' => 'all', 'values' => array() );
+
+        // Read existing file content from disk.
+        $content = '';
+        if ( $entry && ! empty( $entry['filename'] ) ) {
+            $file_path = $this->get_js_files_dir() . $entry['filename'];
+            if ( file_exists( $file_path ) ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+                $content = file_get_contents( $file_path );
+            }
+        }
+
+        $is_new        = ( null === $entry );
+        $page_title    = $is_new
+            ? __( 'Add New JS File', 'scriptomatic' )
+            : __( 'Edit JS File', 'scriptomatic' );
+        $max_bytes     = wp_max_upload_size();
+        $max_bytes_fmt = size_format( $max_bytes );
+        $pfx           = 'sm-file-cond';
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html( $page_title ); ?></h1>
+            <hr class="wp-header-end">
+
+            <?php if ( '' !== $error_msg ) : ?>
+            <div class="notice notice-error"><p><?php echo esc_html( $error_msg ); ?></p></div>
+            <?php endif; ?>
+
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                <input type="hidden" name="action" value="scriptomatic_save_js_file">
+                <?php wp_nonce_field( SCRIPTOMATIC_FILES_NONCE, '_sm_files_nonce' ); ?>
+                <input type="hidden" name="_sm_file_original_id" value="<?php echo esc_attr( $file_id ); ?>">
+
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><label for="sm-file-label"><?php esc_html_e( 'Label', 'scriptomatic' ); ?></label></th>
+                        <td>
+                            <input
+                                type="text"
+                                id="sm-file-label"
+                                name="sm_file_label"
+                                value="<?php echo esc_attr( $label ); ?>"
+                                class="regular-text"
+                                required
+                                aria-describedby="sm-file-label-desc"
+                            >
+                            <p id="sm-file-label-desc" class="description"><?php esc_html_e( 'A human-readable name shown in the file list.', 'scriptomatic' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sm-file-name"><?php esc_html_e( 'Filename', 'scriptomatic' ); ?></label></th>
+                        <td>
+                            <input
+                                type="text"
+                                id="sm-file-name"
+                                name="sm_file_name"
+                                value="<?php echo esc_attr( $filename ); ?>"
+                                class="regular-text"
+                                placeholder="my-script.js"
+                                pattern="[a-zA-Z0-9_\-\.]*\.js"
+                                aria-describedby="sm-file-name-desc"
+                            >
+                            <p id="sm-file-name-desc" class="description">
+                                <?php esc_html_e( 'Auto-filled from the label. Must end in .js. Letters, numbers, dashes and underscores only.', 'scriptomatic' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Inject In', 'scriptomatic' ); ?></th>
+                        <td>
+                            <label style="margin-right:20px;">
+                                <input type="radio" name="sm_file_location" value="head" <?php checked( $location, 'head' ); ?>>
+                                <?php esc_html_e( 'Head', 'scriptomatic' ); ?>
+                            </label>
+                            <label>
+                                <input type="radio" name="sm_file_location" value="footer" <?php checked( $location, 'footer' ); ?>>
+                                <?php esc_html_e( 'Footer', 'scriptomatic' ); ?>
+                            </label>
+                            <p class="description"><?php esc_html_e( 'Choose where in the page this file is enqueued.', 'scriptomatic' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Load Conditions', 'scriptomatic' ); ?></th>
+                        <td><?php $this->render_file_conditions_widget( $pfx, $conditions ); ?></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="scriptomatic-files-script"><?php esc_html_e( 'JavaScript', 'scriptomatic' ); ?></label></th>
+                        <td>
+                            <div class="scriptomatic-code-editor-wrap">
+                                <textarea
+                                    id="scriptomatic-files-script"
+                                    name="sm_file_content"
+                                    rows="30"
+                                    cols="100"
+                                    class="large-text code"
+                                    placeholder="<?php esc_attr_e( 'Enter your JavaScript code here (without <script> tags)', 'scriptomatic' ); ?>"
+                                    aria-describedby="sm-file-content-desc sm-file-char-ct"
+                                ><?php echo esc_textarea( $content ); ?></textarea>
+                            </div>
+                            <p id="sm-file-char-ct" class="description">
+                                <?php
+                                printf(
+                                    /* translators: 1: current size, 2: max upload size */
+                                    esc_html__( 'Size: %1$s / %2$s', 'scriptomatic' ),
+                                    '<span id="scriptomatic-files-char-count">' . esc_html( size_format( strlen( $content ) ) ) . '</span>',
+                                    esc_html( $max_bytes_fmt )
+                                );
+                                ?>
+                            </p>
+                            <p id="sm-file-content-desc" class="description">
+                                <strong><?php esc_html_e( 'Important:', 'scriptomatic' ); ?></strong>
+                                <?php esc_html_e( 'Do not include <script> tags — they are added automatically on the front end.', 'scriptomatic' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p class="submit">
+                    <button type="submit" class="button button-primary button-large">
+                        <?php esc_html_e( 'Save File', 'scriptomatic' ); ?>
+                    </button>
+                    <a href="<?php echo esc_url( add_query_arg( array( 'page' => 'scriptomatic-files' ), admin_url( 'admin.php' ) ) ); ?>" class="button button-secondary button-large">
+                        <?php esc_html_e( 'Cancel', 'scriptomatic' ); ?>
+                    </a>
+                </p>
+            </form>
+        </div><!-- .wrap -->
+        <?php
+    }
+
+
 
     /**
      * Output the audit log table (or an empty-state message).
