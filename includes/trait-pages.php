@@ -72,13 +72,7 @@ trait Scriptomatic_Pages {
         <div class="scriptomatic-history-section">
             <h2>
                 <span class="dashicons dashicons-backup" style="font-size:24px;width:24px;height:24px;margin-right:4px;vertical-align:middle;"></span>
-                <?php
-                printf(
-                    /* translators: %s: 'Head' or 'Footer' */
-                    esc_html__( '%s Script History', 'scriptomatic' ),
-                    esc_html( ucfirst( $location ) )
-                );
-                ?>
+                <?php esc_html_e( 'Inline Script History', 'scriptomatic' ); ?>
             </h2>
             <p class="description">
                 <?php
