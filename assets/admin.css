@@ -1,0 +1,112 @@
+/* =============================================================================
+ * Scriptomatic — Admin Styles
+ * Styles the chicklet URL manager, history table, and load-conditions UI.
+ * ============================================================================= */
+
+/* Chicklet URL list */
+.scriptomatic-chicklet-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 40px;
+    padding: 8px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-width: 600px;
+    align-items: flex-start;
+    align-content: flex-start;
+}
+.scriptomatic-chicklet {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px 4px 12px;
+    background: #2271b1;
+    color: #fff;
+    border-radius: 20px;
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 380px;
+}
+.scriptomatic-chicklet .chicklet-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 320px;
+}
+.scriptomatic-remove-url {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+.scriptomatic-remove-url:hover { color: #fff; }
+
+/* History table */
+.scriptomatic-history-table th,
+.scriptomatic-history-table td {
+    padding: 8px 12px;
+    vertical-align: middle;
+}
+.scriptomatic-history-table th { font-weight: 600; }
+.scriptomatic-history-table tbody tr:hover { background: #f6f7f7; }
+
+/* Load Conditions */
+.scriptomatic-conditions-wrap { max-width: 600px; }
+.sm-cond-panel {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.sm-cond-panel[hidden] { display: none; }
+.sm-cond-fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+.sm-cond-fieldset legend {
+    font-weight: 600;
+    margin-bottom: 10px;
+    float: left;
+    width: 100%;
+}
+.sm-pt-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin-top: 4px;
+}
+.sm-pt-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    min-width: 180px;
+}
+.sm-pt-label code {
+    font-size: 11px;
+    color: #666;
+    background: #eee;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+.sm-cond-inner { max-width: 100%; }
+.sm-cond-add-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    align-items: center;
+}
+.scriptomatic-chicklet-list--alt {
+    background: #fff;
+    min-height: 36px;
+}
+.scriptomatic-url-error { color: #dc3545; margin-top: 4px; }

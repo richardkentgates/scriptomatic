@@ -13,6 +13,33 @@ Nothing pending.
 
 ---
 
+## [1.4.0] – 2026-05-06
+
+### Changed
+- Refactored the monolithic `scriptomatic.php` (2 696 lines) into a clean multi-file structure:
+  - `scriptomatic.php` — lean entry point: plugin header, constants, `require_once`, and bootstrap.
+  - `includes/class-scriptomatic.php` — singleton class that `use`s all eight traits.
+  - `includes/trait-menus.php` — `Scriptomatic_Menus`: admin menu registrations.
+  - `includes/trait-sanitizer.php` — `Scriptomatic_Sanitizer`: all input validation and sanitisation.
+  - `includes/trait-history.php` — `Scriptomatic_History`: revision history and AJAX rollback.
+  - `includes/trait-settings.php` — `Scriptomatic_Settings`: Settings API wiring and plugin-settings CRUD.
+  - `includes/trait-renderer.php` — `Scriptomatic_Renderer`: settings-field callbacks and load-condition evaluator.
+  - `includes/trait-pages.php` — `Scriptomatic_Pages`: page renderers, network pages, help tabs, action links.
+  - `includes/trait-enqueue.php` — `Scriptomatic_Enqueue`: admin-asset enqueuing.
+  - `includes/trait-injector.php` — `Scriptomatic_Injector`: front-end HTML injection.
+- Extracted inline CSS and JS from `get_admin_css()` / `get_admin_js()` PHP methods into standalone static files:
+  - `assets/admin.css` — enqueued via `wp_enqueue_style`.
+  - `assets/admin.js` — enqueued via `wp_enqueue_script` with `wp_localize_script` for PHP→JS data.
+- Added `network_admin_enqueue_scripts` hook so assets load correctly on multisite network-admin pages.
+- `wp_localize_script` now targets `scriptomatic-admin-js` (the real enqueued handle) instead of `jquery`.
+- Renamed inner JS `makeChicklet()` in the URL manager section to `makeUrlChicklet()` to avoid shadowing the identically-named inner function inside `initConditions`.
+- Conditions-section JS variables `$urlInput` / `$urlError` renamed `$urlPatInput` / `$urlPatError` (and added `$urlPatList` / `$urlPatAdd`) to eliminate scope conflicts with the URL manager at the outer `document.ready` level.
+
+### Removed
+- `get_admin_css()` and `get_admin_js()` PHP methods removed; replaced by real asset files.
+
+---
+
 ## [1.3.1] – 2026-02-26
 
 ### Fixed
