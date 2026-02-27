@@ -324,6 +324,66 @@ jQuery( document ).ready( function ( $ ) {
     } );
 
     /* =========================================================================
+     * 3.5  History "View" lightbox
+     * ====================================================================== */
+    var $lightbox = $( '#sm-history-lightbox' );
+
+    if ( $lightbox.length ) {
+        function closeLightbox() {
+            $lightbox.removeClass( 'is-open' );
+            $( 'body' ).css( 'overflow', '' );
+        }
+
+        $lightbox.find( '.sm-history-lightbox__close' ).on( 'click', closeLightbox );
+
+        $lightbox.on( 'click', function ( e ) {
+            if ( $( e.target ).is( $lightbox ) ) { closeLightbox(); }
+        } );
+
+        $( document ).on( 'keydown', function ( e ) {
+            if ( e.key === 'Escape' && $lightbox.hasClass( 'is-open' ) ) { closeLightbox(); }
+        } );
+
+        $( document ).on( 'click', '.scriptomatic-history-view', function () {
+            var $btn     = $( this );
+            var index    = $btn.data( 'index' );
+            var entryLoc = $btn.data( 'location' ) || loc;
+            var label    = $btn.data( 'label' ) || '';
+            var orig     = $btn.text();
+
+            $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading…' );
+
+            $.post( data.ajaxUrl, {
+                action:   'scriptomatic_get_history_content',
+                nonce:    data.rollbackNonce,
+                index:    index,
+                location: entryLoc
+            }, function ( response ) {
+                $btn.prop( 'disabled', false ).text( orig );
+                if ( response.success ) {
+                    var content = response.data.content || '';
+                    $lightbox.find( '.sm-history-lightbox__title' ).text( i18n.viewTitle || 'Revision Preview' );
+                    $lightbox.find( '.sm-history-lightbox__meta' ).text( label );
+                    var $pre = $lightbox.find( '.sm-history-lightbox__pre' );
+                    if ( content ) {
+                        $pre.text( content ).removeClass( 'sm-history-lightbox__empty' );
+                    } else {
+                        $pre.text( i18n.emptyScript || '(empty)' ).addClass( 'sm-history-lightbox__empty' );
+                    }
+                    $lightbox.addClass( 'is-open' );
+                    $( 'body' ).css( 'overflow', 'hidden' );
+                } else {
+                    var msg = ( response.data && response.data.message ) ? response.data.message : '';
+                    alert( ( i18n.viewError || 'Could not load revision.' ) + ( msg ? ' ' + msg : '' ) );
+                }
+            } ).fail( function () {
+                $btn.prop( 'disabled', false ).text( orig );
+                alert( i18n.viewError || 'Could not load revision.' );
+            } );
+        } );
+    }
+
+    /* =========================================================================
      * 4. Load Conditions — page-level wraps (inline script textarea only).
      *    Per-URL wraps (.sm-url-conditions-wrap) are initialised in section 2.
      * ====================================================================== */

@@ -56,6 +56,7 @@
 }
 .scriptomatic-history-table th { font-weight: 600; }
 .scriptomatic-history-table tbody tr:hover { background: #f6f7f7; }
+.scriptomatic-history-table .button + .button { margin-left: 4px; }
 
 /* Load Conditions */
 .scriptomatic-conditions-wrap { max-width: 600px; }
@@ -195,4 +196,96 @@
 
 .sm-url-entry .sm-cond-panel {
     margin-top: 8px;
+}
+
+/* =========================================================================
+   History lightbox — glass overlay with frosted card
+   ====================================================================== */
+
+.sm-history-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.sm-history-lightbox.is-open {
+    display: flex;
+}
+.sm-history-lightbox__card {
+    background: rgba(255, 255, 255, 0.93);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 8px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.32);
+    width: min(840px, 92vw);
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.sm-history-lightbox__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+.sm-history-lightbox__title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 2px;
+    color: #1d2327;
+}
+.sm-history-lightbox__meta {
+    font-size: 12px;
+    color: #555;
+    margin: 0;
+}
+.sm-history-lightbox__close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #555;
+    font-size: 24px;
+    line-height: 1;
+    padding: 0 4px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: -2px;
+    transition: background 0.15s, color 0.15s;
+}
+.sm-history-lightbox__close:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #1d2327;
+}
+.sm-history-lightbox__body {
+    overflow: auto;
+    padding: 16px 20px;
+    flex: 1;
+}
+.sm-history-lightbox__pre {
+    margin: 0;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #1d2327;
+    background: #f6f7f7;
+    padding: 14px 16px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    min-height: 48px;
+}
+.sm-history-lightbox__pre.sm-history-lightbox__empty {
+    color: #888;
+    font-style: italic;
 }

@@ -96,7 +96,7 @@ trait Scriptomatic_Pages {
                         <th><?php esc_html_e( 'Saved', 'scriptomatic' ); ?></th>
                         <th><?php esc_html_e( 'By', 'scriptomatic' ); ?></th>
                         <th style="width:100px;"><?php esc_html_e( 'Characters', 'scriptomatic' ); ?></th>
-                        <th style="width:110px;"><?php esc_html_e( 'Action', 'scriptomatic' ); ?></th>
+                        <th style="width:160px;"><?php esc_html_e( 'Actions', 'scriptomatic' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -107,6 +107,15 @@ trait Scriptomatic_Pages {
                         <td><?php echo esc_html( $entry['user_login'] ); ?></td>
                         <td><?php echo esc_html( number_format( $entry['length'] ) ); ?></td>
                         <td>
+                            <button
+                                type="button"
+                                class="button button-small scriptomatic-history-view"
+                                data-index="<?php echo esc_attr( $index ); ?>"
+                                data-location="<?php echo esc_attr( $location ); ?>"
+                                data-label="<?php echo esc_attr( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $entry['timestamp'] ) . ' — ' . $entry['user_login'] ); ?>"
+                            >
+                                <?php esc_html_e( 'View', 'scriptomatic' ); ?>
+                            </button>
                             <button
                                 type="button"
                                 class="button button-small scriptomatic-history-restore"
@@ -121,6 +130,21 @@ trait Scriptomatic_Pages {
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+
+        <div id="sm-history-lightbox" class="sm-history-lightbox" role="dialog" aria-modal="true" aria-labelledby="sm-lightbox-title">
+            <div class="sm-history-lightbox__card">
+                <div class="sm-history-lightbox__header">
+                    <div>
+                        <p id="sm-lightbox-title" class="sm-history-lightbox__title"></p>
+                        <p class="sm-history-lightbox__meta"></p>
+                    </div>
+                    <button type="button" class="sm-history-lightbox__close" aria-label="<?php esc_attr_e( 'Close', 'scriptomatic' ); ?>">&times;</button>
+                </div>
+                <div class="sm-history-lightbox__body">
+                    <pre class="sm-history-lightbox__pre"></pre>
+                </div>
+            </div>
         </div>
         <?php
     }

@@ -91,6 +91,10 @@ trait Scriptomatic_Enqueue {
                 'duplicateId'      => __( 'This ID has already been added.', 'scriptomatic' ),
                 'emptyPattern'     => __( 'Please enter a URL path or pattern.', 'scriptomatic' ),
                 'duplicatePattern' => __( 'This pattern has already been added.', 'scriptomatic' ),
+                'viewTitle'        => __( 'Revision Preview', 'scriptomatic' ),
+                'loading'          => __( "Loading\u2026", 'scriptomatic' ),
+                'emptyScript'      => __( '(empty)', 'scriptomatic' ),
+                'viewError'        => __( 'Could not load revision. Please try again.', 'scriptomatic' ),
             ),
         ) );
     }

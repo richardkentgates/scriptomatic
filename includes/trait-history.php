@@ -136,4 +136,32 @@ trait Scriptomatic_History {
             'message'  => __( 'Script restored successfully.', 'scriptomatic' ),
         ) );
     }
+
+    /**
+     * AJAX handler — return the raw content of a single history entry.
+     *
+     * Expects POST fields: `nonce`, `index` (int), `location` ('head'|'footer').
+     *
+     * @since  1.7.1
+     * @return void  Sends a JSON response and exits.
+     */
+    public function ajax_get_history_content() {
+        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
+        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $history  = $this->get_history( $location );
+
+        if ( ! array_key_exists( $index, $history ) ) {
+            wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
+        }
+
+        wp_send_json_success( array(
+            'content' => $history[ $index ]['content'],
+        ) );
+    }
 }
