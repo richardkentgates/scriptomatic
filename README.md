@@ -12,7 +12,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 - **🔒 Security First**: Comprehensive input validation, sanitization, secondary nonce system, rate limiting, and audit logging
 - **👤 Capability Checks**: Only administrators with `manage_options` can modify scripts
 - **📝 Rich Admin Interface**: Clean, intuitive settings pages with live character counter (colour-coded at 75 % and 90 % of the 100 KB limit)
-- **📚 Contextual Help**: Built-in help tabs with detailed documentation on the Head Scripts, Footer Scripts, and General Settings admin pages
+- **📚 Contextual Help**: Built-in help tabs with detailed documentation on the Head Scripts, Footer Scripts, and Preferences admin pages
 - **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages (8 condition types)
 - **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
@@ -96,7 +96,7 @@ Then activate via WordPress admin.
 |------|------|---------|
 | Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>`; includes Audit Log |
 | Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>`; includes Audit Log |
-| General Settings | Scriptomatic → General Settings | History limit, audit log limit, uninstall data retention |
+| Preferences | Scriptomatic → Preferences | History limit, audit log limit, uninstall data retention |
 
 ### Important Notes
 
@@ -185,7 +185,7 @@ Scriptomatic is built with security as a top priority:
 - Scripts only injected on front-end (not in admin)
 
 ### Data Protection
-- Uninstall behaviour is controlled by the **Keep data on uninstall** setting in General Settings; data is removed by default unless the setting is enabled
+- Uninstall behaviour is controlled by the **Keep data on uninstall** setting in Preferences; data is removed by default unless the setting is enabled
 - On multisite, uninstall iterates every sub-site and removes per-site option data, then cleans network-level options
 - Multisite-aware data handling
 - No external dependencies or API calls

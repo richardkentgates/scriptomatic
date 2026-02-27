@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registers all Scriptomatic admin menus and sub-pages (per-site only).
  *
- * Per-site: Head Scripts, Footer Scripts, General Settings.
+ * Per-site: Head Scripts, Footer Scripts, Preferences.
  */
 trait Scriptomatic_Menus {
 
@@ -65,11 +65,11 @@ trait Scriptomatic_Menus {
             array( $this, 'render_footer_page' )
         );
 
-        // Sub-page: General Settings.
+        // Sub-page: Preferences.
         $general_hook = add_submenu_page(
             'scriptomatic',
-            __( 'General Settings — Scriptomatic', 'scriptomatic' ),
-            __( 'General Settings', 'scriptomatic' ),
+            __( 'Preferences — Scriptomatic', 'scriptomatic' ),
+            __( 'Preferences', 'scriptomatic' ),
             $cap,
             'scriptomatic-settings',
             array( $this, 'render_general_settings_page' )
