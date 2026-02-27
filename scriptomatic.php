@@ -635,7 +635,6 @@ class Scriptomatic {
             'timestamp'  => time(),
             'user_login' => $user->user_login,
             'user_id'    => (int) $user->ID,
-            'ip'         => $this->get_client_ip(),
             'length'     => strlen($content),
         ));
 
@@ -704,12 +703,11 @@ class Scriptomatic {
 
         $user = wp_get_current_user();
         error_log(sprintf(
-            'Scriptomatic: %s script rolled back to revision from %s by user %s (ID: %d) from IP: %s',
+            'Scriptomatic: %s script rolled back to revision from %s by user %s (ID: %d)',
             ucfirst($location),
             gmdate('Y-m-d H:i:s', $entry['timestamp']),
             $user->user_login,
-            $user->ID,
-            $this->get_client_ip()
+            $user->ID
         ));
 
         wp_send_json_success(array(
@@ -859,11 +857,10 @@ class Scriptomatic {
         if ($old_content !== $new_content) {
             $user = wp_get_current_user();
             error_log(sprintf(
-                'Scriptomatic: %s script updated by user %s (ID: %d) from IP: %s',
+                'Scriptomatic: %s script updated by user %s (ID: %d)',
                 ucfirst($location),
                 $user->user_login,
-                $user->ID,
-                $this->get_client_ip()
+                $user->ID
             ));
         }
     }
@@ -878,39 +875,6 @@ class Scriptomatic {
      */
     private function log_script_change($new_content) {
         $this->log_change($new_content, SCRIPTOMATIC_HEAD_SCRIPT, 'head');
-    }
-
-    /**
-     * Resolve the most accurate available client IP address.
-     *
-     * Iterates over common proxy headers in order of trustworthiness and
-     * returns the first value that passes {@see filter_var()} validation as a
-     * valid IP address.  Falls back to `'Unknown'` when no valid address can
-     * be determined.
-     *
-     * **Note:** Proxy headers such as `HTTP_X_FORWARDED_FOR` can be spoofed by
-     * clients.  This method is used for audit-log context only — it should
-     * never be used for access control.
-     *
-     * @since  1.0.0
-     * @access private
-     * @return string A validated IP address string, or `'Unknown'`.
-     */
-    private function get_client_ip() {
-        $ip_keys = array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR');
-
-        foreach ($ip_keys as $key) {
-            if (array_key_exists($key, $_SERVER) === true) {
-                foreach (explode(',', $_SERVER[$key]) as $ip) {
-                    $ip = trim($ip);
-                    if (filter_var($ip, FILTER_VALIDATE_IP) !== false) {
-                        return $ip;
-                    }
-                }
-            }
-        }
-
-        return 'Unknown';
     }
 
     // =========================================================================
@@ -1631,7 +1595,7 @@ class Scriptomatic {
                 '<li><strong>' . __('Capability Check:', 'scriptomatic') . '</strong> ' . __('Only users with "manage_options" capability (typically administrators) can modify scripts.', 'scriptomatic') . '</li>' .
                 '<li><strong>' . __('Input Validation:', 'scriptomatic') . '</strong> ' . __('All input is validated for length and potentially dangerous content.', 'scriptomatic') . '</li>' .
                 '<li><strong>' . __('Sanitization:', 'scriptomatic') . '</strong> ' . __('Script tags are automatically removed to prevent double-wrapping.', 'scriptomatic') . '</li>' .
-                '<li><strong>' . __('Audit Logging:', 'scriptomatic') . '</strong> ' . __('All changes are logged with user information and IP address.', 'scriptomatic') . '</li>' .
+                '<li><strong>' . __('Audit Logging:', 'scriptomatic') . '</strong> ' . __('All changes are logged with user information (username and user ID).', 'scriptomatic') . '</li>' .
                 '<li><strong>' . __('Output Escaping:', 'scriptomatic') . '</strong> ' . __('Content is properly escaped when displayed in the admin interface.', 'scriptomatic') . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __('Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic') . '</p>',

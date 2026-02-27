@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-green)](LICENSE)
 [![Maintained](https://img.shields.io/badge/Maintained-Yes-brightgreen)]()
 
-A secure and production-ready WordPress plugin for injecting custom JavaScript code into the `<head>` section of your website, right before the closing `</head>` tag.
+A secure and production-ready WordPress plugin for injecting custom JavaScript code into the `<head>` and footer of your WordPress site, with external script URL management, revision history with rollback, and multisite support.
 
 ## 🚀 Features
 
@@ -13,7 +13,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 - **👤 Capability Checks**: Only administrators with `manage_options` can modify scripts
 - **📝 Rich Admin Interface**: Clean, intuitive settings page with character counter
 - **📚 Contextual Help**: Built-in help tabs with detailed documentation
-- **🔍 Audit Logging**: All changes logged with user information and IP address
+- **🔍 Audit Logging**: All changes logged with user information (username and user ID)
 - **⚡ Performance Optimized**: Minimal overhead, script only loaded on front-end
 - **🌐 Multisite Compatible**: Works seamlessly with WordPress multisite
 - **♿ Accessibility**: ARIA labels and semantic HTML for screen readers
@@ -55,15 +55,25 @@ Then activate via WordPress admin.
 
 ### Basic Setup
 
-1. Navigate to **Settings → Scriptomatic** in your WordPress admin
-2. Enter your JavaScript code in the textarea
-3. Click **Save Script**
-4. Your code will be automatically injected into the `<head>` section
+1. Navigate to **Scripts → Head Scripts** (or **Footer Scripts**) in your WordPress admin
+2. Enter your inline JavaScript in the textarea **or** add external script URLs via the URL manager
+3. Click **Save Changes**
+4. Your code will be automatically injected into the `<head>` or just before `</body>` depending on which page you used
+
+### Admin Pages
+
+| Page | Path | Purpose |
+|------|------|---------|
+| Head Scripts | Scripts → Head Scripts | Inline JS + external URLs injected in `<head>` |
+| Footer Scripts | Scripts → Footer Scripts | Inline JS + external URLs injected before `</body>` |
+| General Settings | Scripts → General Settings | History limit, uninstall data retention |
 
 ### Important Notes
 
-- **Do NOT include** `<script>` tags - they are added automatically
+- **Do NOT include** `<script>` tags — they are added automatically for inline code
 - The code executes on **every page** of your site
+- External script URLs are loaded via `<script src="...">` tags; inline code is wrapped in `<script>` tags
+- Revision history is maintained per location (head and footer independently)
 - **Test thoroughly** before deploying to production
 - Use the **Help** tab in the admin for detailed guidance
 
@@ -129,8 +139,8 @@ Scriptomatic is built with security as a top priority:
 - Capability checks on every admin page load
 
 ### Audit Logging
-- All script changes logged to error log
-- Logs include: user ID, username, IP address, timestamp
+- All script changes logged to the WordPress error log
+- Logs include: user ID, username, timestamp
 - Helps track unauthorized changes
 
 ### Output Security
