@@ -210,7 +210,8 @@ trait Scriptomatic_Settings {
      *
      * In v1.2.0–v1.4.x this wrote to the PHP error log.  Since v1.5.0 it
      * delegates to {@see write_audit_log_entry()} which persists the entry
-     * to the WordPress options table, visible via Scriptomatic → Audit Log.
+     * to the WordPress options table, visible in the Audit Log embedded on the
+     * Head Scripts and Footer Scripts pages.
      *
      * @since  1.2.0
      * @since  1.5.0 Writes to the persistent in-admin audit log instead of
