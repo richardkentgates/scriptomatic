@@ -29,6 +29,9 @@ $scriptomatic_options = array(
     'scriptomatic_footer_script',
     'scriptomatic_footer_history',
     'scriptomatic_footer_linked',
+    // Load conditions (v1.3+)
+    'scriptomatic_head_conditions',
+    'scriptomatic_footer_conditions',
     // General settings
     'scriptomatic_plugin_settings',
 );

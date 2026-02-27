@@ -3,7 +3,7 @@
  * Plugin Name: Scriptomatic
  * Plugin URI: https://github.com/richardkentgates/scriptomatic
  * Description: Securely inject custom JavaScript into the head and footer of your WordPress site. Features per-location inline scripts, external URL management, full revision history with rollback, multisite support, and fine-grained admin controls.
- * Version: 1.2.1
+ * Version: 1.3.0
  * Requires at least: 5.3
  * Requires PHP: 7.2
  * Author: Richard Kent Gates
@@ -38,7 +38,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SCRIPTOMATIC_VERSION', '1.2.1');
+define('SCRIPTOMATIC_VERSION', '1.3.0');
 define('SCRIPTOMATIC_PLUGIN_FILE', __FILE__);
 define('SCRIPTOMATIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SCRIPTOMATIC_PLUGIN_URL', plugin_dir_url(__FILE__));
@@ -52,6 +52,10 @@ define('SCRIPTOMATIC_HEAD_LINKED',   'scriptomatic_linked_scripts');   // backwa
 define('SCRIPTOMATIC_FOOTER_SCRIPT',  'scriptomatic_footer_script');
 define('SCRIPTOMATIC_FOOTER_HISTORY', 'scriptomatic_footer_history');
 define('SCRIPTOMATIC_FOOTER_LINKED',  'scriptomatic_footer_linked');
+
+// ---- Option keys: load conditions ----
+define('SCRIPTOMATIC_HEAD_CONDITIONS',   'scriptomatic_head_conditions');   // JSON condition for head injection
+define('SCRIPTOMATIC_FOOTER_CONDITIONS', 'scriptomatic_footer_conditions'); // JSON condition for footer injection
 
 // ---- Option keys: plugin settings ----
 define('SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION', 'scriptomatic_plugin_settings');
@@ -452,6 +456,16 @@ class Scriptomatic {
         add_settings_field(SCRIPTOMATIC_HEAD_LINKED, __('Script URLs', 'scriptomatic'),
             array($this, 'render_head_linked_field'), 'scriptomatic_head_page', 'sm_head_links');
 
+        // ---- HEAD CONDITIONS ----
+        register_setting('scriptomatic_head_group', SCRIPTOMATIC_HEAD_CONDITIONS, array(
+            'type'              => 'string',
+            'sanitize_callback' => array($this, 'sanitize_head_conditions'),
+            'default'           => '{"type":"all","values":[]}',
+        ));
+        add_settings_section('sm_head_conditions', __('Load Conditions', 'scriptomatic'), array($this, 'render_head_conditions_section'), 'scriptomatic_head_page');
+        add_settings_field(SCRIPTOMATIC_HEAD_CONDITIONS, __('When to inject', 'scriptomatic'),
+            array($this, 'render_head_conditions_field'), 'scriptomatic_head_page', 'sm_head_conditions');
+
         // ---- FOOTER SCRIPTS GROUP ----
         register_setting('scriptomatic_footer_group', SCRIPTOMATIC_FOOTER_SCRIPT, array(
             'type'              => 'string',
@@ -471,6 +485,16 @@ class Scriptomatic {
             array($this, 'render_footer_script_field'), 'scriptomatic_footer_page', 'sm_footer_code');
         add_settings_field(SCRIPTOMATIC_FOOTER_LINKED, __('Script URLs', 'scriptomatic'),
             array($this, 'render_footer_linked_field'), 'scriptomatic_footer_page', 'sm_footer_links');
+
+        // ---- FOOTER CONDITIONS ----
+        register_setting('scriptomatic_footer_group', SCRIPTOMATIC_FOOTER_CONDITIONS, array(
+            'type'              => 'string',
+            'sanitize_callback' => array($this, 'sanitize_footer_conditions'),
+            'default'           => '{"type":"all","values":[]}',
+        ));
+        add_settings_section('sm_footer_conditions', __('Load Conditions', 'scriptomatic'), array($this, 'render_footer_conditions_section'), 'scriptomatic_footer_page');
+        add_settings_field(SCRIPTOMATIC_FOOTER_CONDITIONS, __('When to inject', 'scriptomatic'),
+            array($this, 'render_footer_conditions_field'), 'scriptomatic_footer_page', 'sm_footer_conditions');
 
         // ---- GENERAL SETTINGS GROUP ----
         register_setting('scriptomatic_general_group', SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array(
@@ -859,7 +883,99 @@ class Scriptomatic {
     }
 
     // =========================================================================
-    // PLUGIN SETTINGS
+    // CONDITIONS SANITISE
+    // =========================================================================
+
+    /**
+     * Sanitise load-conditions JSON for the head location.
+     *
+     * @since  1.3.0
+     * @param  mixed $input Raw JSON string from the form.
+     * @return string JSON-encoded conditions object.
+     */
+    public function sanitize_head_conditions($input) {
+        return $this->sanitize_conditions_for($input, 'head');
+    }
+
+    /**
+     * Sanitise load-conditions JSON for the footer location.
+     *
+     * @since  1.3.0
+     * @param  mixed $input Raw JSON string from the form.
+     * @return string JSON-encoded conditions object.
+     */
+    public function sanitize_footer_conditions($input) {
+        return $this->sanitize_conditions_for($input, 'footer');
+    }
+
+    /**
+     * Core conditions sanitise logic shared by head and footer.
+     *
+     * Validates and normalises the JSON conditions object submitted from the
+     * Load Conditions field.  Only whitelisted condition types are accepted;
+     * values are sanitised per-type (post-type slugs, integer IDs, or plain
+     * text URL substrings).
+     *
+     * @since  1.3.0
+     * @access private
+     * @param  mixed  $input    Raw JSON string.
+     * @param  string $location `'head'` or `'footer'`.
+     * @return string JSON-encoded array: `{type: string, values: array}`.
+     */
+    private function sanitize_conditions_for($input, $location) {
+        $option_key = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
+        $default    = wp_json_encode(array('type' => 'all', 'values' => array()));
+
+        if (empty($input)) {
+            return $default;
+        }
+
+        $decoded = json_decode(wp_unslash($input), true);
+        if (!is_array($decoded)) {
+            return get_option($option_key, $default);
+        }
+
+        $allowed_types = array('all', 'front_page', 'singular', 'post_type', 'page_id', 'url_contains', 'logged_in', 'logged_out');
+        $type          = (isset($decoded['type']) && in_array($decoded['type'], $allowed_types, true))
+                         ? $decoded['type'] : 'all';
+        $raw_values    = (isset($decoded['values']) && is_array($decoded['values'])) ? $decoded['values'] : array();
+
+        $clean_values = array();
+        switch ($type) {
+            case 'post_type':
+                foreach ($raw_values as $pt) {
+                    $pt = sanitize_key((string) $pt);
+                    if ('' !== $pt && post_type_exists($pt)) {
+                        $clean_values[] = $pt;
+                    }
+                }
+                break;
+
+            case 'page_id':
+                foreach ($raw_values as $id) {
+                    $id = absint($id);
+                    if ($id > 0) {
+                        $clean_values[] = $id;
+                    }
+                }
+                break;
+
+            case 'url_contains':
+                foreach ($raw_values as $pattern) {
+                    $pattern = sanitize_text_field(wp_unslash((string) $pattern));
+                    if ('' !== $pattern) {
+                        $clean_values[] = $pattern;
+                    }
+                }
+                break;
+
+            default:
+                // all / front_page / singular / logged_in / logged_out: no values needed.
+                break;
+        }
+
+        return wp_json_encode(array('type' => $type, 'values' => $clean_values));
+    }
     // =========================================================================
 
     /**
@@ -1208,8 +1324,255 @@ class Scriptomatic {
         $this->render_linked_field_for('head');
     }
 
+    /**
+     * Evaluate the stored load condition for a given injection location.
+     *
+     * Called from {@see Scriptomatic::inject_scripts_for()} on every front-end
+     * page load.  Returns `true` when the script block should be output,
+     * `false` when it must be suppressed.
+     *
+     * Supported condition types:
+     * - `all`          — always inject (default).
+     * - `front_page`   — is_front_page().
+     * - `singular`     — is_singular().
+     * - `post_type`    — is_singular($values) where values are post-type slugs.
+     * - `page_id`      — get_queried_object_id() in the stored ID list.
+     * - `url_contains` — REQUEST_URI contains any of the stored patterns.
+     * - `logged_in`    — is_user_logged_in().
+     * - `logged_out`   — !is_user_logged_in().
+     *
+     * @since  1.3.0
+     * @access private
+     * @param  string $location `'head'` or `'footer'`.
+     * @return bool
+     */
+    private function check_load_conditions($location) {
+        $option_key = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
+        $raw        = $this->get_front_end_option($option_key, '');
+        $conditions = json_decode($raw, true);
+
+        if (!is_array($conditions) || empty($conditions['type']) || 'all' === $conditions['type']) {
+            return true; // Default: inject everywhere.
+        }
+
+        $type   = $conditions['type'];
+        $values = (isset($conditions['values']) && is_array($conditions['values'])) ? $conditions['values'] : array();
+
+        switch ($type) {
+            case 'front_page':
+                return is_front_page();
+
+            case 'singular':
+                return is_singular();
+
+            case 'post_type':
+                return !empty($values) && is_singular($values);
+
+            case 'page_id':
+                $ids = array_map('intval', $values);
+                return in_array((int) get_queried_object_id(), $ids, true);
+
+            case 'url_contains':
+                if (empty($values)) {
+                    return false;
+                }
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- used only for substring comparison, not output.
+                $uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '/';
+                foreach ($values as $pattern) {
+                    if ('' !== $pattern && false !== strpos($uri, $pattern)) {
+                        return true;
+                    }
+                }
+                return false;
+
+            case 'logged_in':
+                return is_user_logged_in();
+
+            case 'logged_out':
+                return !is_user_logged_in();
+
+            default:
+                return true;
+        }
+    }
+
     // =========================================================================
-    // RENDER METHODS — ADVANCED SETTINGS
+    // RENDER METHODS — LOAD CONDITIONS
+    // =========================================================================
+
+    /**
+     * Description for the head Load Conditions settings section.
+     *
+     * @since  1.3.0
+     * @return void
+     */
+    public function render_head_conditions_section() {
+        echo '<p>';
+        esc_html_e('Control which pages this head script block is injected on. Scripts are skipped entirely — no output written — when the condition is not met.', 'scriptomatic');
+        echo '</p>';
+    }
+
+    /**
+     * Description for the footer Load Conditions settings section.
+     *
+     * @since  1.3.0
+     * @return void
+     */
+    public function render_footer_conditions_section() {
+        echo '<p>';
+        esc_html_e('Control which pages this footer script block is injected on. Scripts are skipped entirely — no output written — when the condition is not met.', 'scriptomatic');
+        echo '</p>';
+    }
+
+    /**
+     * Output the Load Conditions field for the head location.
+     *
+     * @since  1.3.0
+     * @return void
+     */
+    public function render_head_conditions_field() {
+        $this->render_conditions_field_for('head');
+    }
+
+    /**
+     * Output the Load Conditions field for the footer location.
+     *
+     * @since  1.3.0
+     * @return void
+     */
+    public function render_footer_conditions_field() {
+        $this->render_conditions_field_for('footer');
+    }
+
+    /**
+     * Shared Load Conditions UI renderer.
+     *
+     * Renders a `<select>` for condition type and three conditionally-visible
+     * sub-panels (post-type checkboxes, page-ID chicklets, URL-pattern
+     * chicklets).  All sub-panels are server-rendered; JS handles show/hide
+     * transitions and keeps the hidden JSON input in sync.
+     *
+     * @since  1.3.0
+     * @access private
+     * @param  string $location `'head'` or `'footer'`.
+     * @return void
+     */
+    private function render_conditions_field_for($location) {
+        $option_key = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
+        $raw        = get_option($option_key, '');
+        $conditions = json_decode($raw, true);
+        $type       = (is_array($conditions) && !empty($conditions['type'])) ? $conditions['type'] : 'all';
+        $values     = (is_array($conditions) && isset($conditions['values']) && is_array($conditions['values'])) ? $conditions['values'] : array();
+        $pfx        = 'scriptomatic-' . $location . '-cond';
+        $post_types = get_post_types(array('public' => true), 'objects');
+
+        $condition_labels = array(
+            'all'          => __('All pages (default)', 'scriptomatic'),
+            'front_page'   => __('Front page only', 'scriptomatic'),
+            'singular'     => __('Any single post or page', 'scriptomatic'),
+            'post_type'    => __('Specific post types', 'scriptomatic'),
+            'page_id'      => __('Specific pages / posts by ID', 'scriptomatic'),
+            'url_contains' => __('URL contains (any match)', 'scriptomatic'),
+            'logged_in'    => __('Logged-in users only', 'scriptomatic'),
+            'logged_out'   => __('Logged-out visitors only', 'scriptomatic'),
+        );
+        ?>
+        <div class="scriptomatic-conditions-wrap" data-location="<?php echo esc_attr($location); ?>" data-prefix="<?php echo esc_attr($pfx); ?>">
+
+            <select
+                id="<?php echo esc_attr($pfx); ?>-type"
+                class="scriptomatic-condition-type"
+                style="min-width:280px;"
+                aria-label="<?php esc_attr_e('Load condition', 'scriptomatic'); ?>"
+            >
+                <?php foreach ($condition_labels as $val => $label) : ?>
+                <option value="<?php echo esc_attr($val); ?>" <?php selected($type, $val); ?>><?php echo esc_html($label); ?></option>
+                <?php endforeach; ?>
+            </select>
+
+            <?php /* --- Panel: post_type --- */ ?>
+            <div class="sm-cond-panel" data-panel="post_type" <?php echo 'post_type' !== $type ? 'hidden' : ''; ?>>
+                <fieldset class="sm-cond-fieldset">
+                    <legend><?php esc_html_e('Load on these post types:', 'scriptomatic'); ?></legend>
+                    <div class="sm-pt-grid">
+                    <?php foreach ($post_types as $pt) :
+                        $checked = in_array($pt->name, $values, true); ?>
+                        <label class="sm-pt-label">
+                            <input type="checkbox" class="sm-pt-checkbox"
+                                data-prefix="<?php echo esc_attr($pfx); ?>"
+                                value="<?php echo esc_attr($pt->name); ?>"
+                                <?php checked($checked); ?>
+                            >
+                            <span>
+                                <strong><?php echo esc_html($pt->labels->singular_name); ?></strong>
+                                <code><?php echo esc_html($pt->name); ?></code>
+                            </span>
+                        </label>
+                    <?php endforeach; ?>
+                    </div>
+                </fieldset>
+            </div>
+
+            <?php /* --- Panel: page_id --- */ ?>
+            <div class="sm-cond-panel" data-panel="page_id" <?php echo 'page_id' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e('Add the numeric ID of each post, page, or custom post entry. Find IDs in the URL bar when editing (post=123).', 'scriptomatic'); ?></p>
+                    <div id="<?php echo esc_attr($pfx); ?>-id-chicklets" class="scriptomatic-chicklet-list scriptomatic-chicklet-list--alt" aria-label="<?php esc_attr_e('Added page IDs', 'scriptomatic'); ?>">
+                        <?php foreach ($values as $id) :
+                            $id    = absint($id);
+                            if (!$id) continue;
+                            $title = get_the_title($id);
+                            $label = $title ? $id . ' — ' . $title : (string) $id;
+                        ?>
+                        <span class="scriptomatic-chicklet" data-val="<?php echo esc_attr($id); ?>">
+                            <span class="chicklet-label" title="<?php echo esc_attr($label); ?>"><?php echo esc_html($label); ?></span>
+                            <button type="button" class="scriptomatic-remove-url" aria-label="<?php esc_attr_e('Remove ID', 'scriptomatic'); ?>">&times;</button>
+                        </span>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="sm-cond-add-row">
+                        <input type="number" id="<?php echo esc_attr($pfx); ?>-id-new" class="small-text" min="1" step="1"
+                            placeholder="<?php esc_attr_e('ID', 'scriptomatic'); ?>"
+                            aria-label="<?php esc_attr_e('Post or page ID to add', 'scriptomatic'); ?>">
+                        <button type="button" id="<?php echo esc_attr($pfx); ?>-id-add" class="button button-secondary"><?php esc_html_e('Add ID', 'scriptomatic'); ?></button>
+                    </div>
+                    <p id="<?php echo esc_attr($pfx); ?>-id-error" class="scriptomatic-url-error" style="display:none;"></p>
+                </div>
+            </div>
+
+            <?php /* --- Panel: url_contains --- */ ?>
+            <div class="sm-cond-panel" data-panel="url_contains" <?php echo 'url_contains' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e('Script loads when the request URL contains any of the listed strings. Partial paths work — e.g. /blog/ or /checkout.', 'scriptomatic'); ?></p>
+                    <div id="<?php echo esc_attr($pfx); ?>-url-chicklets" class="scriptomatic-chicklet-list scriptomatic-chicklet-list--alt" aria-label="<?php esc_attr_e('Added URL patterns', 'scriptomatic'); ?>">
+                        <?php foreach ($values as $pattern) :
+                            $pattern = sanitize_text_field((string) $pattern);
+                            if ('' === $pattern) continue;
+                        ?>
+                        <span class="scriptomatic-chicklet" data-val="<?php echo esc_attr($pattern); ?>">
+                            <span class="chicklet-label" title="<?php echo esc_attr($pattern); ?>"><?php echo esc_html($pattern); ?></span>
+                            <button type="button" class="scriptomatic-remove-url" aria-label="<?php esc_attr_e('Remove pattern', 'scriptomatic'); ?>">&times;</button>
+                        </span>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="sm-cond-add-row">
+                        <input type="text" id="<?php echo esc_attr($pfx); ?>-url-new" class="regular-text"
+                            placeholder="<?php esc_attr_e('/my-page or /category/name', 'scriptomatic'); ?>"
+                            aria-label="<?php esc_attr_e('URL pattern to add', 'scriptomatic'); ?>">
+                        <button type="button" id="<?php echo esc_attr($pfx); ?>-url-add" class="button button-secondary"><?php esc_html_e('Add Pattern', 'scriptomatic'); ?></button>
+                    </div>
+                    <p id="<?php echo esc_attr($pfx); ?>-url-error" class="scriptomatic-url-error" style="display:none;"></p>
+                </div>
+            </div>
+
+            <input type="hidden"
+                id="<?php echo esc_attr($pfx); ?>-json"
+                name="<?php echo esc_attr($option_key); ?>"
+                value="<?php echo esc_attr(wp_json_encode(array('type' => $type, 'values' => $values))); ?>"
+            >
+        </div><!-- .scriptomatic-conditions-wrap -->
+        <?php
+    }
     // =========================================================================
 
     /**
@@ -1607,16 +1970,20 @@ class Scriptomatic {
             : '';
 
         if ('head' === $location || 'footer' === $location) {
-            $script_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_SCRIPT  : SCRIPTOMATIC_HEAD_SCRIPT;
-            $linked_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_LINKED  : SCRIPTOMATIC_HEAD_LINKED;
+            $script_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_SCRIPT      : SCRIPTOMATIC_HEAD_SCRIPT;
+            $linked_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_LINKED      : SCRIPTOMATIC_HEAD_LINKED;
+            $cond_key    = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_CONDITIONS  : SCRIPTOMATIC_HEAD_CONDITIONS;
 
             $raw_script  = isset($_POST[$script_key])  ? (string) wp_unslash($_POST[$script_key])  : '';
             $raw_linked  = isset($_POST[$linked_key])  ? (string) wp_unslash($_POST[$linked_key])  : '[]';
+            $raw_cond    = isset($_POST[$cond_key])    ? (string) wp_unslash($_POST[$cond_key])    : '';
+            $raw_cond    = isset($_POST[$cond_key])    ? (string) wp_unslash($_POST[$cond_key])    : '';
 
             // Full content validation via validate_inline_script() — same checks as the
             // per-site save path (length, control chars, PHP tags, dangerous HTML).
             update_site_option($script_key, $this->validate_inline_script($raw_script, $location));
             update_site_option($linked_key, $this->sanitize_linked_for($raw_linked, $location));
+            update_site_option($cond_key,   $this->sanitize_conditions_for($raw_cond, $location));
 
         } elseif ('general' === $location) {
             $raw = isset($_POST[SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION])
@@ -1880,6 +2247,60 @@ class Scriptomatic {
 }
 .scriptomatic-history-table th { font-weight: 600; }
 .scriptomatic-history-table tbody tr:hover { background: #f6f7f7; }
+
+/* Load Conditions */
+.scriptomatic-conditions-wrap { max-width: 600px; }
+.sm-cond-panel {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.sm-cond-panel[hidden] { display: none; }
+.sm-cond-fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+.sm-cond-fieldset legend {
+    font-weight: 600;
+    margin-bottom: 10px;
+    float: left;
+    width: 100%;
+}
+.sm-pt-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin-top: 4px;
+}
+.sm-pt-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    min-width: 180px;
+}
+.sm-pt-label code {
+    font-size: 11px;
+    color: #666;
+    background: #eee;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+.sm-cond-inner { max-width: 100%; }
+.sm-cond-add-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    align-items: center;
+}
+.scriptomatic-chicklet-list--alt {
+    background: #fff;
+    min-height: 36px;
+}
+.scriptomatic-url-error { color: #dc3545; margin-top: 4px; }
 ';
     }
 
@@ -2008,7 +2429,133 @@ jQuery(document).ready(function ($) {
             alert(i18n.rollbackError);
             $btn.prop("disabled", false).text(orig);
         });
+    });  /* end document.ready */
+
+    /* 4. Load Conditions */
+    function initConditions($wrap) {
+        var pfx   = $wrap.data("prefix");
+        var $type  = $("#" + pfx + "-type");
+        var $json  = $("#" + pfx + "-json");
+
+        function syncJson() {
+            var t      = $type.val();
+            var values = [];
+
+            if (t === "post_type") {
+                $wrap.find(".sm-pt-checkbox:checked").each(function () {
+                    values.push($(this).val());
+                });
+            } else if (t === "page_id") {
+                $("#" + pfx + "-id-chicklets .scriptomatic-chicklet").each(function () {
+                    values.push(parseInt($(this).data("val"), 10));
+                });
+            } else if (t === "url_contains") {
+                $("#" + pfx + "-url-chicklets .scriptomatic-chicklet").each(function () {
+                    values.push($(this).data("val"));
+                });
+            }
+            $json.val(JSON.stringify({ type: t, values: values }));
+        }
+
+        function showPanel(t) {
+            $wrap.find(".sm-cond-panel").attr("hidden", true);
+            var $panel = $wrap.find(".sm-cond-panel[data-panel=\"" + t + "\"]");
+            if ($panel.length) {
+                $panel.removeAttr("hidden");
+            }
+        }
+
+        $type.on("change", function () {
+            showPanel($(this).val());
+            syncJson();
+        });
+        showPanel($type.val());
+
+        $wrap.on("change", ".sm-pt-checkbox", syncJson);
+
+        /* ID chicklet manager */
+        var $idList  = $("#" + pfx + "-id-chicklets");
+        var $idInput = $("#" + pfx + "-id-new");
+        var $idAdd   = $("#" + pfx + "-id-add");
+        var $idError = $("#" + pfx + "-id-error");
+
+        function makeChicklet(val, label) {
+            var $c = $("<span>").addClass("scriptomatic-chicklet").attr("data-val", val);
+            $("<span>").addClass("chicklet-label").attr("title", label).text(label).appendTo($c);
+            $("<button>").attr({ type: "button", "aria-label": "Remove" })
+                .addClass("scriptomatic-remove-url").html("&times;").appendTo($c);
+            return $c;
+        }
+
+        function addId() {
+            var id = parseInt($idInput.val(), 10);
+            $idError.hide().text("");
+            if (!id || id < 1) {
+                $idError.text("Please enter a valid positive integer ID.").show();
+                $idInput.trigger("focus");
+                return;
+            }
+            if ($idList.find("[data-val=\"" + id + "\"]").length) {
+                $idError.text("This ID has already been added.").show();
+                $idInput.trigger("focus");
+                return;
+            }
+            $idList.append(makeChicklet(id, String(id)));
+            $idInput.val("").trigger("focus");
+            syncJson();
+        }
+
+        if ($idAdd.length) {
+            $idAdd.on("click", addId);
+            $idInput.on("keydown", function (e) {
+                if (e.key === "Enter") { e.preventDefault(); addId(); }
+            });
+        }
+
+        /* URL-pattern chicklet manager */
+        var $urlList  = $("#" + pfx + "-url-chicklets");
+        var $urlInput = $("#" + pfx + "-url-new");
+        var $urlAdd   = $("#" + pfx + "-url-add");
+        var $urlError = $("#" + pfx + "-url-error");
+
+        function addPattern() {
+            var pat = $.trim($urlInput.val());
+            $urlError.hide().text("");
+            if (!pat) {
+                $urlError.text("Please enter a URL path or pattern.").show();
+                $urlInput.trigger("focus");
+                return;
+            }
+            if ($urlList.find("[data-val=\"" + pat.replace(/\"/g, \'\\\"\') + "\"]").length) {
+                $urlError.text("This pattern has already been added.").show();
+                $urlInput.trigger("focus");
+                return;
+            }
+            $urlList.append(makeChicklet(pat, pat));
+            $urlInput.val("").trigger("focus");
+            syncJson();
+        }
+
+        if ($urlAdd.length) {
+            $urlAdd.on("click", addPattern);
+            $urlInput.on("keydown", function (e) {
+                if (e.key === "Enter") { e.preventDefault(); addPattern(); }
+            });
+        }
+
+        /* Shared remove handler for both ID and URL chicklets */
+        $wrap.on("click", "#" + pfx + "-id-chicklets .scriptomatic-remove-url, #" + pfx + "-url-chicklets .scriptomatic-remove-url", function () {
+            $(this).closest(".scriptomatic-chicklet").remove();
+            syncJson();
+        });
+
+        syncJson();
+    }
+
+    $(".scriptomatic-conditions-wrap").each(function () {
+        initConditions($(this));
     });
+
 });
 ';
     }
@@ -2092,6 +2639,11 @@ jQuery(document).ready(function ($) {
      * @return void
      */
     private function inject_scripts_for($location) {
+        // Evaluate load condition first — bail out with no output if not met.
+        if (!$this->check_load_conditions($location)) {
+            return;
+        }
+
         $script_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_SCRIPT  : SCRIPTOMATIC_HEAD_SCRIPT;
         $linked_key  = ('footer' === $location) ? SCRIPTOMATIC_FOOTER_LINKED  : SCRIPTOMATIC_HEAD_LINKED;
 
