@@ -24,38 +24,38 @@ trait Scriptomatic_Enqueue {
     /**
      * Enqueue scripts and styles for Scriptomatic admin pages.
      *
- * Fires on `admin_enqueue_scripts`. Early-returns on any hook not belonging
- * to this plugin.
- *
- * @since  1.4.0
- * @param  string $hook The current admin-page hook suffix.
- * @return void
- */
-public function enqueue_admin_scripts( $hook ) {
-    $head_hooks = array(
-        'toplevel_page_scriptomatic',
-    );
-    $footer_hooks = array(
-        'scriptomatic_page_scriptomatic-footer',
-    );
-    $general_hooks = array(
-        'scriptomatic_page_scriptomatic-settings',
-    );
+     * Fires on `admin_enqueue_scripts`. Early-returns on any hook not belonging
+     * to this plugin.
+     *
+     * @since  1.4.0
+     * @param  string $hook The current admin-page hook suffix.
+     * @return void
+     */
+    public function enqueue_admin_scripts( $hook ) {
+        $head_hooks = array(
+            'toplevel_page_scriptomatic',
+        );
+        $footer_hooks = array(
+            'scriptomatic_page_scriptomatic-footer',
+        );
+        $general_hooks = array(
+            'scriptomatic_page_scriptomatic-settings',
+        );
 
-    $all_hooks = array_merge( $head_hooks, $footer_hooks, $general_hooks );
+        $all_hooks = array_merge( $head_hooks, $footer_hooks, $general_hooks );
 
-    if ( ! in_array( $hook, $all_hooks, true ) ) {
-        return;
-    }
+        if ( ! in_array( $hook, $all_hooks, true ) ) {
+            return;
+        }
 
-    // Determine the active location for the JS context object.
-    if ( in_array( $hook, $footer_hooks, true ) ) {
-        $location = 'footer';
-    } elseif ( in_array( $hook, $general_hooks, true ) ) {
-        $location = 'general';
-    } else {
-        $location = 'head';
-    }
+        // Determine the active location for the JS context object.
+        if ( in_array( $hook, $footer_hooks, true ) ) {
+            $location = 'footer';
+        } elseif ( in_array( $hook, $general_hooks, true ) ) {
+            $location = 'general';
+        } else {
+            $location = 'head';
+        }
 
         // Enqueue the real CSS file.
         wp_enqueue_style(
@@ -94,4 +94,5 @@ public function enqueue_admin_scripts( $hook ) {
             ),
         ) );
     }
+
 }
