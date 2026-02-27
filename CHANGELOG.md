@@ -9,7 +9,22 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-Nothing pending.
+### Added
+- **View button on revision history entries.** Each row in the Inline Script History panel now has a **View** button that opens a full-page glass-effect lightbox showing the revision's script content in a monospace block, with the save date and user as metadata. Closes on `Escape`, clicking outside the card, or the `×` button. New AJAX action `scriptomatic_get_history_content` returns the content for a given index/location, reusing the existing rollback nonce.
+- **URL add/remove audit log entries.** `sanitize_linked_for()` now diffs the old and new URL lists on every save and writes a `url_added` or `url_removed` audit log entry for each changed URL, storing the URL in a new `detail` field. A static double-call guard prevents duplicates from the Settings API double-invocation.
+
+### Fixed
+- **Rate limiter false positive on first save.** The WordPress Settings API invokes sanitize callbacks twice per POST request. The second call was triggering the 10-second rate limiter even though it was not a genuine second save. Fixed with a `static $processed_this_request` guard that skips the rate check, history push, and audit log write on the second invocation within the same request.
+- **AJAX rollback silently cleared script content.** `update_option()` on a Settings-API-registered option re-runs the registered sanitize callback. In an AJAX context there is no `$_POST` nonce field, so the secondary nonce check failed and returned the previously stored (empty) value. Fixed by using `$wpdb->update()` + `wp_cache_delete()` directly, bypassing the sanitize callback entirely.
+- **`uninstall.php` null warning.** The plugin options array was defined at file scope and accessed via `global` inside `scriptomatic_uninstall_cleanup()`. WordPress executes uninstall files inside its own `uninstall_plugin()` function, so file-scope variables are not accessible via `global`. Fixed by moving the array definition inside the function.
+- **`trait-enqueue.php` orphaned braces.** A previous edit left the `$location` assignment with a missing `elseif`/`else` structure and orphaned closing braces. Corrected to a clean `if / elseif / else` block.
+
+### Changed
+- **Audit log filtered by location.** Each scripts page (Head, Footer) now filters the audit log table to show only entries for its own location. The Location column has been removed from the table since it is implicit.
+- **Inline Script History heading.** The history panel heading was renamed from "%s Script History" to "Inline Script History" to be unambiguous.
+- **History panel description.** The description now reads "Showing N saved revisions of the Head/Footer inline script…" to make the scope explicit.
+- **Load Conditions section moved above External Script URLs.** On both the Head Scripts and Footer Scripts pages, the Load Conditions section now appears immediately after the Inline Script section, before External Script URLs.
+- **General Settings page renamed to Preferences.** The submenu label, browser tab title, help tab references, and README all updated.
 
 ---
 
