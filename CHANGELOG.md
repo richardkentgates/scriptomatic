@@ -9,6 +9,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+_Nothing yet._
+
+---
+
+## [1.8.0] – 2026-02-27
+
 ### Added
 - **Managed JS Files.** New **JS Files** sub-menu (between Footer Scripts and Preferences) lets administrators create, edit, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`. Each file has: a human-readable label; an auto-slugged editable filename with `.js` enforced; a Head / Footer injection selector; the full Load Conditions picker (all 8 condition types); and a CodeMirror JavaScript editor with WP/jQuery-specific autocomplete hints. File size is capped at the site's `wp_max_upload_size()`. The edit form is a full admin page with a size counter showing KB/MB. Files are deleted from disk on uninstall (unless "keep data" is enabled).
 - **CodeMirror code editor for inline scripts.** The inline-script `<textarea>` on the Head Scripts and Footer Scripts pages is now upgraded to a full CodeMirror JavaScript editor (line numbers, bracket matching, auto-close brackets, Ctrl-Space autocomplete). The hint function merges CodeMirror's built-in JS completions with a curated list of WordPress/jQuery globals: `jQuery`, `$.ajax/post/get`, `wp.ajax`, `wp.hooks.addFilter/addAction/applyFilters/doAction`, `wp.data`, `wp.i18n.__`, `wp.apiFetch`, `ajaxurl`, `pagenow`, and more. The form `submit` handler syncs the editor value back to the textarea before POST. Rollback `setValue()` updates the live editor on success. Falls back gracefully to the plain textarea when the user has disabled syntax highlighting in their WordPress profile.
@@ -292,6 +298,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 1.8.0   | 2026-02-27 | Managed JS Files, CodeMirror editor, security hardening |
+| 1.7.0   | 2026-02-27 | Configurable audit log limit, addUrl fix, network UI removed |
+| 1.6.0   | 2026-02-27 | Per-URL load conditions                        |
+| 1.5.0   | 2026-02-26 | Persistent audit log admin page                |
 | 1.4.4   | 2026-02-26 | Pre-release audit: doc accuracy, esc_html fix       |
 | 1.4.3   | 2026-02-26 | Remove all backward-compat aliases and dead constants |
 | 1.4.2   | 2026-02-26 | Code-quality fixes, dead-code removal, doc accuracy |
@@ -306,7 +316,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.7.0...v1.8.0
+[1.7.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.6.0...v1.7.0
+[1.6.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.2...v1.4.3

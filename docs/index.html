@@ -691,7 +691,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
 
     <div class="changelog-item">
-      <div class="clog-version">Unreleased</div>
+      <div class="clog-version">v1.8.0</div>
       <div class="clog-body">
         <h4>Managed JS Files, built-in CodeMirror editor, security hardening, history lightbox</h4>
         <p>Managed JS Files feature: create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>, each with its own Head/Footer selector and Load Conditions. CodeMirror editor added to all inline-script textareas and the JS Files editor, with WordPress/jQuery autocomplete hints. Six security fixes. History view-button lightbox. Audit log filtered by location. "General Settings" renamed to "Preferences". Load Conditions moved above External Script URLs.</p>
@@ -723,6 +723,38 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     </div>
 
     <div class="changelog-item">
+      <div class="clog-version">v1.4.4</div>
+      <div class="clog-body">
+        <h4>Pre-release audit: doc accuracy and <code>esc_html()</code> fix</h4>
+        <p><code>inject_scripts_for()</code> was escaping the version string in an HTML comment with <code>esc_attr()</code> instead of <code>esc_html()</code> — corrected. Several false or outdated claims fixed in SECURITY.md and CONTRIBUTING.md.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.4.3</div>
+      <div class="clog-body">
+        <h4>Remove all backward-compat aliases and dead constants</h4>
+        <p>Dead constants (<code>SCRIPTOMATIC_OPTION_NAME</code>, <code>SCRIPTOMATIC_NONCE_ACTION</code>, etc.) and never-called alias methods removed. Kept the codebase lean ahead of public release.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.4.2</div>
+      <div class="clog-body">
+        <h4>Code-quality fixes and doc accuracy</h4>
+        <p><code>wp_redirect()</code> on the error path was missing <code>esc_url_raw()</code>. Redundant inner capability check in <code>sanitize_script_for()</code> removed. <code>@since</code> tag on <code>enqueue_admin_scripts()</code> corrected to 1.4.0.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.4.1</div>
+      <div class="clog-body">
+        <h4>Multisite network-admin bug fixes</h4>
+        <p>Network-admin pages were calling <code>get_option()</code> instead of <code>get_site_option()</code>, causing script fields, conditions, and settings to appear empty or show per-site values on network screens. All read/write paths corrected.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
       <div class="clog-version">v1.4.0</div>
       <div class="clog-body">
         <h4>Trait-based architecture refactor; static asset files</h4>
@@ -731,10 +763,26 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     </div>
 
     <div class="changelog-item">
+      <div class="clog-version">v1.3.1</div>
+      <div class="clog-body">
+        <h4>Dead-code removal, doc accuracy, i18n strings</h4>
+        <p>Dead methods removed. Section descriptions corrected to mention Load Conditions. Help-tab troubleshooting entry added for missing scripts. JS conditions UI error strings moved to <code>wp_localize_script</code> for translatability.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
       <div class="clog-version">v1.3.0</div>
       <div class="clog-body">
         <h4>Conditional per-page loading</h4>
         <p>Scripts can now be restricted to specific pages. Eight condition types: All Pages, Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out. Independent conditions for head and footer scripts.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.2.1</div>
+      <div class="clog-body">
+        <h4>Multisite bug fixes and privacy hardening</h4>
+        <p><code>get_front_end_option()</code> was calling <code>get_option()</code> on multisite instead of <code>get_site_option()</code>. IP address collection removed from audit logging — only username, user ID, timestamp, and character count are now stored.</p>
       </div>
     </div>
 
