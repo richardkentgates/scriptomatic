@@ -35,7 +35,7 @@ require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-injector.php';
  * - Scriptomatic_History   — revision history and AJAX rollback.
  * - Scriptomatic_Settings  — Settings API wiring + plugin-settings CRUD.
  * - Scriptomatic_Renderer  — settings-field callbacks + load conditions.
- * - Scriptomatic_Pages     — page renderers (Head/Footer/General pages, embedded Audit Log, help tabs, clear-audit-log action, and action links).
+ * - Scriptomatic_Pages     — page renderers (Head/Footer/General pages, embedded Audit Log, help tabs, and action links).
  * - Scriptomatic_Enqueue   — admin asset enqueueing.
  * - Scriptomatic_Injector  — front-end script injection.
  *
@@ -115,8 +115,6 @@ class Scriptomatic {
         // AJAX — wp_ajax_ prefix ensures only logged-in users can trigger it.
         add_action( 'wp_ajax_scriptomatic_rollback',             array( $this, 'ajax_rollback' ) );
         add_action( 'wp_ajax_scriptomatic_get_history_content',  array( $this, 'ajax_get_history_content' ) );
-
-
     }
 
     /**

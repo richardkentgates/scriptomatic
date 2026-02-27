@@ -283,6 +283,7 @@ eval(someUntrustedString); // Never use eval!
 ## 📚 Documentation
 
 - **[Changelog](CHANGELOG.md)**: Version history and changes
+- **[Architecture](ARCHITECTURE.md)**: Internal structure reference for developers extending the plugin
 - **[Security Policy](SECURITY.md)**: Security guidelines and reporting
 - **[License](LICENSE)**: GPL v2 license details
 
