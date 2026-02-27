@@ -7,6 +7,9 @@
   <meta property="og:title" content="Scriptomatic — WordPress JavaScript Injection Plugin" />
   <meta property="og:description" content="Inject custom JavaScript into the head and footer of your WordPress site with revision history, rollback, audit logging, and fine-grained admin controls." />
   <meta property="og:url" content="https://scriptomatic.richardkentgates.com" />
+  <meta property="og:image" content="https://scriptomatic.richardkentgates.com/scriptomatic-logo.png" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/png" href="scriptomatic-favicon.png" />
   <title>Scriptomatic — WordPress JavaScript Injection Plugin</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -51,8 +54,9 @@
       height: 60px;
       box-shadow: 0 1px 3px rgba(0,0,0,.08);
     }
-    .nav-brand { font-weight: 700; font-size: 1.15rem; color: var(--text); letter-spacing: -.3px; }
+    .nav-brand { font-weight: 700; font-size: 1.15rem; color: var(--text); letter-spacing: -.3px; display: flex; align-items: center; gap: .5rem; text-decoration: none; }
     .nav-brand span { color: var(--blue); }
+    .nav-logo { width: 28px; height: 28px; display: block; }
     .nav-links { display: flex; gap: 1.75rem; list-style: none; }
     .nav-links a { font-size: .9rem; color: var(--muted); font-weight: 500; }
     .nav-links a:hover { color: var(--blue); text-decoration: none; }
@@ -69,6 +73,7 @@
       padding: 6rem 2rem 5rem;
       text-align: center;
     }
+    .hero-logo { width: 110px; height: 110px; margin: 0 auto 1.75rem; display: block; }
     .hero-badge {
       display: inline-block;
       background: rgba(255,255,255,.12);
@@ -280,7 +285,7 @@
 
 <!-- NAV -->
 <nav>
-  <div class="nav-brand"><span>Script</span>omatic</div>
+  <div class="nav-brand"><img src="scriptomatic-favicon.png" alt="Scriptomatic icon" class="nav-logo" /><span>Script</span>omatic</div>
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
     <li><a href="#security">Security</a></li>
@@ -293,9 +298,10 @@
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v1.7.0</div>
+  <img src="scriptomatic-logo.png" alt="Scriptomatic" class="hero-logo" />
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v1.8.0</div>
   <h1>Inject custom JavaScript<br/><span>the right way.</span></h1>
-  <p>Scriptomatic gives WordPress administrators full control over custom scripts in the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> and footer — with conditional loading, revision history, one-click rollback, and a complete audit trail.</p>
+  <p>Scriptomatic gives WordPress administrators full control over custom scripts — inline JavaScript with a built-in code editor, managed JS files, and external script URLs — injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer with conditional loading, revision history, one-click rollback, and a complete audit trail.</p>
   <div class="hero-actions">
     <a class="btn btn-primary" href="https://github.com/richardkentgates/scriptomatic/releases/latest">
       ⬇ Download Latest
@@ -348,7 +354,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-amber">📋</div>
         <h3>Audit Log</h3>
-        <p>All saves, rollbacks, and URL changes are recorded with timestamp, username, action type, and character count or URL. Configurable limit of 10–1000 entries per location.</p>
+        <p>All saves, rollbacks, and URL changes are recorded with timestamp, username, action type, and character count or URL. Configurable limit of 3–1000 entries (default 200), with oldest entries discarded automatically.</p>
       </div>
 
       <div class="feature-card">
@@ -370,9 +376,21 @@
       </div>
 
       <div class="feature-card">
+        <div class="feature-icon icon-amber">🗂️</div>
+        <h3>Managed JS Files</h3>
+        <p>Create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file gets its own Head/Footer selector and Load Conditions, and survives plugin updates.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-blue">💻</div>
+        <h3>Built-in Code Editor</h3>
+        <p>Inline scripts and managed JS files use a full CodeMirror editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea if syntax highlighting is disabled.</p>
+      </div>
+
+      <div class="feature-card">
         <div class="feature-icon icon-purple">🏗️</div>
-        <h3>Trait-Based Architecture</h3>
-        <p>Eight focused PHP traits — menus, sanitizer, history, settings, renderer, pages, enqueue, injector — in separate files for clean separation of concerns.</p>
+        <h3>Modular Architecture</h3>
+        <p>Nine focused PHP traits — including dedicated traits for file management, injection, sanitization, and enqueuing — in separate files for clean separation of concerns.</p>
       </div>
 
     </div>
@@ -576,7 +594,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
 <section class="features-bg" id="admin">
   <div class="container">
     <span class="section-label">Admin Interface</span>
-    <h2>Three focused admin pages</h2>
+    <h2>Four focused admin pages</h2>
     <p class="section-intro">Each page is scoped to one location or purpose, keeping the interface clean and avoiding ambiguity.</p>
 
     <div class="table-wrap">
@@ -600,9 +618,14 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
             <td>Inline JS editor, external URL manager, load conditions, revision history lightbox, audit log (footer entries only)</td>
           </tr>
           <tr>
+            <td>JS Files</td>
+            <td>Scriptomatic → JS Files</td>
+            <td>Create, edit, and delete managed <code>.js</code> files; each file has its own label, slug filename, Head/Footer toggle, load conditions, and CodeMirror editor</td>
+          </tr>
+          <tr>
             <td>Preferences</td>
             <td>Scriptomatic → Preferences</td>
-            <td>History revision limit, audit log entry limit (10–1000), uninstall data-retention toggle</td>
+            <td>History revision limit, audit log entry limit (3–1000), uninstall data-retention toggle</td>
           </tr>
         </tbody>
       </table>
@@ -670,8 +693,8 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <div class="changelog-item">
       <div class="clog-version">Unreleased</div>
       <div class="clog-body">
-        <h4>Security hardening, view lightbox for history, Preferences rename, audit log improvements</h4>
-        <p>Six security fixes across sanitizer, settings, pages, and injector traits. View button on history entries opens a lightbox. Audit log now filters by location. "General Settings" renamed to "Preferences". Load Conditions section moved above External Script URLs.</p>
+        <h4>Managed JS Files, built-in CodeMirror editor, security hardening, history lightbox</h4>
+        <p>Managed JS Files feature: create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>, each with its own Head/Footer selector and Load Conditions. CodeMirror editor added to all inline-script textareas and the JS Files editor, with WordPress/jQuery autocomplete hints. Six security fixes. History view-button lightbox. Audit log filtered by location. "General Settings" renamed to "Preferences". Load Conditions moved above External Script URLs.</p>
       </div>
     </div>
 
@@ -679,7 +702,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
       <div class="clog-version">v1.7.0</div>
       <div class="clog-body">
         <h4>Configurable audit log limit; fixed addUrl() clone bug; network admin UI removed</h4>
-        <p>Audit log cap moved from a hard-coded constant to a Preferences setting (10–1000, default 200). Fixed the JS <code>addUrl()</code> function that was producing an empty set. All network-admin-specific code removed — plugin is now strictly per-site.</p>
+        <p>Audit log cap moved from a hard-coded constant to a Preferences setting (3–1000, default 200). Fixed the JS <code>addUrl()</code> function that was producing an empty set. All network-admin-specific code removed — plugin is now strictly per-site.</p>
       </div>
     </div>
 
@@ -714,7 +737,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <a href="https://github.com/richardkentgates/scriptomatic/issues">Issues</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v1.7.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v1.8.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>

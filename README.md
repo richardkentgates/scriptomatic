@@ -1,5 +1,9 @@
 # Scriptomatic
 
+<p align="center">
+  <img src="docs/scriptomatic-logo.png" alt="Scriptomatic" width="180" />
+</p>
+
 [![WordPress Plugin](https://img.shields.io/badge/WordPress-5.3%2B-blue)](https://wordpress.org/)
 [![PHP Version](https://img.shields.io/badge/PHP-7.2%2B-purple)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-green)](LICENSE)
@@ -99,7 +103,8 @@ Then activate via WordPress admin.
 |------|------|---------|
 | Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>`; includes Audit Log |
 | Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>`; includes Audit Log |
-| Preferences | Scriptomatic → Preferences | History limit, audit log limit, uninstall data retention |
+| JS Files | Scriptomatic → JS Files | Create, edit, and delete managed `.js` files; each file has its own Head/Footer toggle, load conditions, and CodeMirror editor |
+| Preferences | Scriptomatic → Preferences | History limit, audit log limit (3–1000), uninstall data retention |
 
 ### Important Notes
 
