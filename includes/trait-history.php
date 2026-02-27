@@ -30,55 +30,28 @@ trait Scriptomatic_History {
      * @param  string $location `'head'` or `'footer'`.
      * @return void
      */
-    private function push_history( $content, $location = 'head' ) {
-        $option  = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_HISTORY : SCRIPTOMATIC_HEAD_HISTORY;
-        $history = $this->get_history( $location );
-        $max     = $this->get_max_history();
-        $user    = wp_get_current_user();
-
-        if ( ! empty( $history ) && isset( $history[0]['content'] ) && $history[0]['content'] === $content ) {
-            return;
-        }
-
-        array_unshift( $history, array(
-            'content'    => $content,
-            'timestamp'  => time(),
-            'user_login' => $user->user_login,
-            'user_id'    => (int) $user->ID,
-            'length'     => strlen( $content ),
-        ) );
-
-        if ( count( $history ) > $max ) {
-            $history = array_slice( $history, 0, $max );
-        }
-
-        update_option( $option, $history );
-    }
-
     /**
-     * Retrieve the stored revision history for the given location.
+     * Retrieve content-bearing revision entries for the given location.
+     *
+     * Filters the unified activity log to entries that carry a content snapshot
+     * (action in 'save'|'rollback') for the specified location.
      *
      * @since  1.2.0
+     * @since  1.9.0 Now reads from the unified activity log instead of a
+     *               per-location wp_options entry.
      * @access private
      * @param  string $location `'head'` or `'footer'`.
-     * @return array
+     * @return array  Re-indexed array; each element has at least 'content', 'timestamp', 'user_login'.
      */
     private function get_history( $location = 'head' ) {
-        $option  = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_HISTORY : SCRIPTOMATIC_HEAD_HISTORY;
-        $history = get_option( $option, array() );
-        return is_array( $history ) ? $history : array();
-    }
-
-    /**
-     * Return the configured maximum number of history entries to retain.
-     *
-     * @since  1.1.0
-     * @access private
-     * @return int
-     */
-    private function get_max_history() {
-        $settings = $this->get_plugin_settings();
-        return isset( $settings['max_history'] ) ? (int) $settings['max_history'] : SCRIPTOMATIC_DEFAULT_MAX_HISTORY;
+        $log = $this->get_activity_log();
+        return array_values(
+            array_filter( $log, function ( $e ) use ( $location ) {
+                return isset( $e['location'] ) && $e['location'] === $location
+                    && array_key_exists( 'content', $e )
+                    && isset( $e['action'] ) && in_array( $e['action'], array( 'save', 'rollback' ), true );
+            } )
+        );
     }
 
     /**
@@ -122,10 +95,10 @@ trait Scriptomatic_History {
             array( '%s' )
         );
         wp_cache_delete( $option_key, 'options' );
-        $this->push_history( $content, $location );
-        $this->write_audit_log_entry( array(
+        $this->write_activity_entry( array(
             'action'   => 'rollback',
             'location' => $location,
+            'content'  => $content,
             'chars'    => strlen( $content ),
         ) );
 
@@ -162,6 +135,110 @@ trait Scriptomatic_History {
 
         wp_send_json_success( array(
             'content' => $history[ $index ]['content'],
+        ) );
+    }
+
+    /**
+     * AJAX handler — restore a JS file from a saved activity-log snapshot.
+     *
+     * Expects POST fields: `nonce`, `file_id`, `index` (0-based position within
+     * the file's content-bearing history entries).
+     *
+     * @since  1.9.0
+     * @return void  Sends a JSON response and exits.
+     */
+    public function ajax_rollback_js_file() {
+        check_ajax_referer( SCRIPTOMATIC_FILES_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $file_id = isset( $_POST['file_id'] ) ? sanitize_key( wp_unslash( $_POST['file_id'] ) ) : '';
+        $index   = isset( $_POST['index'] )   ? absint( $_POST['index'] )                        : PHP_INT_MAX;
+
+        // Build content-bearing file history.
+        $file_history = array_values(
+            array_filter( $this->get_activity_log(), function ( $e ) use ( $file_id ) {
+                return isset( $e['file_id'] ) && $e['file_id'] === $file_id
+                    && array_key_exists( 'content', $e )
+                    && isset( $e['action'] ) && in_array( $e['action'], array( 'file_save', 'file_rollback' ), true );
+            } )
+        );
+
+        if ( ! array_key_exists( $index, $file_history ) ) {
+            wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
+        }
+
+        $entry   = $file_history[ $index ];
+        $content = $entry['content'];
+
+        // Look up the file metadata.
+        $file_meta = null;
+        foreach ( $this->get_js_files_meta() as $f ) {
+            if ( $f['id'] === $file_id ) {
+                $file_meta = $f;
+                break;
+            }
+        }
+
+        if ( ! $file_meta ) {
+            wp_send_json_error( array( 'message' => __( 'File not found.', 'scriptomatic' ) ) );
+        }
+
+        $path = $this->get_js_files_dir() . $file_meta['filename'];
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        if ( false === file_put_contents( $path, $content ) ) {
+            wp_send_json_error( array( 'message' => __( 'Could not write file.', 'scriptomatic' ) ) );
+        }
+
+        $this->write_activity_entry( array(
+            'action'   => 'file_rollback',
+            'location' => 'file',
+            'file_id'  => $file_id,
+            'content'  => $content,
+            'chars'    => strlen( $content ),
+            'detail'   => $file_meta['label'],
+        ) );
+
+        wp_send_json_success( array(
+            'content' => $content,
+            'message' => __( 'File restored successfully.', 'scriptomatic' ),
+        ) );
+    }
+
+    /**
+     * AJAX handler — return the raw content of a JS-file activity-log entry.
+     *
+     * Expects POST fields: `nonce`, `file_id`, `index`.
+     *
+     * @since  1.9.0
+     * @return void  Sends a JSON response and exits.
+     */
+    public function ajax_get_file_activity_content() {
+        check_ajax_referer( SCRIPTOMATIC_FILES_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $file_id = isset( $_POST['file_id'] ) ? sanitize_key( wp_unslash( $_POST['file_id'] ) ) : '';
+        $index   = isset( $_POST['index'] )   ? absint( $_POST['index'] )                        : PHP_INT_MAX;
+
+        $file_history = array_values(
+            array_filter( $this->get_activity_log(), function ( $e ) use ( $file_id ) {
+                return isset( $e['file_id'] ) && $e['file_id'] === $file_id
+                    && array_key_exists( 'content', $e )
+                    && isset( $e['action'] ) && in_array( $e['action'], array( 'file_save', 'file_rollback' ), true );
+            } )
+        );
+
+        if ( ! array_key_exists( $index, $file_history ) ) {
+            wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
+        }
+
+        wp_send_json_success( array(
+            'content' => $file_history[ $index ]['content'],
         ) );
     }
 }

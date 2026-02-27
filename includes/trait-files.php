@@ -266,11 +266,15 @@ trait Scriptomatic_Files {
 
         $this->save_js_files_meta( $files );
 
-        // Audit log.
-        $log_label = '' !== $original_id
-            ? sprintf( /* translators: %s = file label */ __( 'JS file updated: %s', 'scriptomatic' ), $label )
-            : sprintf( /* translators: %s = file label */ __( 'JS file created: %s', 'scriptomatic' ), $label );
-        $this->log_change( 'js_file', $log_label, '', $content );
+        // Activity log — record the save with a full content snapshot.
+        $this->write_activity_entry( array(
+            'action'   => 'file_save',
+            'location' => 'file',
+            'file_id'  => $new_id,
+            'content'  => $content,
+            'chars'    => strlen( $content ),
+            'detail'   => $label,
+        ) );
 
         wp_safe_redirect(
             add_query_arg(
@@ -352,12 +356,12 @@ trait Scriptomatic_Files {
         }
 
         $this->save_js_files_meta( $files );
-        $this->log_change(
-            'js_file',
-            sprintf( /* translators: %s = file label */ __( 'JS file deleted: %s', 'scriptomatic' ), $found['label'] ),
-            '',
-            ''
-        );
+        $this->write_activity_entry( array(
+            'action'   => 'file_delete',
+            'location' => 'file',
+            'file_id'  => $id,
+            'detail'   => $found['label'],
+        ) );
 
         wp_send_json_success( array( 'message' => __( 'File deleted.', 'scriptomatic' ) ) );
     }

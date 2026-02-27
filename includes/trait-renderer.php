@@ -685,47 +685,15 @@ trait Scriptomatic_Renderer {
      */
     public function render_advanced_section() {
         echo '<p>';
-        esc_html_e( 'Configure history retention and data lifecycle behaviour for this plugin.', 'scriptomatic' );
+        esc_html_e( 'Configure activity log retention and data lifecycle behaviour for this plugin.', 'scriptomatic' );
         echo '</p>';
     }
 
     /**
-     * Render the max-history number input field.
-     *
-     * @since  1.1.0
-     * @return void
-     */
-    public function render_max_history_field() {
-        $settings    = $this->get_plugin_settings();
-        $max_history = (int) $settings['max_history'];
-        ?>
-        <input
-            type="number"
-            id="scriptomatic_max_history"
-            name="<?php echo esc_attr( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ); ?>[max_history]"
-            value="<?php echo esc_attr( $max_history ); ?>"
-            min="3"
-            max="100"
-            step="1"
-            class="small-text"
-            aria-describedby="max-history-description"
-        >
-        <p id="max-history-description" class="description">
-            <?php
-            printf(
-                /* translators: %d: default max history entries */
-                esc_html__( 'Maximum number of script revisions to retain (3\u2013100). Default: %d. Reducing this value will immediately trim the existing history.', 'scriptomatic' ),
-                SCRIPTOMATIC_DEFAULT_MAX_HISTORY
-            );
-            ?>
-        </p>
-        <?php
-    }
-
-    /**
-     * Render the audit log limit number input field.
+     * Render the activity log limit number input field.
      *
      * @since  1.7.0
+     * @since  1.9.0 Updated to describe the unified activity log.
      * @return void
      */
     public function render_max_log_field() {
@@ -746,8 +714,8 @@ trait Scriptomatic_Renderer {
         <p id="max-log-description" class="description">
             <?php
             printf(
-                /* translators: %d: default max audit log entries */
-                esc_html__( 'Maximum number of audit log entries to retain (3\u20131000). Default: %d. Reducing this value will immediately trim the existing log.', 'scriptomatic' ),
+                /* translators: %d: default max activity log entries */
+                esc_html__( 'Maximum number of activity log entries to retain (3\u20131000). Applies to all saves, rollbacks, and URL events across all locations. Default: %d. Reducing this value immediately trims the existing log.', 'scriptomatic' ),
                 SCRIPTOMATIC_MAX_LOG_ENTRIES
             );
             ?>

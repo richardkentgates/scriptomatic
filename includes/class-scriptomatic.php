@@ -106,6 +106,7 @@ class Scriptomatic {
         add_action( 'init',                  array( $this, 'load_textdomain' ) );
         add_action( 'admin_menu',            array( $this, 'add_admin_menus' ) );
         add_action( 'admin_init',            array( $this, 'register_settings' ) );
+        add_action( 'admin_init',            array( $this, 'maybe_clear_audit_log' ) );
         add_action( 'wp_head',               array( $this, 'inject_head_scripts' ), 999 );
         add_action( 'wp_footer',             array( $this, 'inject_footer_scripts' ), 999 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -115,9 +116,11 @@ class Scriptomatic {
         );
 
         // AJAX — wp_ajax_ prefix ensures only logged-in users can trigger it.
-        add_action( 'wp_ajax_scriptomatic_rollback',             array( $this, 'ajax_rollback' ) );
-        add_action( 'wp_ajax_scriptomatic_get_history_content',  array( $this, 'ajax_get_history_content' ) );
-        add_action( 'wp_ajax_scriptomatic_delete_js_file',       array( $this, 'ajax_delete_js_file' ) );
+        add_action( 'wp_ajax_scriptomatic_rollback',                  array( $this, 'ajax_rollback' ) );
+        add_action( 'wp_ajax_scriptomatic_get_history_content',       array( $this, 'ajax_get_history_content' ) );
+        add_action( 'wp_ajax_scriptomatic_rollback_js_file',          array( $this, 'ajax_rollback_js_file' ) );
+        add_action( 'wp_ajax_scriptomatic_get_file_activity_content', array( $this, 'ajax_get_file_activity_content' ) );
+        add_action( 'wp_ajax_scriptomatic_delete_js_file',            array( $this, 'ajax_delete_js_file' ) );
 
         // Admin-post: JS file save form.
         add_action( 'admin_post_scriptomatic_save_js_file',      array( $this, 'handle_save_js_file' ) );

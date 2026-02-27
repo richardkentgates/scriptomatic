@@ -97,7 +97,6 @@ trait Scriptomatic_Settings {
             'type'              => 'array',
             'sanitize_callback' => array( $this, 'sanitize_plugin_settings' ),
             'default'           => array(
-                'max_history'            => SCRIPTOMATIC_DEFAULT_MAX_HISTORY,
                 'max_log_entries'        => SCRIPTOMATIC_MAX_LOG_ENTRIES,
                 'keep_data_on_uninstall' => false,
             ),
@@ -105,9 +104,7 @@ trait Scriptomatic_Settings {
 
         add_settings_section( 'sm_advanced', __( 'Advanced Settings', 'scriptomatic' ), array( $this, 'render_advanced_section' ), 'scriptomatic_general_page' );
 
-        add_settings_field( 'scriptomatic_max_history', __( 'History Limit', 'scriptomatic' ),
-            array( $this, 'render_max_history_field' ), 'scriptomatic_general_page', 'sm_advanced' );
-        add_settings_field( 'scriptomatic_max_log_entries', __( 'Audit Log Limit', 'scriptomatic' ),
+        add_settings_field( 'scriptomatic_max_log_entries', __( 'Activity Log Limit', 'scriptomatic' ),
             array( $this, 'render_max_log_field' ), 'scriptomatic_general_page', 'sm_advanced' );
         add_settings_field( 'scriptomatic_keep_data', __( 'Data on Uninstall', 'scriptomatic' ),
             array( $this, 'render_keep_data_field' ), 'scriptomatic_general_page', 'sm_advanced' );
@@ -121,7 +118,6 @@ trait Scriptomatic_Settings {
      */
     public function get_plugin_settings() {
         $defaults = array(
-            'max_history'            => SCRIPTOMATIC_DEFAULT_MAX_HISTORY,
             'max_log_entries'        => SCRIPTOMATIC_MAX_LOG_ENTRIES,
             'keep_data_on_uninstall' => false,
         );
@@ -167,35 +163,20 @@ trait Scriptomatic_Settings {
 
         $clean = array();
 
-        // max_history: integer clamped to 1–100.
-        $max                  = isset( $input['max_history'] ) ? (int) $input['max_history'] : $current['max_history'];
-        $clean['max_history'] = max( 3, min( 100, $max ) );
-
         // max_log_entries: integer clamped to 3–1000.
         $max_log                  = isset( $input['max_log_entries'] ) ? (int) $input['max_log_entries'] : $current['max_log_entries'];
         $clean['max_log_entries'] = max( 3, min( 1000, $max_log ) );
 
-        // If the log limit was reduced, immediately trim the stored log.
+        // If the log limit was reduced, immediately trim the unified activity log.
         if ( $clean['max_log_entries'] < $this->get_max_log_entries() ) {
-            $current_log = (array) get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
-            if ( count( $current_log ) > $clean['max_log_entries'] ) {
-                update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array_slice( $current_log, 0, $clean['max_log_entries'] ) );
+            $log = $this->get_activity_log();
+            if ( count( $log ) > $clean['max_log_entries'] ) {
+                update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, array_slice( $log, 0, $clean['max_log_entries'] ) );
             }
         }
 
         // keep_data_on_uninstall: boolean.
         $clean['keep_data_on_uninstall'] = ! empty( $input['keep_data_on_uninstall'] );
-
-        // If the limit was reduced, immediately trim both history stacks.
-        if ( $clean['max_history'] < $this->get_max_history() ) {
-            foreach ( array( 'head', 'footer' ) as $loc ) {
-                $history    = $this->get_history( $loc );
-                $option_key = ( 'footer' === $loc ) ? SCRIPTOMATIC_FOOTER_HISTORY : SCRIPTOMATIC_HEAD_HISTORY;
-                if ( count( $history ) > $clean['max_history'] ) {
-                    update_option( $option_key, array_slice( $history, 0, $clean['max_history'] ) );
-                }
-            }
-        }
 
         return $clean;
     }
@@ -234,9 +215,10 @@ trait Scriptomatic_Settings {
     private function log_change( $new_content, $option_key, $location ) {
         $old_content = get_option( $option_key, '' );
         if ( $old_content !== $new_content ) {
-            $this->write_audit_log_entry( array(
+            $this->write_activity_entry( array(
                 'action'   => 'save',
                 'location' => $location,
+                'content'  => $new_content,
                 'chars'    => strlen( $new_content ),
             ) );
         }
@@ -259,7 +241,38 @@ trait Scriptomatic_Settings {
      *                     detail (string, optional — URL for url_added/url_removed).
      * @return void
      */
+    /**
+     * Backward-compat alias — delegates to write_activity_entry().
+     *
+     * @since  1.5.0
+     * @access private
+     * @param  array $data Entry data (see write_activity_entry).
+     * @return void
+     */
     private function write_audit_log_entry( array $data ) {
+        $this->write_activity_entry( $data );
+    }
+
+    /**
+     * Append an entry to the unified activity log.
+     *
+     * Stamps the entry with the current time and acting user, prepends it to
+     * the stored array, and trims to the configured maximum.
+     *
+     * Accepted $data keys:
+     *   action   (string) — 'save'|'rollback'|'url_added'|'url_removed'|'file_save'|'file_rollback'|'file_delete'
+     *   location (string) — 'head'|'footer'|'file'
+     *   content  (string) — snapshot; only for save/rollback/file_save/file_rollback (enables View+Restore buttons)
+     *   chars    (int)    — byte length of content
+     *   detail   (string) — URL for url_added/url_removed; human label for file events
+     *   file_id  (string) — only for file actions
+     *
+     * @since  1.9.0
+     * @access private
+     * @param  array $data Entry data.
+     * @return void
+     */
+    private function write_activity_entry( array $data ) {
         $user  = wp_get_current_user();
         $entry = array_merge(
             array(
@@ -270,25 +283,96 @@ trait Scriptomatic_Settings {
             $data
         );
 
-        $log = (array) get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+        $log = $this->get_activity_log();
 
         array_unshift( $log, $entry );
-        if ( count( $log ) > $this->get_max_log_entries() ) {
-            $log = array_slice( $log, 0, $this->get_max_log_entries() );
+        $max = $this->get_max_log_entries();
+        if ( count( $log ) > $max ) {
+            $log = array_slice( $log, 0, $max );
         }
 
-        update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, $log );
+        update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, $log );
     }
 
     /**
-     * Return the stored audit log entries.
+     * Return the unified activity log, running a one-time migration on first call.
      *
-     * @since  1.5.0
+     * @since  1.9.0
      * @access private
      * @return array
      */
-    private function get_audit_log() {
-        $log = get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+    private function get_activity_log() {
+        $log = get_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, null );
+        if ( null === $log ) {
+            $log = $this->migrate_to_unified_log();
+            update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, $log );
+        }
         return is_array( $log ) ? $log : array();
+    }
+
+    /**
+     * Build the initial unified log from the legacy per-location history options
+     * and the legacy audit-log option.
+     *
+     * Called exactly once — when SCRIPTOMATIC_ACTIVITY_LOG_OPTION is absent.
+     *
+     * @since  1.9.0
+     * @access private
+     * @return array
+     */
+    private function migrate_to_unified_log() {
+        $merged = array();
+
+        // Old head history → 'save'/'head' entries with content snapshots.
+        $head_history = get_option( SCRIPTOMATIC_HEAD_HISTORY, array() );
+        if ( is_array( $head_history ) ) {
+            foreach ( $head_history as $e ) {
+                $merged[] = array(
+                    'timestamp'  => isset( $e['timestamp'] )  ? (int) $e['timestamp']  : 0,
+                    'user_login' => isset( $e['user_login'] ) ? (string) $e['user_login'] : '',
+                    'user_id'    => isset( $e['user_id'] )    ? (int) $e['user_id']     : 0,
+                    'action'     => 'save',
+                    'location'   => 'head',
+                    'content'    => isset( $e['content'] )    ? (string) $e['content']  : '',
+                    'chars'      => isset( $e['length'] )     ? (int) $e['length']
+                                    : ( isset( $e['content'] ) ? strlen( $e['content'] ) : 0 ),
+                );
+            }
+        }
+
+        // Old footer history → 'save'/'footer' entries with content snapshots.
+        $footer_history = get_option( SCRIPTOMATIC_FOOTER_HISTORY, array() );
+        if ( is_array( $footer_history ) ) {
+            foreach ( $footer_history as $e ) {
+                $merged[] = array(
+                    'timestamp'  => isset( $e['timestamp'] )  ? (int) $e['timestamp']  : 0,
+                    'user_login' => isset( $e['user_login'] ) ? (string) $e['user_login'] : '',
+                    'user_id'    => isset( $e['user_id'] )    ? (int) $e['user_id']     : 0,
+                    'action'     => 'save',
+                    'location'   => 'footer',
+                    'content'    => isset( $e['content'] )    ? (string) $e['content']  : '',
+                    'chars'      => isset( $e['length'] )     ? (int) $e['length']
+                                    : ( isset( $e['content'] ) ? strlen( $e['content'] ) : 0 ),
+                );
+            }
+        }
+
+        // Old audit log — migrate only URL events (save/rollback already captured above).
+        $audit = get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+        if ( is_array( $audit ) ) {
+            foreach ( $audit as $e ) {
+                if ( isset( $e['action'] ) && in_array( $e['action'], array( 'url_added', 'url_removed' ), true ) ) {
+                    $merged[] = $e;
+                }
+            }
+        }
+
+        // Sort descending by timestamp (newest first).
+        usort( $merged, function ( $a, $b ) {
+            return ( isset( $b['timestamp'] ) ? (int) $b['timestamp'] : 0 )
+                 - ( isset( $a['timestamp'] ) ? (int) $a['timestamp'] : 0 );
+        } );
+
+        return $merged;
     }
 }

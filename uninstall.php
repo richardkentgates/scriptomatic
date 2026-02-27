@@ -43,7 +43,9 @@ function scriptomatic_uninstall_cleanup() {
         'scriptomatic_js_files',
         // General settings
         'scriptomatic_plugin_settings',
-        // Audit log
+        // Activity log (v1.9+) — unified log; legacy keys kept for transition period
+        'scriptomatic_activity_log',
+        // Legacy audit log (v1.5–v1.8)
         'scriptomatic_audit_log',
     );
 

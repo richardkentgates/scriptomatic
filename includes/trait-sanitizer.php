@@ -168,7 +168,6 @@ trait Scriptomatic_Sanitizer {
         // request — guards against the Settings API double-call.
         if ( ! $already_processed ) {
             $this->log_change( $input, $option_key, $location );
-            $this->push_history( $input, $location );
             $this->record_save_timestamp( $location );
             $processed_this_request[ $location ] = true;
         }

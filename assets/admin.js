@@ -484,6 +484,87 @@ jQuery( document ).ready( function ( $ ) {
                 alert( i18n.viewError || 'Could not load revision.' );
             } );
         } );
+
+        /* =====================================================================
+         * 3.6  File Activity Log — "sm-file-restore" and "sm-file-view" buttons
+         *
+         * Mirror the inline rollback/view pattern but use the files AJAX
+         * actions and filesNonce so they work on the JS Files edit page.
+         * ==================================================================== */
+        $( document ).on( 'click', '.sm-file-restore', function () {
+            if ( ! confirm( i18n.rollbackConfirm ) ) { return; }
+            var $btn   = $( this );
+            var index  = $btn.data( 'index' );
+            var fileId = $btn.data( 'file-id' );
+            var orig   = $btn.data( 'original-text' ) || 'Restore';
+            $btn.prop( 'disabled', true ).text( i18n.restoring || 'Restoring\u2026' );
+
+            $.post( data.ajaxUrl, {
+                action:  'scriptomatic_rollback_js_file',
+                nonce:   data.filesNonce,
+                index:   index,
+                file_id: fileId
+            }, function ( response ) {
+                if ( response.success ) {
+                    var content = response.data.content || '';
+                    var $ta     = $( '#scriptomatic-files-script' );
+                    if ( cmEditor && loc === 'files' ) {
+                        cmEditor.setValue( content );
+                    } else if ( $ta.length ) {
+                        $ta.val( content ).trigger( 'input' );
+                    }
+                    $( '<div>' ).addClass( 'notice notice-success is-dismissible' )
+                        .html( '<p>' + ( i18n.rollbackSuccess || 'Restored successfully.' ) + '</p>' )
+                        .insertAfter( '.wp-header-end' );
+                    setTimeout( function () { location.reload(); }, 800 );
+                } else {
+                    var msg = ( response.data && response.data.message ) ? response.data.message : '';
+                    alert( ( i18n.rollbackError || 'Restore failed.' ) + ( msg ? ' ' + msg : '' ) );
+                    $btn.prop( 'disabled', false ).text( orig );
+                }
+            } ).fail( function () {
+                alert( i18n.rollbackError || 'Restore failed.' );
+                $btn.prop( 'disabled', false ).text( orig );
+            } );
+        } );
+
+        $( document ).on( 'click', '.sm-file-view', function () {
+            var $btn   = $( this );
+            var index  = $btn.data( 'index' );
+            var fileId = $btn.data( 'file-id' );
+            var label  = $btn.data( 'label' ) || '';
+            var orig   = $btn.text();
+
+            $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading\u2026' );
+
+            $.post( data.ajaxUrl, {
+                action:  'scriptomatic_get_file_activity_content',
+                nonce:   data.filesNonce,
+                index:   index,
+                file_id: fileId
+            }, function ( response ) {
+                $btn.prop( 'disabled', false ).text( orig );
+                if ( response.success ) {
+                    var content = response.data.content || '';
+                    $lightbox.find( '.sm-history-lightbox__title' ).text( i18n.viewTitle || 'Revision Preview' );
+                    $lightbox.find( '.sm-history-lightbox__meta' ).text( label );
+                    var $pre = $lightbox.find( '.sm-history-lightbox__pre' );
+                    if ( content ) {
+                        $pre.text( content ).removeClass( 'sm-history-lightbox__empty' );
+                    } else {
+                        $pre.text( i18n.emptyScript || '(empty)' ).addClass( 'sm-history-lightbox__empty' );
+                    }
+                    $lightbox.addClass( 'is-open' );
+                    $( 'body' ).css( 'overflow', 'hidden' );
+                } else {
+                    var msg = ( response.data && response.data.message ) ? response.data.message : '';
+                    alert( ( i18n.viewError || 'Could not load revision.' ) + ( msg ? ' ' + msg : '' ) );
+                }
+            } ).fail( function () {
+                $btn.prop( 'disabled', false ).text( orig );
+                alert( i18n.viewError || 'Could not load revision.' );
+            } );
+        } );
     }
 
     /* =========================================================================

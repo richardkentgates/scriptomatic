@@ -62,76 +62,196 @@ trait Scriptomatic_Pages {
      * @param  string $location `'head'` or `'footer'`.
      * @return void
      */
-    private function render_history_panel( $location ) {
-        $history = $this->get_history( $location );
-        if ( empty( $history ) ) {
-            return;
+    /**
+     * Render the unified Activity Log panel for a given location.
+     *
+     * Replaces the separate Revision History and Audit Log panels.  Every
+     * entry type (save, rollback, url_added, url_removed, file_save,
+     * file_rollback, file_delete) appears in a single table.  Entries that
+     * carry a content snapshot expose View and Restore buttons; purely
+     * informational entries (URL events, file_delete) do not.
+     *
+     * @since  1.9.0
+     * @access private
+     * @param  string $location `'head'`, `'footer'`, or `'file'`.
+     * @param  string $file_id  When non-empty, filters to just this file's entries.
+     * @return void
+     */
+    private function render_activity_log( $location, $file_id = '' ) {
+        $all_log = $this->get_activity_log();
+
+        // Filter to the entries relevant for this panel.
+        if ( 'file' === $location && '' !== $file_id ) {
+            $log = array_values( array_filter( $all_log, function ( $e ) use ( $file_id ) {
+                return isset( $e['location'] ) && 'file' === $e['location']
+                    && isset( $e['file_id'] )   && $e['file_id'] === $file_id;
+            } ) );
+        } else {
+            $log = array_values( array_filter( $all_log, function ( $e ) use ( $location ) {
+                return isset( $e['location'] ) && $e['location'] === $location;
+            } ) );
+        }
+
+        // Determine the admin page slug (for the clear-log URL).
+        if ( 'footer' === $location ) {
+            $page_slug = 'scriptomatic-footer';
+        } elseif ( 'file' === $location ) {
+            $page_slug = 'scriptomatic-files';
+        } else {
+            $page_slug = 'scriptomatic';
+        }
+
+        // Actions that carry a content snapshot and support View + Restore.
+        $content_actions = ( 'file' === $location )
+            ? array( 'file_save', 'file_rollback' )
+            : array( 'save', 'rollback' );
+
+        // Check whether any displayed entry has a snapshot (determines Actions column).
+        $has_content_entries = false;
+        foreach ( $log as $e ) {
+            if ( array_key_exists( 'content', $e )
+                && isset( $e['action'] )
+                && in_array( $e['action'], $content_actions, true ) ) {
+                $has_content_entries = true;
+                break;
+            }
         }
         ?>
         <hr style="margin:30px 0;">
-        <div class="scriptomatic-history-section">
-            <h2>
-                <span class="dashicons dashicons-backup" style="font-size:24px;width:24px;height:24px;margin-right:4px;vertical-align:middle;"></span>
-                <?php esc_html_e( 'Inline Script History', 'scriptomatic' ); ?>
-            </h2>
-            <p class="description">
-                <?php
-                printf(
-                    /* translators: 1: 'Head' or 'Footer', 2: revision count */
-                    esc_html( _n(
-                        'Showing %2$d saved revision of the %1$s inline script. Click Restore to roll back to a previous version.',
-                        'Showing %2$d saved revisions of the %1$s inline script. Click Restore to roll back to a previous version.',
-                        count( $history ),
-                        'scriptomatic'
-                    ) ),
-                    esc_html( ucfirst( $location ) ),
-                    count( $history )
-                );
-                ?>
-            </p>
-            <table class="widefat scriptomatic-history-table" style="max-width:900px;">
-                <thead>
-                    <tr>
-                        <th style="width:40px;"><?php esc_html_e( '#', 'scriptomatic' ); ?></th>
-                        <th><?php esc_html_e( 'Saved', 'scriptomatic' ); ?></th>
-                        <th><?php esc_html_e( 'By', 'scriptomatic' ); ?></th>
-                        <th style="width:100px;"><?php esc_html_e( 'Characters', 'scriptomatic' ); ?></th>
-                        <th style="width:160px;"><?php esc_html_e( 'Actions', 'scriptomatic' ); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ( $history as $index => $entry ) : ?>
-                    <tr>
-                        <td><?php echo esc_html( $index + 1 ); ?></td>
-                        <td><?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $entry['timestamp'] ) ); ?></td>
-                        <td><?php echo esc_html( $entry['user_login'] ); ?></td>
-                        <td><?php echo esc_html( number_format( $entry['length'] ) ); ?></td>
-                        <td>
+        <h2 style="margin-top:12px;">
+            <span class="dashicons dashicons-backup" style="font-size:24px;width:24px;height:24px;margin-right:4px;vertical-align:middle;"></span>
+            <?php esc_html_e( 'Activity Log', 'scriptomatic' ); ?>
+        </h2>
+        <p class="description">
+            <?php
+            printf(
+                /* translators: %d: maximum number of retained log entries */
+                esc_html__( 'All saves, rollbacks, and URL changes for this location. The most recent %d entries are retained. Entries with a content snapshot support View and Restore.', 'scriptomatic' ),
+                $this->get_max_log_entries()
+            );
+            ?>
+        </p>
+
+        <?php if ( ! empty( $log ) ) : ?>
+        <table class="widefat scriptomatic-history-table" style="max-width:960px;margin-top:8px;">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e( 'Date / Time', 'scriptomatic' ); ?></th>
+                    <th><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
+                    <th><?php esc_html_e( 'Event', 'scriptomatic' ); ?></th>
+                    <th><?php esc_html_e( 'Size / Detail', 'scriptomatic' ); ?></th>
+                    <?php if ( $has_content_entries ) : ?>
+                    <th style="width:170px;"><?php esc_html_e( 'Actions', 'scriptomatic' ); ?></th>
+                    <?php endif; ?>
+                </tr>
+            </thead>
+            <tbody>
+            <?php
+            $content_index = 0;
+            foreach ( $log as $entry ) :
+                if ( ! is_array( $entry ) ) { continue; }
+                $ts       = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : 0;
+                $ulogin   = isset( $entry['user_login'] ) ? (string) $entry['user_login'] : '';
+                $uid      = isset( $entry['user_id'] )    ? (int) $entry['user_id']        : 0;
+                $action   = isset( $entry['action'] )     ? (string) $entry['action']      : '';
+                $detail   = isset( $entry['detail'] )     ? (string) $entry['detail']      : '';
+                $chars    = isset( $entry['chars'] )      ? (int) $entry['chars']           : 0;
+                $file_eid = isset( $entry['file_id'] )    ? (string) $entry['file_id']     : '';
+
+                $has_content = array_key_exists( 'content', $entry )
+                    && in_array( $action, $content_actions, true );
+                $this_index  = $has_content ? $content_index : null;
+                if ( $has_content ) { $content_index++; }
+
+                $is_file_entry = ( 'file' === ( isset( $entry['location'] ) ? $entry['location'] : '' ) );
+                $action_label  = ucwords( str_replace( '_', ' ', $action ) );
+                $label_str     = ( $ts ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) : '' )
+                               . ( $ulogin ? ' — ' . $ulogin : '' );
+            ?>
+                <tr>
+                    <td><?php echo esc_html( $ts ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) : '—' ); ?></td>
+                    <td>
+                        <?php echo esc_html( $ulogin ); ?>
+                        <?php if ( $uid ) : ?>
+                        <span class="description">(ID:&nbsp;<?php echo esc_html( $uid ); ?>)</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo esc_html( $action_label ); ?></td>
+                    <td><?php
+                        if ( '' !== $detail ) {
+                            echo '<span title="' . esc_attr( $detail ) . '">' . esc_html( strlen( $detail ) > 60 ? substr( $detail, 0, 57 ) . '…' : $detail ) . '</span>';
+                        } elseif ( $chars ) {
+                            echo esc_html( number_format( $chars ) ) . ' ' . esc_html__( 'chars', 'scriptomatic' );
+                        } else {
+                            echo '—';
+                        }
+                    ?></td>
+                    <?php if ( $has_content_entries ) : ?>
+                    <td>
+                        <?php if ( $has_content ) : ?>
+                            <?php if ( $is_file_entry ) : ?>
+                            <button
+                                type="button"
+                                class="button button-small sm-file-view"
+                                data-index="<?php echo esc_attr( $this_index ); ?>"
+                                data-file-id="<?php echo esc_attr( $file_eid ); ?>"
+                                data-label="<?php echo esc_attr( $label_str ); ?>"
+                            ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
+                            <button
+                                type="button"
+                                class="button button-small sm-file-restore"
+                                data-index="<?php echo esc_attr( $this_index ); ?>"
+                                data-file-id="<?php echo esc_attr( $file_eid ); ?>"
+                                data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
+                            ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
+                            <?php else : ?>
                             <button
                                 type="button"
                                 class="button button-small scriptomatic-history-view"
-                                data-index="<?php echo esc_attr( $index ); ?>"
+                                data-index="<?php echo esc_attr( $this_index ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
-                                data-label="<?php echo esc_attr( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $entry['timestamp'] ) . ' — ' . $entry['user_login'] ); ?>"
-                            >
-                                <?php esc_html_e( 'View', 'scriptomatic' ); ?>
-                            </button>
+                                data-label="<?php echo esc_attr( $label_str ); ?>"
+                            ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
                             <button
                                 type="button"
                                 class="button button-small scriptomatic-history-restore"
-                                data-index="<?php echo esc_attr( $index ); ?>"
+                                data-index="<?php echo esc_attr( $this_index ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
-                            >
-                                <?php esc_html_e( 'Restore', 'scriptomatic' ); ?>
-                            </button>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                            ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </td>
+                    <?php endif; ?>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php else : ?>
+        <p class="description"><?php esc_html_e( 'No activity yet. Script saves, rollbacks, and URL changes will appear here.', 'scriptomatic' ); ?></p>
+        <?php endif;
 
+        // Clear Log button — omit on per-file edit views (file_id is set).
+        if ( ! empty( $log ) && '' === $file_id ) :
+            $clear_url = wp_nonce_url(
+                add_query_arg(
+                    array( 'page' => $page_slug, 'action' => 'clear', 'location' => $location ),
+                    admin_url( 'admin.php' )
+                ),
+                SCRIPTOMATIC_CLEAR_LOG_NONCE,
+                'scriptomatic_clear_nonce'
+            );
+        ?>
+        <p style="margin-top:8px;">
+            <a href="<?php echo esc_url( $clear_url ); ?>" class="button"
+               onclick="return confirm('<?php esc_attr_e( 'Clear the activity log for this location? This cannot be undone.', 'scriptomatic' ); ?>');">
+                <?php esc_html_e( 'Clear Log', 'scriptomatic' ); ?>
+            </a>
+        </p>
+        <?php endif;
+
+        // Lightbox — shared by inline View and file View buttons.
+        ?>
         <div id="sm-history-lightbox" class="sm-history-lightbox" role="dialog" aria-modal="true" aria-labelledby="sm-lightbox-title">
             <div class="sm-history-lightbox__card">
                 <div class="sm-history-lightbox__header">
@@ -167,8 +287,7 @@ trait Scriptomatic_Pages {
             ?>
         </form>
         <?php
-        $this->render_history_panel( 'head' );
-        $this->render_audit_log_table( 'scriptomatic', 'head' );
+        $this->render_activity_log( 'head' );
         echo '</div>'; // .wrap
     }
 
@@ -190,8 +309,7 @@ trait Scriptomatic_Pages {
             ?>
         </form>
         <?php
-        $this->render_history_panel( 'footer' );
-        $this->render_audit_log_table( 'scriptomatic-footer', 'footer' );
+        $this->render_activity_log( 'footer' );
         echo '</div>'; // .wrap
     }
 
@@ -334,6 +452,7 @@ trait Scriptomatic_Pages {
             <?php endif; ?>
         </div><!-- .wrap -->
         <?php
+        $this->render_activity_log( 'file' );
     }
 
     /**
@@ -502,12 +621,15 @@ trait Scriptomatic_Pages {
             </form>
         </div><!-- .wrap -->
         <?php
+        if ( '' !== $file_id ) {
+            $this->render_activity_log( 'file', $file_id );
+        }
     }
 
 
 
     /**
-     * Output the audit log table (or an empty-state message).
+     * Output the audit log table — removed in 1.9.0
      *
      * Filters entries to those matching $location so each scripts page only
      * shows its own saves, rollbacks, and URL changes.
@@ -520,71 +642,19 @@ trait Scriptomatic_Pages {
      * @param  string $location  `'head'` or `'footer'` — filters log entries.
      * @return void
      */
-    private function render_audit_log_table( $page_slug, $location = '' ) {
-        $all_log = $this->get_audit_log();
-        $log     = '' !== $location
-            ? array_values( array_filter( $all_log, function( $e ) use ( $location ) {
-                return isset( $e['location'] ) && $e['location'] === $location;
-              } ) )
-            : $all_log;
-        ?>
-        <h2 style="margin-top:12px;"><?php esc_html_e( 'Audit Log', 'scriptomatic' ); ?></h2>
-
-        <p class="description">
-            <?php
-            printf(
-                /* translators: %d: maximum number of retained log entries */
-                esc_html__( 'A record of all script saves, rollbacks, and external URL changes on this site. The most recent %d entries are retained.', 'scriptomatic' ),
-                $this->get_max_log_entries()
-            );
-            ?>
-        </p>
-
-        <?php if ( ! empty( $log ) ) : ?>
-        <table class="widefat scriptomatic-history-table" style="max-width:900px;margin-top:8px;">
-            <thead>
-                <tr>
-                    <th><?php esc_html_e( 'Date / Time', 'scriptomatic' ); ?></th>
-                    <th><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
-                    <th><?php esc_html_e( 'Action', 'scriptomatic' ); ?></th>
-                    <th><?php esc_html_e( 'Detail', 'scriptomatic' ); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ( $log as $entry ) :
-                    if ( ! is_array( $entry ) ) { continue; }
-                    $ts     = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']    : 0;
-                    $ulogin = isset( $entry['user_login'] ) ? (string) $entry['user_login'] : '';
-                    $uid    = isset( $entry['user_id'] )    ? (int) $entry['user_id']       : 0;
-                    $action = isset( $entry['action'] )     ? ucwords( str_replace( '_', ' ', (string) $entry['action'] ) ) : '—';
-                    $detail = isset( $entry['detail'] )     ? (string) $entry['detail']     : '';
-                    $chars  = isset( $entry['chars'] )      ? (int) $entry['chars']         : 0;
-                ?>
-                <tr>
-                    <td><?php echo esc_html( $ts ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) : '—' ); ?></td>
-                    <td>
-                        <?php echo esc_html( $ulogin ); ?>
-                        <?php if ( $uid ) : ?>
-                        <span class="description">(ID:&nbsp;<?php echo esc_html( $uid ); ?>)</span>
-                        <?php endif; ?>
-                    </td>
-                    <td><?php echo esc_html( $action ); ?></td>
-                    <td><?php
-                        if ( '' !== $detail ) {
-                            echo '<span title="' . esc_attr( $detail ) . '">' . esc_html( strlen( $detail ) > 60 ? substr( $detail, 0, 57 ) . '…' : $detail ) . '</span>';
-                        } else {
-                            echo esc_html( number_format( $chars ) ) . ' ' . esc_html__( 'chars', 'scriptomatic' );
-                        }
-                    ?></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php else : ?>
-        <p class="description">
-            <?php esc_html_e( 'No entries yet. Script saves and rollbacks will appear here.', 'scriptomatic' ); ?>
-        </p>
-        <?php endif;
+    /**
+     * Output the audit log table — removed in 1.9.0, superseded by render_activity_log().
+     *
+     * This stub is intentionally blank; callers have been updated to use
+     * render_activity_log() instead.
+     *
+     * @since      1.5.0
+     * @deprecated 1.9.0
+     * @access private
+     * @return void
+     */
+    private function render_audit_log_table( $page_slug = '', $location = '' ) {
+        // No-op: replaced by render_activity_log().
     }
 
     /**
@@ -596,12 +666,23 @@ trait Scriptomatic_Pages {
      * @since  1.5.0
      * @return void
      */
+    /**
+     * Handle the "Clear Activity Log" action before any output is sent.
+     *
+     * Removes all entries for the specified location from the unified activity
+     * log and redirects back to the page.
+     *
+     * @since  1.5.0
+     * @since  1.9.0 Targets unified SCRIPTOMATIC_ACTIVITY_LOG_OPTION; supports
+     *               the files page slug and a location query-string parameter.
+     * @return void
+     */
     public function maybe_clear_audit_log() {
         if ( ! isset( $_GET['action'] ) || 'clear' !== $_GET['action'] ) {
             return;
         }
         $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-        if ( ! in_array( $page, array( 'scriptomatic', 'scriptomatic-footer' ), true ) ) {
+        if ( ! in_array( $page, array( 'scriptomatic', 'scriptomatic-footer', 'scriptomatic-files' ), true ) ) {
             return;
         }
 
@@ -610,7 +691,22 @@ trait Scriptomatic_Pages {
         if ( ! current_user_can( $this->get_required_cap() ) ) {
             wp_die( esc_html__( 'Permission denied.', 'scriptomatic' ), 403 );
         }
-        update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+
+        $location = isset( $_GET['location'] ) ? sanitize_key( wp_unslash( $_GET['location'] ) ) : '';
+
+        if ( '' !== $location ) {
+            // Remove only entries belonging to this location.
+            $log      = $this->get_activity_log();
+            $filtered = array_values(
+                array_filter( $log, function ( $e ) use ( $location ) {
+                    return ! isset( $e['location'] ) || $e['location'] !== $location;
+                } )
+            );
+            update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, $filtered );
+        } else {
+            update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, array() );
+        }
+
         wp_redirect( esc_url_raw( add_query_arg( array( 'page' => $page, 'cleared' => '1' ), admin_url( 'admin.php' ) ) ) );
         exit;
     }
