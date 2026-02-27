@@ -120,6 +120,24 @@ class Scriptomatic {
         add_action( 'admin_init', array( $this, 'maybe_clear_audit_log' ) );
     }
 
+    /**
+     * Prevent cloning the singleton instance.
+     *
+     * @since  1.7.1
+     * @return void
+     */
+    private function __clone() {}
+
+    /**
+     * Prevent deserialization of the singleton instance.
+     *
+     * @since  1.7.1
+     * @return void
+     */
+    public function __wakeup() {
+        _doing_it_wrong( __FUNCTION__, 'Cannot unserialize a singleton.', '1.7.1' );
+    }
+
     // =========================================================================
     // I18N
     // =========================================================================

@@ -308,7 +308,22 @@ trait Scriptomatic_Sanitizer {
         // Guard against the Settings API double-call (same as sanitize_script_for).
         static $logged_this_request = array();
 
-        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
+        $option_key   = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
+        $nonce_action = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_NONCE  : SCRIPTOMATIC_HEAD_NONCE;
+        $nonce_field  = ( 'footer' === $location ) ? 'scriptomatic_footer_nonce' : 'scriptomatic_save_nonce';
+
+        // Gate 0: Capability.
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            return get_option( $option_key, '[]' );
+        }
+
+        // Gate 1: Secondary nonce (present on Settings API form submissions).
+        if ( isset( $_POST[ $nonce_field ] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST[ $nonce_field ] ) );
+            if ( ! wp_verify_nonce( $nonce, $nonce_action ) ) {
+                return get_option( $option_key, '[]' );
+            }
+        }
 
         if ( empty( $input ) ) {
             return '[]';
@@ -431,8 +446,23 @@ trait Scriptomatic_Sanitizer {
      * @return string JSON-encoded array: `{type: string, values: array}`.
      */
     private function sanitize_conditions_for( $input, $location ) {
-        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-        $default    = wp_json_encode( array( 'type' => 'all', 'values' => array() ) );
+        $option_key   = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
+        $nonce_action = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_NONCE       : SCRIPTOMATIC_HEAD_NONCE;
+        $nonce_field  = ( 'footer' === $location ) ? 'scriptomatic_footer_nonce'     : 'scriptomatic_save_nonce';
+        $default      = wp_json_encode( array( 'type' => 'all', 'values' => array() ) );
+
+        // Gate 0: Capability.
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            return get_option( $option_key, $default );
+        }
+
+        // Gate 1: Secondary nonce (present on Settings API form submissions).
+        if ( isset( $_POST[ $nonce_field ] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST[ $nonce_field ] ) );
+            if ( ! wp_verify_nonce( $nonce, $nonce_action ) ) {
+                return get_option( $option_key, $default );
+            }
+        }
 
         if ( empty( $input ) ) {
             return $default;

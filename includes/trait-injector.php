@@ -113,12 +113,12 @@ trait Scriptomatic_Injector {
         }
 
         $label = ( 'footer' === $location ) ? 'footer' : 'head';
-        echo "\n<!-- Scriptomatic v" . esc_html( SCRIPTOMATIC_VERSION ) . " ({$label}) -->\n";
+        echo "\n<!-- Scriptomatic v" . esc_html( SCRIPTOMATIC_VERSION ) . ' (' . esc_html( $label ) . ") -->\n";
         foreach ( $output_parts as $part ) {
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             echo $part . "\n";
         }
-        echo "<!-- /Scriptomatic ({$label}) -->\n";
+        echo '<!-- /Scriptomatic (' . esc_html( $label ) . ") -->\n";
     }
 
 }

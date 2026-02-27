@@ -142,6 +142,11 @@ trait Scriptomatic_Settings {
     public function sanitize_plugin_settings( $input ) {
         $current = $this->get_plugin_settings();
 
+        // Gate 0: Capability.
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            return $current;
+        }
+
         if ( ! is_array( $input ) ) {
             return $current;
         }

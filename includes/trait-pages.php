@@ -341,7 +341,7 @@ trait Scriptomatic_Pages {
             wp_die( esc_html__( 'Permission denied.', 'scriptomatic' ), 403 );
         }
         update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
-        wp_redirect( esc_url_raw( add_query_arg( 'cleared', '1', wp_get_referer() ) ) );
+        wp_redirect( esc_url_raw( add_query_arg( array( 'page' => $page, 'cleared' => '1' ), admin_url( 'admin.php' ) ) ) );
         exit;
     }
 
