@@ -116,8 +116,7 @@ class Scriptomatic {
         add_action( 'wp_ajax_scriptomatic_rollback',             array( $this, 'ajax_rollback' ) );
         add_action( 'wp_ajax_scriptomatic_get_history_content',  array( $this, 'ajax_get_history_content' ) );
 
-        // Audit log — clear action must run before any output.
-        add_action( 'admin_init', array( $this, 'maybe_clear_audit_log' ) );
+
     }
 
     /**

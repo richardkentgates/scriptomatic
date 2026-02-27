@@ -73,7 +73,6 @@ define( 'SCRIPTOMATIC_ROLLBACK_NONCE', 'scriptomatic_rollback' );     // AJAX ro
 // ---- Audit log ----
 define( 'SCRIPTOMATIC_AUDIT_LOG_OPTION', 'scriptomatic_audit_log' );  // DB option key for the audit log
 define( 'SCRIPTOMATIC_MAX_LOG_ENTRIES',  200 );                        // Maximum entries retained
-define( 'SCRIPTOMATIC_CLEAR_LOG_NONCE',  'scriptomatic_clear_log' );  // Nonce action for clearing the log
 
 // Load the main class (also requires all trait files).
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/class-scriptomatic.php';

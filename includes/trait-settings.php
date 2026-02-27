@@ -169,11 +169,11 @@ trait Scriptomatic_Settings {
 
         // max_history: integer clamped to 1–100.
         $max                  = isset( $input['max_history'] ) ? (int) $input['max_history'] : $current['max_history'];
-        $clean['max_history'] = max( 1, min( 100, $max ) );
+        $clean['max_history'] = max( 3, min( 100, $max ) );
 
         // max_log_entries: integer clamped to 10–1000.
         $max_log                  = isset( $input['max_log_entries'] ) ? (int) $input['max_log_entries'] : $current['max_log_entries'];
-        $clean['max_log_entries'] = max( 10, min( 1000, $max_log ) );
+        $clean['max_log_entries'] = max( 3, min( 1000, $max_log ) );
 
         // If the log limit was reduced, immediately trim the stored log.
         if ( $clean['max_log_entries'] < $this->get_max_log_entries() ) {

@@ -702,7 +702,7 @@ trait Scriptomatic_Renderer {
             id="scriptomatic_max_history"
             name="<?php echo esc_attr( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ); ?>[max_history]"
             value="<?php echo esc_attr( $max_history ); ?>"
-            min="1"
+            min="3"
             max="100"
             step="1"
             class="small-text"
@@ -712,7 +712,7 @@ trait Scriptomatic_Renderer {
             <?php
             printf(
                 /* translators: %d: default max history entries */
-                esc_html__( 'Maximum number of script revisions to retain (1\u2013100). Default: %d. Reducing this value will immediately trim the existing history.', 'scriptomatic' ),
+                esc_html__( 'Maximum number of script revisions to retain (3\u2013100). Default: %d. Reducing this value will immediately trim the existing history.', 'scriptomatic' ),
                 SCRIPTOMATIC_DEFAULT_MAX_HISTORY
             );
             ?>
@@ -735,9 +735,9 @@ trait Scriptomatic_Renderer {
             id="scriptomatic_max_log_entries"
             name="<?php echo esc_attr( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ); ?>[max_log_entries]"
             value="<?php echo esc_attr( $max_log ); ?>"
-            min="10"
+            min="3"
             max="1000"
-            step="10"
+            step="1"
             class="small-text"
             aria-describedby="max-log-description"
         >
@@ -745,7 +745,7 @@ trait Scriptomatic_Renderer {
             <?php
             printf(
                 /* translators: %d: default max audit log entries */
-                esc_html__( 'Maximum number of audit log entries to retain (10\u20131000). Default: %d. Reducing this value will immediately trim the existing log.', 'scriptomatic' ),
+                esc_html__( 'Maximum number of audit log entries to retain (3\u20131000). Default: %d. Reducing this value will immediately trim the existing log.', 'scriptomatic' ),
                 SCRIPTOMATIC_MAX_LOG_ENTRIES
             );
             ?>

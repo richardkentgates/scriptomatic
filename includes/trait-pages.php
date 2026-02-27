@@ -4,7 +4,7 @@
  *
  * Covers per-site page rendering (Head Scripts, Footer Scripts, General
  * Settings), the embedded Audit Log table, contextual help tabs, the
- * Clear Audit Log action handler, and plugins-page action links.
+ * Plugins-page action links.
  *
  * @package  Scriptomatic
  * @since    1.2.0
@@ -235,24 +235,14 @@ trait Scriptomatic_Pages {
      * @return void
      */
     private function render_audit_log_table( $page_slug, $location = '' ) {
-        $base_url  = admin_url( 'admin.php?page=' . $page_slug );
-        $all_log   = $this->get_audit_log();
-        $log       = '' !== $location
+        $all_log = $this->get_audit_log();
+        $log     = '' !== $location
             ? array_values( array_filter( $all_log, function( $e ) use ( $location ) {
                 return isset( $e['location'] ) && $e['location'] === $location;
               } ) )
             : $all_log;
-        $clear_url = wp_nonce_url(
-            add_query_arg( 'action', 'clear', $base_url ),
-            SCRIPTOMATIC_CLEAR_LOG_NONCE,
-            'scriptomatic_clear_nonce'
-        );
         ?>
         <h2 style="margin-top:12px;"><?php esc_html_e( 'Audit Log', 'scriptomatic' ); ?></h2>
-
-        <?php if ( isset( $_GET['cleared'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
-        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Audit log cleared.', 'scriptomatic' ); ?></p></div>
-        <?php endif; ?>
 
         <p class="description">
             <?php
@@ -265,12 +255,6 @@ trait Scriptomatic_Pages {
         </p>
 
         <?php if ( ! empty( $log ) ) : ?>
-        <p style="margin-top:12px;">
-            <a href="<?php echo esc_url( $clear_url ); ?>"
-               class="button button-secondary"
-               onclick="return confirm('<?php esc_attr_e( 'Clear the entire audit log? This cannot be undone.', 'scriptomatic' ); ?>')"
-            ><?php esc_html_e( 'Clear Audit Log', 'scriptomatic' ); ?></a>
-        </p>
         <table class="widefat scriptomatic-history-table" style="max-width:900px;margin-top:8px;">
             <thead>
                 <tr>
@@ -402,7 +386,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( '&lt;script&gt; tags are automatically stripped to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Audit Logging:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, and external URL additions/removals are recorded in the persistent in-admin <strong>Audit Log</strong> embedded on the Head Scripts and Footer Scripts pages (Scriptomatic &rarr; Preferences for limits). Each entry captures the timestamp, acting user, action (save, rollback, url_added, or url_removed), and either a character count (save/rollback) or the URL (url_added/url_removed). The log limit is configurable in Preferences. Admins can clear the log at any time using the Clear Audit Log button.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Audit Logging:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, and external URL additions/removals are recorded in the persistent in-admin <strong>Audit Log</strong> embedded on the Head Scripts and Footer Scripts pages (Scriptomatic &rarr; Preferences for limits). Each entry captures the timestamp, acting user, action (save, rollback, url_added, or url_removed), and either a character count (save/rollback) or the URL (url_added/url_removed). The log limit is configurable in Preferences (3&ndash;1000 entries); the oldest entries are discarded automatically once the limit is reached.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Output Escaping:', 'scriptomatic' ) . '</strong> ' . __( 'Content is properly escaped when displayed in the admin interface.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __( 'Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic' ) . '</p>',

@@ -16,7 +16,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 - **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages (8 condition types)
 - **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
-- **🔍 Audit Logging**: All saves, rollbacks, and external URL additions/removals recorded in the persistent **Audit Log**, embedded at the bottom of the Head Scripts and Footer Scripts pages; each page shows only its own location's entries; entries capture timestamp, user, action (`save`, `rollback`, `url_added`, `url_removed`), and either character count (save/rollback) or the URL (url_added/url_removed); configurable limit (10–1000, default 200) with a one-click clear action
+- **Audit Logging**: All saves, rollbacks, and external URL additions/removals recorded in the persistent **Audit Log**, embedded at the bottom of the Head Scripts and Footer Scripts pages; each page shows only its own location's entries; entries capture timestamp, user, action (`save`, `rollback`, `url_added`, `url_removed`), and either character count (save/rollback) or the URL (url_added/url_removed); configurable limit (3–1000, default 200) with oldest entries discarded automatically
 - **⚡ Performance Optimized**: Minimal overhead; front-end injection only on pages matching load conditions
 - **🌐 Multisite Compatible**: Works in multisite networks; all script management is per-site. Install, activate, and deactivate can be performed network-wide. Uninstall iterates every sub-site.
 - **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
@@ -173,10 +173,10 @@ Scriptomatic is built with security as a top priority:
 - Saves submitted within the cooldown window are rejected with an admin notice
 
 ### Audit Logging
-- All script changes, AJAX rollbacks, and external URL additions/removals are recorded in the persistent **Audit Log**, embedded at the bottom of the Head Scripts and Footer Scripts pages; each page shows only its own location's entries
+- All saves, AJAX rollbacks, and external URL additions/removals are recorded in the persistent **Audit Log**, embedded at the bottom of the Head Scripts and Footer Scripts pages; each page shows only its own location's entries
 - Each entry captures: timestamp, username, user ID, action (`save`, `rollback`, `url_added`, or `url_removed`), and either character count (for save/rollback) or the URL string (for url_added/url_removed)
 - No IP addresses collected (intentional privacy decision)
-- Log limit is configurable (10–1000, default 200 entries); a **Clear Audit Log** button (nonce and capability gated) lets admins wipe it at any time
+- Log limit is configurable (3–1000, default 200 entries); oldest entries are discarded automatically once the cap is reached
 - Helps track changes and detect unauthorised modification
 
 ### Output Security
