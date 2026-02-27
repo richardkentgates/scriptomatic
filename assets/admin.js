@@ -5,12 +5,13 @@
  * and uses it to build element IDs matching the rendered PHP page.
  *
  * Features:
- *   1. Live character counter on the script textarea.
+ *   1. CodeMirror code editor (JS mode + WP/jQuery hints) with counter fallback.
  *   2. URL manager — per-entry load conditions for every external script URL.
  *   3. AJAX history rollback with location awareness.
  *   4. Load Conditions UI for the inline script textarea (page-level).
  *
  * Data injected via wp_localize_script( 'scriptomatic-admin-js', 'scriptomaticData', {...} )
+ *   codeEditorSettings — value returned by wp_enqueue_code_editor() or false.
  */
 jQuery( document ).ready( function ( $ ) {
     var data   = window.scriptomaticData || {};
@@ -19,10 +20,31 @@ jQuery( document ).ready( function ( $ ) {
     var i18n   = data.i18n    || {};
 
     /* =========================================================================
-     * 1. Character counter
+     * 1. Code editor (CodeMirror via wp.codeEditor) + character counter
+     *
+     * Initialises a full JS code editor on the inline-script textarea when
+     * wp.codeEditor is available and the user has not disabled syntax
+     * highlighting in their WP profile.  Falls back to a plain <textarea>.
      * ====================================================================== */
-    var $textarea = $( '#scriptomatic-' + loc + '-script' );
-    var $counter  = $( '#scriptomatic-' + loc + '-char-count' );
+    var $textarea     = $( '#scriptomatic-' + loc + '-script' );
+    var $counter      = $( '#scriptomatic-' + loc + '-char-count' );
+    var cmEditor      = null;
+    var codeEditorCfg = data.codeEditorSettings || false;
+
+    /* WP-specific globals and jQuery patterns surfaced by the Ctrl-Space hint. */
+    var wpHintWords = [
+        'jQuery', 'jQuery(document).ready(', 'jQuery(function($){',
+        '$', '$.ajax(', '$.post(', '$.get(', '$.fn',
+        'wp', 'wp.ajax', 'wp.ajax.post(', 'wp.ajax.send(',
+        'wp.hooks', 'wp.hooks.addFilter(', 'wp.hooks.addAction(',
+        'wp.hooks.applyFilters(', 'wp.hooks.doAction(',
+        'wp.data', 'wp.data.select(', 'wp.data.dispatch(',
+        'wp.element', 'wp.components',
+        'wp.i18n', 'wp.i18n.__(', 'wp.i18n._n(',
+        'wp.apiFetch(', 'wp.url',
+        'ajaxurl', 'pagenow', 'typenow',
+        'console.log(', 'console.warn(', 'console.error('
+    ];
 
     function updateCounter( len ) {
         $counter.text( len.toLocaleString() );
@@ -35,8 +57,71 @@ jQuery( document ).ready( function ( $ ) {
         }
     }
 
-    if ( $textarea.length && $counter.length ) {
-        $textarea.on( 'input', function () { updateCounter( this.value.length ); } );
+    if ( $textarea.length ) {
+        if ( codeEditorCfg && typeof wp !== 'undefined' && wp.codeEditor ) {
+
+            /* Augment the WP-supplied CodeMirror settings. */
+            codeEditorCfg.codemirror                  = codeEditorCfg.codemirror || {};
+            codeEditorCfg.codemirror.lineNumbers       = true;
+            codeEditorCfg.codemirror.matchBrackets     = true;
+            codeEditorCfg.codemirror.autoCloseBrackets = true;
+            codeEditorCfg.codemirror.extraKeys         = $.extend(
+                {}, codeEditorCfg.codemirror.extraKeys || {},
+                { 'Ctrl-Space': 'autocomplete' }
+            );
+
+            /* Custom hint: JS built-in words merged with WP/jQuery globals. */
+            var cmHintFn = function ( cm ) {
+                var builtIn = ( CodeMirror.hint && CodeMirror.hint.javascript )
+                    ? CodeMirror.hint.javascript( cm )
+                    : null;
+                var cur   = cm.getCursor();
+                var token = cm.getTokenAt( cur );
+                var word  = token.string.replace( /^\./, '' ).toLowerCase();
+                var extra = [];
+                if ( word.length >= 1 ) {
+                    wpHintWords.forEach( function ( w ) {
+                        if ( w.toLowerCase().indexOf( word ) === 0 ) {
+                            extra.push( w );
+                        }
+                    } );
+                }
+                if ( ! builtIn && ! extra.length ) { return; }
+                var from = CodeMirror.Pos( cur.line, token.start );
+                var to   = CodeMirror.Pos( cur.line, token.end );
+                if ( builtIn ) {
+                    builtIn.list = builtIn.list.concat(
+                        extra.filter( function ( w ) {
+                            return builtIn.list.indexOf( w ) === -1;
+                        } )
+                    );
+                    return builtIn;
+                }
+                return { list: extra, from: from, to: to };
+            };
+            codeEditorCfg.codemirror.hintOptions = { hint: cmHintFn, completeSingle: false };
+
+            var editorInst = wp.codeEditor.initialize( $textarea[ 0 ], codeEditorCfg );
+            cmEditor = editorInst.codemirror;
+
+            /* Live character counter driven by the CM instance. */
+            cmEditor.on( 'change', function ( cm ) {
+                updateCounter( cm.getValue().length );
+            } );
+            updateCounter( cmEditor.getValue().length );
+
+            /* Sync CM content → hidden textarea before the form POSTs. */
+            $textarea.closest( 'form' ).on( 'submit', function () {
+                $textarea.val( cmEditor.getValue() );
+            } );
+
+        } else {
+            /* Graceful fallback: accessibility mode or WP < 4.9. */
+            if ( $counter.length ) {
+                $textarea.on( 'input', function () { updateCounter( this.value.length ); } );
+                updateCounter( $textarea.val().length );
+            }
+        }
     }
 
     /* =========================================================================
@@ -305,9 +390,14 @@ jQuery( document ).ready( function ( $ ) {
             location: entryLoc
         }, function ( response ) {
             if ( response.success ) {
-                var rLoc = response.data.location || loc;
-                var $ta  = $( '#scriptomatic-' + rLoc + '-script' );
-                if ( $ta.length ) { $ta.val( response.data.content ).trigger( 'input' ); }
+                var rLoc    = response.data.location || loc;
+                var $ta     = $( '#scriptomatic-' + rLoc + '-script' );
+                var content = response.data.content || '';
+                if ( cmEditor && rLoc === loc ) {
+                    cmEditor.setValue( content );
+                } else if ( $ta.length ) {
+                    $ta.val( content ).trigger( 'input' );
+                }
                 $( '<div>' ).addClass( 'notice notice-success is-dismissible' )
                     .html( '<p>' + i18n.rollbackSuccess + '</p>' )
                     .insertAfter( '.wp-header-end' );

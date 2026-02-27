@@ -140,6 +140,7 @@ trait Scriptomatic_Renderer {
         $textarea_id    = 'scriptomatic-' . $location . '-script';
         $counter_id     = 'scriptomatic-' . $location . '-char-count';
         ?>
+        <div class="scriptomatic-code-editor-wrap">
         <textarea
             id="<?php echo esc_attr( $textarea_id ); ?>"
             name="<?php echo esc_attr( $option_key ); ?>"
@@ -149,6 +150,7 @@ trait Scriptomatic_Renderer {
             placeholder="<?php esc_attr_e( 'Enter your JavaScript code here (without <script> tags)', 'scriptomatic' ); ?>"
             aria-describedby="<?php echo esc_attr( $location ); ?>-script-desc <?php echo esc_attr( $location ); ?>-char-count"
         ><?php echo esc_textarea( $script_content ); ?></textarea>
+        </div>
 
         <p id="<?php echo esc_attr( $location ); ?>-char-count" class="description">
             <?php

@@ -65,6 +65,17 @@ trait Scriptomatic_Enqueue {
             SCRIPTOMATIC_VERSION
         );
 
+        // For script pages (head/footer), activate the WP code editor.
+        // wp_enqueue_code_editor() returns false when the user has disabled
+        // syntax highlighting in their profile — JS falls back gracefully.
+        $code_editor_settings = false;
+        if ( in_array( $hook, array_merge( $head_hooks, $footer_hooks ), true ) ) {
+            $code_editor_settings = wp_enqueue_code_editor( array( 'type' => 'text/javascript' ) );
+            if ( $code_editor_settings ) {
+                wp_enqueue_style( 'code-editor' );
+            }
+        }
+
         // Enqueue the real JS file (depends on jQuery, loads in footer).
         wp_enqueue_script(
             'scriptomatic-admin-js',
@@ -76,11 +87,12 @@ trait Scriptomatic_Enqueue {
 
         // Pass PHP data to the JS module.
         wp_localize_script( 'scriptomatic-admin-js', 'scriptomaticData', array(
-            'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
-            'rollbackNonce' => wp_create_nonce( SCRIPTOMATIC_ROLLBACK_NONCE ),
-            'maxLength'     => SCRIPTOMATIC_MAX_SCRIPT_LENGTH,
-            'location'      => $location,
-            'i18n'          => array(
+            'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
+            'rollbackNonce'       => wp_create_nonce( SCRIPTOMATIC_ROLLBACK_NONCE ),
+            'maxLength'           => SCRIPTOMATIC_MAX_SCRIPT_LENGTH,
+            'location'            => $location,
+            'codeEditorSettings'  => $code_editor_settings,
+            'i18n'               => array(
                 'invalidUrl'       => __( 'Please enter a valid http:// or https:// URL.', 'scriptomatic' ),
                 'duplicateUrl'     => __( 'This URL has already been added.', 'scriptomatic' ),
                 'rollbackConfirm'  => __( 'Restore this revision? The current script will be preserved in history.', 'scriptomatic' ),

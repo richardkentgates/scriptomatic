@@ -289,3 +289,31 @@
     color: #888;
     font-style: italic;
 }
+
+/* =============================================================================
+   CodeMirror code editor — inline script textareas
+   ============================================================================= */
+
+.scriptomatic-code-editor-wrap .CodeMirror {
+    min-height: 260px;
+    height: auto;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.scriptomatic-code-editor-wrap .CodeMirror-scroll {
+    min-height: 258px;
+}
+
+/* Ensure the editor fills the available column width, matching other fields. */
+.scriptomatic-code-editor-wrap {
+    max-width: 760px;
+}
+
+/* Keep the char counter flush with the editor bottom edge. */
+.scriptomatic-code-editor-wrap + .description {
+    margin-top: 4px;
+}
