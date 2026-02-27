@@ -1,0 +1,4 @@
+# Exclude development and documentation-only files from zip archives
+# (GitHub "Download ZIP" and git archive exports).
+docs/           export-ignore
+.gitattributes  export-ignore

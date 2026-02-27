@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Scriptomatic — Inject custom JavaScript into the head and footer of your WordPress site with revision history, rollback, and fine-grained admin controls." />
+  <meta property="og:title" content="Scriptomatic — WordPress JavaScript Injection Plugin" />
+  <meta property="og:description" content="Inject custom JavaScript into the head and footer of your WordPress site with revision history, rollback, audit logging, and fine-grained admin controls." />
+  <meta property="og:url" content="https://scriptomatic.richardkentgates.com" />
+  <title>Scriptomatic — WordPress JavaScript Injection Plugin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:     #2271b1;
+      --blue-dk:  #135e96;
+      --blue-lt:  #d0e8f8;
+      --green:    #00a32a;
+      --green-lt: #d7f0db;
+      --bg:       #f6f7f7;
+      --surface:  #ffffff;
+      --border:   #dcdcde;
+      --text:     #1e1e1e;
+      --muted:    #646970;
+      --code-bg:  #1e1e2e;
+      --code-fg:  #cdd6f4;
+      --radius:   8px;
+      --shadow:   0 1px 4px rgba(0,0,0,.10), 0 4px 16px rgba(0,0,0,.06);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 16px;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .nav-brand { font-weight: 700; font-size: 1.15rem; color: var(--text); letter-spacing: -.3px; }
+    .nav-brand span { color: var(--blue); }
+    .nav-links { display: flex; gap: 1.75rem; list-style: none; }
+    .nav-links a { font-size: .9rem; color: var(--muted); font-weight: 500; }
+    .nav-links a:hover { color: var(--blue); text-decoration: none; }
+    .nav-cta {
+      background: var(--blue); color: #fff;
+      padding: .45rem 1.1rem; border-radius: 6px; font-size: .875rem; font-weight: 600;
+    }
+    .nav-cta:hover { background: var(--blue-dk); text-decoration: none; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #0d2137 0%, #1a3d5c 55%, #135e96 100%);
+      color: #fff;
+      padding: 6rem 2rem 5rem;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 20px;
+      padding: .3rem .9rem;
+      font-size: .8rem; font-weight: 600; letter-spacing: .6px;
+      text-transform: uppercase; margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      font-weight: 800; letter-spacing: -.5px;
+      margin-bottom: 1.2rem; line-height: 1.15;
+    }
+    .hero h1 span { color: #5bc0f8; }
+    .hero p {
+      font-size: 1.15rem; max-width: 620px; margin: 0 auto 2.5rem;
+      color: rgba(255,255,255,.82); line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .45rem;
+      padding: .7rem 1.6rem; border-radius: 7px;
+      font-size: .95rem; font-weight: 600; cursor: pointer;
+      transition: transform .1s, box-shadow .1s;
+    }
+    .btn:hover { transform: translateY(-1px); text-decoration: none; }
+    .btn-primary { background: #fff; color: var(--blue); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+    .btn-primary:hover { box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+    .btn-ghost { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+    .btn-ghost:hover { background: rgba(255,255,255,.2); }
+    .hero-meta {
+      margin-top: 3rem; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;
+    }
+    .hero-meta span {
+      background: rgba(255,255,255,.1); border-radius: 5px;
+      padding: .3rem .8rem; font-size: .8rem; color: rgba(255,255,255,.75);
+    }
+
+    /* ── SECTIONS ── */
+    section { padding: 5rem 2rem; }
+    .container { max-width: 1080px; margin: 0 auto; }
+    .section-label {
+      display: inline-block;
+      color: var(--blue); font-size: .8rem; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: .75rem;
+    }
+    h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 800; letter-spacing: -.3px; margin-bottom: 1rem; }
+    .section-intro { color: var(--muted); max-width: 560px; margin-bottom: 3rem; font-size: 1.05rem; }
+
+    /* ── FEATURE GRID ── */
+    .features-bg { background: var(--surface); }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .feature-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.6rem;
+      transition: box-shadow .2s, transform .2s;
+    }
+    .feature-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+    .feature-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; margin-bottom: 1rem;
+    }
+    .icon-blue  { background: var(--blue-lt); }
+    .icon-green { background: var(--green-lt); }
+    .icon-amber { background: #fef3cd; }
+    .icon-purple{ background: #ede9fe; }
+    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .4rem; }
+    .feature-card p  { font-size: .9rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2rem; }
+    .step { text-align: center; }
+    .step-num {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--blue); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.1rem; margin: 0 auto 1rem;
+    }
+    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: .4rem; }
+    .step p  { font-size: .875rem; color: var(--muted); }
+
+    /* ── CODE EXAMPLES ── */
+    .code-bg { background: var(--surface); }
+    .code-tabs { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .code-tab {
+      padding: .4rem 1rem; border-radius: 6px; border: 1px solid var(--border);
+      font-size: .85rem; font-weight: 600; cursor: pointer; background: var(--bg); color: var(--muted);
+    }
+    .code-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .code-block {
+      background: var(--code-bg); color: var(--code-fg);
+      border-radius: var(--radius); padding: 1.6rem;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: .875rem; line-height: 1.7; overflow-x: auto;
+      white-space: pre;
+    }
+    .code-block .c  { color: #6c7086; font-style: italic; }
+    .code-block .s  { color: #a6e3a1; }
+    .code-block .k  { color: #cba6f7; }
+    .code-block .n  { color: #89dceb; }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+
+    /* ── SECURITY ── */
+    .security-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem;
+    }
+    .security-item {
+      display: flex; gap: .85rem; align-items: flex-start;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem;
+    }
+    .security-icon {
+      flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px;
+      background: var(--green-lt); display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .security-item h4 { font-size: .9rem; font-weight: 700; margin-bottom: .2rem; }
+    .security-item p  { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+
+    /* ── INSTALL ── */
+    .install-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .install-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.6rem;
+    }
+    .install-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem; }
+    .install-card ol { padding-left: 1.2rem; }
+    .install-card li { font-size: .9rem; color: var(--muted); margin-bottom: .4rem; }
+    .install-card li strong { color: var(--text); }
+
+    /* ── ADMIN PAGES TABLE ── */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); }
+    thead { background: #f0f6fc; }
+    th, td { padding: .85rem 1.1rem; font-size: .9rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-weight: 700; color: var(--text); }
+    td { color: var(--muted); }
+    td:first-child { font-weight: 600; color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── REQUIREMENTS ── */
+    .req-list { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .req-pill {
+      display: flex; align-items: center; gap: .5rem;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 30px;
+      padding: .5rem 1.1rem; font-size: .875rem; font-weight: 600;
+    }
+    .req-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+
+    /* ── INLINE SHELL ── */
+    .shell {
+      background: var(--code-bg); color: var(--code-fg);
+      border-radius: var(--radius); padding: 1rem 1.4rem;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .875rem; overflow-x: auto;
+    }
+    .shell .prompt { color: #6c7086; user-select: none; }
+
+    /* ── AUDIT / HISTORY HIGHLIGHT ── */
+    .highlight-box {
+      border-left: 4px solid var(--blue);
+      background: #f0f6fc;
+      padding: 1.25rem 1.5rem;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 2rem 0;
+    }
+    .highlight-box h4 { font-size: .95rem; font-weight: 700; margin-bottom: .4rem; }
+    .highlight-box p  { font-size: .9rem; color: var(--muted); }
+
+    /* ── CHANGELOG SNIPPET ── */
+    .changelog-item { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+    .clog-version {
+      flex-shrink: 0; background: var(--blue); color: #fff;
+      border-radius: 5px; padding: .3rem .75rem;
+      font-size: .8rem; font-weight: 700; height: fit-content;
+    }
+    .clog-body h4 { font-size: .95rem; font-weight: 700; margin-bottom: .3rem; }
+    .clog-body p  { font-size: .875rem; color: var(--muted); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0d2137; color: rgba(255,255,255,.7);
+      padding: 3rem 2rem; text-align: center;
+    }
+    footer a { color: #5bc0f8; }
+    footer p { font-size: .9rem; line-height: 1.8; }
+    .footer-links { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .footer-links a { font-size: .875rem; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+      section { padding: 3.5rem 1.25rem; }
+      .hero { padding: 4rem 1.25rem 3.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand"><span>Script</span>omatic</div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#security">Security</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#changelog">Changelog</a></li>
+  </ul>
+  <a class="btn nav-cta" href="https://github.com/richardkentgates/scriptomatic/releases/latest">Download</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v1.7.0</div>
+  <h1>Inject custom JavaScript<br/><span>the right way.</span></h1>
+  <p>Scriptomatic gives WordPress administrators full control over custom scripts in the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> and footer — with conditional loading, revision history, one-click rollback, and a complete audit trail.</p>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="https://github.com/richardkentgates/scriptomatic/releases/latest">
+      ⬇ Download Latest
+    </a>
+    <a class="btn btn-ghost" href="https://github.com/richardkentgates/scriptomatic">
+      ★ View on GitHub
+    </a>
+  </div>
+  <div class="hero-meta">
+    <span>WordPress 5.3+</span>
+    <span>PHP 7.2+</span>
+    <span>GPL v2</span>
+    <span>No dependencies</span>
+    <span>Multisite ready</span>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-bg" id="features">
+  <div class="container">
+    <span class="section-label">What it does</span>
+    <h2>Everything you need, nothing you don't</h2>
+    <p class="section-intro">A complete toolkit for managing custom JavaScript on any WordPress site — built for administrators who care about control and correctness.</p>
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon icon-blue">⌨️</div>
+        <h3>Inline Script Editor</h3>
+        <p>Write JavaScript directly in the admin. A live character counter colour-codes at 75% and 90% of the 100 KB limit so you always know where you stand.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-blue">🔗</div>
+        <h3>External Script URLs</h3>
+        <p>Manage multiple remote <code>&lt;script src&gt;</code> tags per location via a chiclet UI. URLs are validated, deduplicated, and loaded before the inline block.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-green">🎯</div>
+        <h3>Conditional Loading</h3>
+        <p>Eight condition types — All Pages, Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out — per location, independently configured.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-green">🔁</div>
+        <h3>Revision History &amp; Rollback</h3>
+        <p>Every save creates a timestamped revision. Restore any prior version in one AJAX click — no page reload, no data loss. View any revision's content in a lightbox.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-amber">📋</div>
+        <h3>Audit Log</h3>
+        <p>All saves, rollbacks, and URL changes are recorded with timestamp, username, action type, and character count or URL. Configurable limit of 10–1000 entries per location.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-blue">🔒</div>
+        <h3>Security-First Architecture</h3>
+        <p>Dual nonce verification, capability checks on every callback, rate limiting (10-second cooldown), open-redirect hardening, and singleton deserialization guards.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-purple">📚</div>
+        <h3>Contextual Help Tabs</h3>
+        <p>Built-in help tabs on every admin page covering usage, load conditions, security tips, and troubleshooting — no need to leave the dashboard.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-green">🌐</div>
+        <h3>Multisite Compatible</h3>
+        <p>Fully per-site within a network. Install and activate network-wide. Uninstall iterates every sub-site to clean up option data correctly.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-purple">🏗️</div>
+        <h3>Trait-Based Architecture</h3>
+        <p>Eight focused PHP traits — menus, sanitizer, history, settings, renderer, pages, enqueue, injector — in separate files for clean separation of concerns.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="container">
+    <span class="section-label">Workflow</span>
+    <h2>Up and running in minutes</h2>
+    <p class="section-intro">From install to injected script, Scriptomatic keeps every step straightforward.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Install &amp; Activate</h3>
+        <p>Upload the plugin zip via WordPress admin or drop the folder into <code>wp-content/plugins/</code>. Activate normally.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Open Head or Footer Scripts</h3>
+        <p>Navigate to <strong>Scriptomatic → Head Scripts</strong> or <strong>Footer Scripts</strong> in your WordPress admin.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Write or Add URLs</h3>
+        <p>Paste your JavaScript into the inline editor, or add remote script URLs. No <code>&lt;script&gt;</code> tags needed — they are added automatically.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>Set Load Conditions</h3>
+        <p>Optionally restrict injection to specific pages, post types, URL patterns, or user state. Leave blank to load everywhere.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <h3>Save &amp; Verify</h3>
+        <p>Click <strong>Save</strong>. Visit the front-end and check the page source. Use the revision history to roll back at any time.</p>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <h4>Revision History &amp; Audit Log are always there</h4>
+      <p>The revision history panel and location-filtered audit log are embedded at the bottom of every Head Scripts and Footer Scripts page. You can view any revision's content in a lightbox, restore it in one click, and see a full record of who changed what and when — all without leaving the settings page.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CODE EXAMPLES -->
+<section class="code-bg" id="usage">
+  <div class="container">
+    <span class="section-label">Examples</span>
+    <h2>Common use cases</h2>
+    <p class="section-intro">Paste any of these into the inline editor. Scriptomatic wraps the code in <code>&lt;script&gt;</code> tags automatically.</p>
+
+    <div class="code-tabs">
+      <button class="code-tab active" onclick="showTab('ga')">Google Analytics</button>
+      <button class="code-tab" onclick="showTab('fbpixel')">Facebook Pixel</button>
+      <button class="code-tab" onclick="showTab('jquery')">Custom jQuery</button>
+      <button class="code-tab" onclick="showTab('gtm')">Tag Manager</button>
+    </div>
+
+    <div id="tab-ga" class="code-panel active">
+      <div class="code-block"><span class="c">// Google Analytics (GA4)</span>
+window.dataLayer = window.dataLayer || [];
+<span class="k">function</span> <span class="n">gtag</span>(){dataLayer.push(arguments);}
+<span class="n">gtag</span>(<span class="s">'js'</span>, <span class="k">new</span> Date());
+<span class="n">gtag</span>(<span class="s">'config'</span>, <span class="s">'G-XXXXXXXXXX'</span>);</div>
+    </div>
+
+    <div id="tab-fbpixel" class="code-panel">
+      <div class="code-block"><span class="c">// Meta (Facebook) Pixel</span>
+!<span class="k">function</span>(f,b,e,v,n,t,s){
+  <span class="k">if</span>(f.fbq)<span class="k">return</span>;n=f.fbq=<span class="k">function</span>(){
+    n.callMethod ? n.callMethod.apply(n,arguments) : n.queue.push(arguments)
+  };
+  <span class="k">if</span>(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version=<span class="s">'2.0'</span>;
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)
+}(window,document,<span class="s">'script'</span>,<span class="s">'https://connect.facebook.net/en_US/fbevents.js'</span>);
+
+<span class="n">fbq</span>(<span class="s">'init'</span>, <span class="s">'YOUR_PIXEL_ID'</span>);
+<span class="n">fbq</span>(<span class="s">'track'</span>, <span class="s">'PageView'</span>);</div>
+    </div>
+
+    <div id="tab-jquery" class="code-panel">
+      <div class="code-block"><span class="c">// Custom jQuery — runs after DOM is ready</span>
+jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($) {
+    <span class="n">console</span>.log(<span class="s">'Scriptomatic loaded.'</span>);
+
+    $(<span class="s">'.my-button'</span>).<span class="n">on</span>(<span class="s">'click'</span>, <span class="k">function</span>() {
+        $(<span class="s">'.my-panel'</span>).<span class="n">toggleClass</span>(<span class="s">'active'</span>);
+    });
+});</div>
+    </div>
+
+    <div id="tab-gtm" class="code-panel">
+      <div class="code-block"><span class="c">// Google Tag Manager — add to Head Scripts</span>
+(<span class="k">function</span>(w,d,s,l,i){
+  w[l]=w[l]||[];w[l].push({<span class="s">'gtm.start'</span>:
+  <span class="k">new</span> Date().getTime(),event:<span class="s">'gtm.js'</span>});
+  <span class="k">var</span> f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!=<span class="s">'dataLayer'</span>?<span class="s">'&amp;l='</span>+l:<span class="s">''</span>;
+  j.async=<span class="k">true</span>;
+  j.src=<span class="s">'https://www.googletagmanager.com/gtm.js?id='</span>+i+dl;
+  f.parentNode.insertBefore(j,f);
+})(window,document,<span class="s">'script'</span>,<span class="s">'dataLayer'</span>,<span class="s">'GTM-XXXXXXX'</span>);</div>
+    </div>
+
+    <p style="margin-top:1.25rem;font-size:.875rem;color:var(--muted);">
+      💡 Never include <code>&lt;script&gt;</code> tags — Scriptomatic adds them automatically. Do not use <code>eval()</code> or inject untrusted input.
+    </p>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section id="security">
+  <div class="container">
+    <span class="section-label">Security</span>
+    <h2>Defence in depth</h2>
+    <p class="section-intro">Scriptomatic applies multiple independent security layers so that a failure in any one layer does not expose the site.</p>
+    <div class="security-grid">
+
+      <div class="security-item">
+        <div class="security-icon">🛡️</div>
+        <div>
+          <h4>Capability Gates</h4>
+          <p>Every save callback verifies <code>manage_options</code> before processing any input. No data is written without this check passing.</p>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="security-icon">🔑</div>
+        <div>
+          <h4>Dual Nonce Verification</h4>
+          <p>Both the WordPress Settings API nonce and a secondary per-location nonce must validate. One expired or missing nonce aborts the save.</p>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="security-icon">⏱️</div>
+        <div>
+          <h4>Rate Limiting</h4>
+          <p>A transient-based 10-second per-user, per-location cooldown prevents rapid repeated saves or brute-force form submissions.</p>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="security-icon">✅</div>
+        <div>
+          <h4>Input Validation</h4>
+          <p>Maximum 100 KB enforced. Invalid UTF-8 and control characters rejected. <code>&lt;script&gt;</code> tags stripped. Dangerous HTML tags flagged with admin notice.</p>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="security-icon">🔗</div>
+        <div>
+          <h4>URL Validation</h4>
+          <p>External script URLs are validated with <code>wp_http_validate_url()</code> and deduplicated before storage and before injection.</p>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="security-icon">📋</div>
+        <div>
+          <h4>Audit Logging</h4>
+          <p>Saves, rollbacks, url_added, and url_removed events are all logged with timestamp and user identity. Configurable retention limit.</p>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="security-icon">↩️</div>
+        <div>
+          <h4>Open Redirect Hardening</h4>
+          <p>Post-action redirects use a constructed <code>admin_url()</code> rather than the HTTP <code>Referer</code> header, which can be spoofed by an attacker.</p>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="security-icon">🧱</div>
+        <div>
+          <h4>Singleton Guards</h4>
+          <p><code>__clone()</code> and <code>__wakeup()</code> methods prevent the singleton from being duplicated via object cloning or PHP <code>unserialize()</code>.</p>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="security-icon">🔒</div>
+        <div>
+          <h4>Directory Index Files</h4>
+          <p>Both the plugin root and <code>includes/</code> directory contain an <code>index.php</code> that returns HTTP 403, preventing directory listing if web server options are misconfigured.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ADMIN PAGES -->
+<section class="features-bg" id="admin">
+  <div class="container">
+    <span class="section-label">Admin Interface</span>
+    <h2>Three focused admin pages</h2>
+    <p class="section-intro">Each page is scoped to one location or purpose, keeping the interface clean and avoiding ambiguity.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Page</th>
+            <th>Menu Path</th>
+            <th>What's Here</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Head Scripts</td>
+            <td>Scriptomatic → Head Scripts</td>
+            <td>Inline JS editor, external URL manager, load conditions, revision history lightbox, audit log (head entries only)</td>
+          </tr>
+          <tr>
+            <td>Footer Scripts</td>
+            <td>Scriptomatic → Footer Scripts</td>
+            <td>Inline JS editor, external URL manager, load conditions, revision history lightbox, audit log (footer entries only)</td>
+          </tr>
+          <tr>
+            <td>Preferences</td>
+            <td>Scriptomatic → Preferences</td>
+            <td>History revision limit, audit log entry limit (10–1000), uninstall data-retention toggle</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="container">
+    <span class="section-label">Installation</span>
+    <h2>Three ways to install</h2>
+    <p class="section-intro">Choose whichever method fits your workflow.</p>
+    <div class="install-grid">
+
+      <div class="install-card">
+        <h3>📤 Upload via Admin</h3>
+        <ol>
+          <li>Download the latest ZIP from the <a href="https://github.com/richardkentgates/scriptomatic/releases/latest">Releases page</a></li>
+          <li>Go to <strong>Plugins → Add New</strong></li>
+          <li>Click <strong>Upload Plugin</strong> and select the ZIP</li>
+          <li>Click <strong>Install Now</strong> then <strong>Activate</strong></li>
+        </ol>
+      </div>
+
+      <div class="install-card">
+        <h3>📁 Manual Upload</h3>
+        <ol>
+          <li>Download and extract the ZIP</li>
+          <li>Upload the <code>scriptomatic</code> folder to <code>/wp-content/plugins/</code> via FTP or SFTP</li>
+          <li>Go to <strong>Plugins</strong> in WordPress admin</li>
+          <li>Find <strong>Scriptomatic</strong> and click <strong>Activate</strong></li>
+        </ol>
+      </div>
+
+      <div class="install-card">
+        <h3>💻 Git Clone</h3>
+        <div class="shell">
+<span class="prompt">$ </span>cd /path/to/wp-content/plugins/
+<span class="prompt">$ </span>git clone https://github.com/richardkentgates/scriptomatic.git</div>
+        <p style="margin-top:.75rem;font-size:.85rem;color:var(--muted);">Then activate via WordPress admin.</p>
+      </div>
+
+    </div>
+
+    <div class="highlight-box" style="margin-top:2rem;">
+      <h4>Requirements</h4>
+      <div class="req-list" style="margin-top:.75rem;">
+        <div class="req-pill"><span class="dot"></span>WordPress 5.3 or higher</div>
+        <div class="req-pill"><span class="dot"></span>PHP 7.2 or higher</div>
+        <div class="req-pill"><span class="dot"></span>Administrator role (<code>manage_options</code>)</div>
+        <div class="req-pill"><span class="dot"></span>No external dependencies</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHANGELOG -->
+<section class="features-bg" id="changelog">
+  <div class="container">
+    <span class="section-label">Release History</span>
+    <h2>Changelog</h2>
+    <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
+
+    <div class="changelog-item">
+      <div class="clog-version">Unreleased</div>
+      <div class="clog-body">
+        <h4>Security hardening, view lightbox for history, Preferences rename, audit log improvements</h4>
+        <p>Six security fixes across sanitizer, settings, pages, and injector traits. View button on history entries opens a lightbox. Audit log now filters by location. "General Settings" renamed to "Preferences". Load Conditions section moved above External Script URLs.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.7.0</div>
+      <div class="clog-body">
+        <h4>Configurable audit log limit; fixed addUrl() clone bug; network admin UI removed</h4>
+        <p>Audit log cap moved from a hard-coded constant to a Preferences setting (10–1000, default 200). Fixed the JS <code>addUrl()</code> function that was producing an empty set. All network-admin-specific code removed — plugin is now strictly per-site.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.6.0</div>
+      <div class="clog-body">
+        <h4>Per-URL load conditions</h4>
+        <p>Every external script URL in the list now has its own independent load-condition picker, replacing the previous model where a single condition controlled every URL in a location.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.5.0</div>
+      <div class="clog-body">
+        <h4>URL audit log; double-invocation guard; AJAX rollback fix</h4>
+        <p>url_added / url_removed audit events added. Static double-call guard prevents Settings API duplicate invocations.  AJAX rollback switched to direct <code>$wpdb</code> write to bypass sanitize callbacks in AJAX context.</p>
+      </div>
+    </div>
+
+    <p style="margin-top:1.5rem;"><a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">View full changelog →</a></p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/richardkentgates/scriptomatic">GitHub</a>
+    <a href="https://github.com/richardkentgates/scriptomatic/releases">Releases</a>
+    <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">Changelog</a>
+    <a href="https://github.com/richardkentgates/scriptomatic/blob/main/SECURITY.md">Security</a>
+    <a href="https://github.com/richardkentgates/scriptomatic/issues">Issues</a>
+    <a href="https://richardkentgates.com">richardkentgates.com</a>
+  </div>
+  <p>Scriptomatic v1.7.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+</footer>
+
+<script>
+  function showTab(id) {
+    document.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>
