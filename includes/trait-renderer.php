@@ -7,7 +7,6 @@
  * - Linked-URL chicklet managers.
  * - Load Conditions UI (type selector + sub-panels).
  * - Advanced Settings fields (history limit, keep-data toggle).
- * - Backward-compatibility aliases for pre-1.2.0 hook callbacks.
  *
  * Also contains `check_load_conditions()`, which evaluates the stored
  * condition JSON on every front-end page load.
@@ -227,50 +226,6 @@ trait Scriptomatic_Renderer {
             </p>
         </div>
         <?php
-    }
-
-    // =========================================================================
-    // BACKWARD-COMPAT ALIASES
-    // =========================================================================
-
-    /**
-     * Backward-compat alias: section description for head code (was render_section_description).
-     *
-     * @since  1.0.0
-     * @return void
-     */
-    public function render_section_description() {
-        $this->render_head_code_section();
-    }
-
-    /**
-     * Backward-compat alias: head script field (was render_script_field).
-     *
-     * @since  1.0.0
-     * @return void
-     */
-    public function render_script_field() {
-        $this->render_script_field_for( 'head' );
-    }
-
-    /**
-     * Backward-compat alias: head linked section description.
-     *
-     * @since  1.1.0
-     * @return void
-     */
-    public function render_linked_scripts_section() {
-        $this->render_head_links_section();
-    }
-
-    /**
-     * Backward-compat alias: head linked scripts field.
-     *
-     * @since  1.1.0
-     * @return void
-     */
-    public function render_linked_scripts_field() {
-        $this->render_linked_field_for( 'head' );
     }
 
     // =========================================================================

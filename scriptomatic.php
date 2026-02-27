@@ -3,7 +3,7 @@
  * Plugin Name: Scriptomatic
  * Plugin URI: https://github.com/richardkentgates/scriptomatic
  * Description: Securely inject custom JavaScript into the head and footer of your WordPress site. Features per-location inline scripts, external URL management, full revision history with rollback, multisite support, and fine-grained admin controls.
- * Version: 1.4.2
+ * Version: 1.4.3
  * Requires at least: 5.3
  * Requires PHP: 7.2
  * Author: Richard Kent Gates
@@ -37,15 +37,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ---- Core ----
-define( 'SCRIPTOMATIC_VERSION',     '1.4.2' );
+define( 'SCRIPTOMATIC_VERSION',     '1.4.3' );
 define( 'SCRIPTOMATIC_PLUGIN_FILE', __FILE__ );
 define( 'SCRIPTOMATIC_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'SCRIPTOMATIC_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 
 // ---- Option keys: head scripts ----
-define( 'SCRIPTOMATIC_HEAD_SCRIPT',  'scriptomatic_script_content' ); // backward-compat key
-define( 'SCRIPTOMATIC_HEAD_HISTORY', 'scriptomatic_script_history' ); // backward-compat key
-define( 'SCRIPTOMATIC_HEAD_LINKED',  'scriptomatic_linked_scripts' ); // backward-compat key
+define( 'SCRIPTOMATIC_HEAD_SCRIPT',  'scriptomatic_script_content' );
+define( 'SCRIPTOMATIC_HEAD_HISTORY', 'scriptomatic_script_history' );
+define( 'SCRIPTOMATIC_HEAD_LINKED',  'scriptomatic_linked_scripts' );
 
 // ---- Option keys: footer scripts ----
 define( 'SCRIPTOMATIC_FOOTER_SCRIPT',  'scriptomatic_footer_script' );
@@ -59,11 +59,6 @@ define( 'SCRIPTOMATIC_FOOTER_CONDITIONS', 'scriptomatic_footer_conditions' );
 // ---- Option keys: plugin settings ----
 define( 'SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION', 'scriptomatic_plugin_settings' );
 
-// ---- Legacy aliases ----
-define( 'SCRIPTOMATIC_OPTION_NAME',           SCRIPTOMATIC_HEAD_SCRIPT );
-define( 'SCRIPTOMATIC_HISTORY_OPTION',        SCRIPTOMATIC_HEAD_HISTORY );
-define( 'SCRIPTOMATIC_LINKED_SCRIPTS_OPTION', SCRIPTOMATIC_HEAD_LINKED );
-
 // ---- Limits / timing ----
 define( 'SCRIPTOMATIC_MAX_SCRIPT_LENGTH',   100000 ); // 100 KB hard limit per inline script
 define( 'SCRIPTOMATIC_RATE_LIMIT_SECONDS',  10 );     // Minimum seconds between saves per user
@@ -75,9 +70,6 @@ define( 'SCRIPTOMATIC_FOOTER_NONCE',   'scriptomatic_save_footer' );  // Footer 
 define( 'SCRIPTOMATIC_GENERAL_NONCE',  'scriptomatic_save_general' ); // General settings form secondary nonce
 define( 'SCRIPTOMATIC_ROLLBACK_NONCE', 'scriptomatic_rollback' );     // AJAX rollback nonce
 define( 'SCRIPTOMATIC_NETWORK_NONCE',  'scriptomatic_network_save' ); // Network admin save nonce
-
-// Backward-compat alias for the head nonce constant.
-define( 'SCRIPTOMATIC_NONCE_ACTION', SCRIPTOMATIC_HEAD_NONCE );
 
 // Load the main class (also requires all trait files).
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/class-scriptomatic.php';

@@ -104,13 +104,4 @@ trait Scriptomatic_Injector {
         echo "<!-- /Scriptomatic ({$label}) -->\n";
     }
 
-    /**
-     * Backward-compat alias — injects head scripts (was inject_script).
-     *
-     * @since  1.0.0
-     * @return void
-     */
-    public function inject_script() {
-        $this->inject_head_scripts();
-    }
 }

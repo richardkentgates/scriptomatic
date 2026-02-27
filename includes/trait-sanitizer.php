@@ -308,17 +308,6 @@ trait Scriptomatic_Sanitizer {
         return wp_json_encode( $clean );
     }
 
-    /**
-     * Backward-compat alias — sanitises head linked scripts.
-     *
-     * @since  1.1.0
-     * @param  mixed $input
-     * @return string
-     */
-    public function sanitize_linked_scripts( $input ) {
-        return $this->sanitize_linked_for( $input, 'head' );
-    }
-
     // =========================================================================
     // CONDITIONS SANITISATION
     // =========================================================================

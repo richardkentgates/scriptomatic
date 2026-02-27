@@ -23,7 +23,6 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 - **🎨 WordPress Standards**: WP CS formatting, `esc_*()`, `sanitize_*()`, `wp_*()` throughout
 - **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion; fully multisite-aware
 - **🏗️ Modular Architecture**: Eight PHP traits in separate files; static `assets/admin.css` and `assets/admin.js` enqueued via `wp_enqueue_style` / `wp_enqueue_script`
-- **🔄 Backward Compatible**: Legacy constant and method aliases retained for pre-1.2.0 integrations
 
 ## 📋 Requirements
 

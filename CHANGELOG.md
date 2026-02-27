@@ -13,6 +13,21 @@ Nothing pending.
 
 ---
 
+## [1.4.3] – 2026-02-26
+
+### Removed
+- **All backward-compatibility aliases deleted.** Because this is an unreleased plugin with no existing integrations, there is nothing to stay compatible with. The following were dead weight:
+  - **Constants** in `scriptomatic.php`: `SCRIPTOMATIC_OPTION_NAME`, `SCRIPTOMATIC_HISTORY_OPTION`, `SCRIPTOMATIC_LINKED_SCRIPTS_OPTION`, `SCRIPTOMATIC_NONCE_ACTION`.
+  - **Methods** in `trait-renderer.php`: `render_section_description()`, `render_script_field()`, `render_linked_scripts_section()`, `render_linked_scripts_field()`.
+  - **Methods** in `trait-pages.php`: `render_settings_page()`.
+  - **Methods** in `trait-injector.php`: `inject_script()`.
+  - **Method** in `trait-sanitizer.php`: `sanitize_linked_scripts()`.
+- Removed stale `// backward-compat key` inline comments from the `SCRIPTOMATIC_HEAD_*` constant definitions in `scriptomatic.php`.
+- Removed `“Backward-compatibility aliases for pre-1.2.0 hook callbacks”` note from `trait-renderer.php` file docblock.
+- Removed `“**🔄 Backward Compatible**: Legacy constant and method aliases retained for pre-1.2.0 integrations”` bullet from README features list.
+
+---
+
 ## [1.4.2] – 2026-02-26
 
 ### Fixed
@@ -139,7 +154,6 @@ Nothing pending.
 - Separate history stacks for head and footer; `push_history()`, `get_history()`, and `ajax_rollback()` accept a `$location` parameter.
 - Save-rate limiting per location to prevent rapid repeated saves.
 - Shared `render_page_header()`, `render_history_panel($location)`, `render_script_field_for($location)`, and `render_linked_field_for($location)` helpers.
-- Backward-compat aliases retained: `render_section_description()`, `render_script_field()`, `render_linked_scripts_section()`, `render_linked_scripts_field()`, `render_settings_page()`, `inject_script()`.
 
 ### Fixed (post-release patch — commit `36405f8`)
 - Settings-section slug mismatch in settings registration.
@@ -183,6 +197,7 @@ Nothing pending.
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 1.4.3   | 2026-02-26 | Remove all backward-compat aliases and dead constants |
 | 1.4.2   | 2026-02-26 | Code-quality fixes, dead-code removal, doc accuracy |
 | 1.4.1   | 2026-02-26 | Multisite network-admin bug fixes              |
 | 1.4.0   | 2026-02-26 | Trait refactor, static assets, modular architecture |
@@ -195,7 +210,8 @@ Nothing pending.
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.3...HEAD
+[1.4.3]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.3.1...v1.4.0

@@ -199,16 +199,6 @@ trait Scriptomatic_Pages {
         <?php
     }
 
-    /**
-     * Backward-compat alias — renders head page (was render_settings_page).
-     *
-     * @since  1.0.0
-     * @return void
-     */
-    public function render_settings_page() {
-        $this->render_head_page();
-    }
-
     // =========================================================================
     // PAGE RENDERERS — NETWORK ADMIN
     // =========================================================================
