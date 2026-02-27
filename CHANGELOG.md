@@ -13,6 +13,21 @@ Nothing pending.
 
 ---
 
+## [1.5.0] – 2026-03-04
+
+### Added
+- **Audit Log admin page (per-site and network).** Script saves and rollbacks are now recorded in a persistent, WordPress-native log stored via `wp_options` / `wp_site_option` rather than the PHP error log. The log is accessible from the new **Audit Log** submenu in both the per-site and network admin menus. Each entry captures the timestamp, acting user, action (`save` or `rollback`), script location (`head` or `footer`), and character count of the content involved. The log is capped at 200 entries (oldest entries are discarded once the cap is exceeded). A **Clear Audit Log** button — guarded by a nonce and a capability check — lets admins wipe the log at any time.
+- Three new constants: `SCRIPTOMATIC_AUDIT_LOG_OPTION`, `SCRIPTOMATIC_MAX_LOG_ENTRIES`, `SCRIPTOMATIC_CLEAR_LOG_NONCE`.
+- New private methods `write_audit_log_entry()` and `get_audit_log()` in `trait-settings.php`.
+- New public methods `render_audit_log_page()`, `render_network_audit_log_page()`, and `maybe_clear_audit_log()` in `trait-pages.php`.
+
+### Changed
+- `log_change()` in `trait-settings.php` now calls `write_audit_log_entry()` instead of `error_log()`.
+- `ajax_rollback()` in `trait-history.php` now calls `write_audit_log_entry()` instead of `error_log()`.
+- `uninstall.php` now deletes the `scriptomatic_audit_log` option on uninstall.
+
+---
+
 ## [1.4.4] – 2026-02-26
 
 ### Fixed
@@ -228,7 +243,8 @@ Nothing pending.
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.4...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.1...v1.4.2

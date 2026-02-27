@@ -34,6 +34,8 @@ $scriptomatic_options = array(
     'scriptomatic_footer_conditions',
     // General settings
     'scriptomatic_plugin_settings',
+    // Audit log
+    'scriptomatic_audit_log',
 );
 
 /**

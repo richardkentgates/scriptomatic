@@ -115,6 +115,9 @@ class Scriptomatic {
         // AJAX — wp_ajax_ prefix ensures only logged-in users can trigger it.
         add_action( 'wp_ajax_scriptomatic_rollback', array( $this, 'ajax_rollback' ) );
 
+        // Audit log — clear action must run before any output.
+        add_action( 'admin_init', array( $this, 'maybe_clear_audit_log' ) );
+
         // Multisite: network-admin menu + custom save handler + settings registration.
         if ( is_multisite() ) {
             add_action( 'network_admin_menu',                                  array( $this, 'add_network_admin_menus' ) );

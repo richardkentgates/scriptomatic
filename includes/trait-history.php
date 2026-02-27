@@ -110,14 +110,10 @@ trait Scriptomatic_History {
 
         update_option( $option_key, $content );
         $this->push_history( $content, $location );
-
-        $user = wp_get_current_user();
-        error_log( sprintf(
-            'Scriptomatic: %s script rolled back to revision from %s by user %s (ID: %d)',
-            ucfirst( $location ),
-            gmdate( 'Y-m-d H:i:s', $entry['timestamp'] ),
-            $user->user_login,
-            $user->ID
+        $this->write_audit_log_entry( array(
+            'action'   => 'rollback',
+            'location' => $location,
+            'chars'    => strlen( $content ),
         ) );
 
         wp_send_json_success( array(

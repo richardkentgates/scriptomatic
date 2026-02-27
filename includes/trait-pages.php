@@ -366,6 +366,145 @@ trait Scriptomatic_Pages {
     }
 
     // =========================================================================
+    // PAGE RENDERERS — AUDIT LOG
+    // =========================================================================
+
+    /**
+     * Render the per-site Audit Log admin page.
+     *
+     * @since  1.5.0
+     * @return void
+     */
+    public function render_audit_log_page() {
+        $this->render_page_header( '' );
+        $this->render_audit_log_table( false );
+        echo '</div><!-- .wrap -->';
+    }
+
+    /**
+     * Render the network-admin Audit Log page.
+     *
+     * @since  1.5.0
+     * @return void
+     */
+    public function render_network_audit_log_page() {
+        $this->render_network_page_header();
+        $this->render_audit_log_table( true );
+        echo '</div><!-- .wrap -->';
+    }
+
+    /**
+     * Output the audit log table (or an empty-state message).
+     *
+     * @since  1.5.0
+     * @access private
+     * @param  bool $network Whether to read the network-level log.
+     * @return void
+     */
+    private function render_audit_log_table( $network ) {
+        $page_slug = $network ? 'scriptomatic-network-audit-log' : 'scriptomatic-audit-log';
+        $base_url  = $network
+            ? network_admin_url( 'admin.php?page=' . $page_slug )
+            : admin_url( 'admin.php?page=' . $page_slug );
+        $log       = $this->get_audit_log( $network );
+        $clear_url = wp_nonce_url(
+            add_query_arg( 'action', 'clear', $base_url ),
+            SCRIPTOMATIC_CLEAR_LOG_NONCE,
+            'scriptomatic_clear_nonce'
+        );
+        ?>
+        <h2 style="margin-top:12px;"><?php esc_html_e( 'Audit Log', 'scriptomatic' ); ?></h2>
+
+        <?php if ( isset( $_GET['cleared'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Audit log cleared.', 'scriptomatic' ); ?></p></div>
+        <?php endif; ?>
+
+        <p class="description">
+            <?php
+            printf(
+                /* translators: %d: maximum number of retained log entries */
+                esc_html__( 'A record of all script saves and rollbacks on this site. The most recent %d entries are retained.', 'scriptomatic' ),
+                SCRIPTOMATIC_MAX_LOG_ENTRIES
+            );
+            ?>
+        </p>
+
+        <?php if ( ! empty( $log ) ) : ?>
+        <p style="margin-top:12px;">
+            <a href="<?php echo esc_url( $clear_url ); ?>"
+               class="button button-secondary"
+               onclick="return confirm('<?php esc_attr_e( 'Clear the entire audit log? This cannot be undone.', 'scriptomatic' ); ?>')"
+            ><?php esc_html_e( 'Clear Audit Log', 'scriptomatic' ); ?></a>
+        </p>
+        <table class="widefat scriptomatic-history-table" style="max-width:900px;margin-top:8px;">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e( 'Date / Time', 'scriptomatic' ); ?></th>
+                    <th><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
+                    <th><?php esc_html_e( 'Action', 'scriptomatic' ); ?></th>
+                    <th><?php esc_html_e( 'Location', 'scriptomatic' ); ?></th>
+                    <th style="width:100px;"><?php esc_html_e( 'Characters', 'scriptomatic' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ( $log as $entry ) : ?>
+                <tr>
+                    <td><?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $entry['timestamp'] ) ); ?></td>
+                    <td>
+                        <?php echo esc_html( $entry['user_login'] ); ?>
+                        <span class="description">(ID:&nbsp;<?php echo esc_html( $entry['user_id'] ); ?>)</span>
+                    </td>
+                    <td><?php echo esc_html( ucfirst( $entry['action'] ) ); ?></td>
+                    <td><?php echo esc_html( ucfirst( $entry['location'] ) ); ?></td>
+                    <td><?php echo esc_html( number_format( $entry['chars'] ) ); ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php else : ?>
+        <p class="description">
+            <?php esc_html_e( 'No entries yet. Script saves and rollbacks will appear here.', 'scriptomatic' ); ?>
+        </p>
+        <?php endif;
+    }
+
+    /**
+     * Handle the “Clear Audit Log” action before any output is sent.
+     *
+     * Hooked to `admin_init` — fires in both regular and network admin contexts.
+     * Validates a nonce and capability gate before wiping the stored log.
+     *
+     * @since  1.5.0
+     * @return void
+     */
+    public function maybe_clear_audit_log() {
+        if ( ! isset( $_GET['action'] ) || 'clear' !== $_GET['action'] ) {
+            return;
+        }
+        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        if ( ! in_array( $page, array( 'scriptomatic-audit-log', 'scriptomatic-network-audit-log' ), true ) ) {
+            return;
+        }
+
+        check_admin_referer( SCRIPTOMATIC_CLEAR_LOG_NONCE, 'scriptomatic_clear_nonce' );
+
+        if ( 'scriptomatic-network-audit-log' === $page ) {
+            if ( ! current_user_can( $this->get_network_cap() ) ) {
+                wp_die( esc_html__( 'Permission denied.', 'scriptomatic' ), 403 );
+            }
+            update_site_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+            wp_redirect( esc_url_raw( network_admin_url( 'admin.php?page=scriptomatic-network-audit-log&cleared=1' ) ) );
+        } else {
+            if ( ! current_user_can( $this->get_required_cap() ) ) {
+                wp_die( esc_html__( 'Permission denied.', 'scriptomatic' ), 403 );
+            }
+            update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+            wp_redirect( esc_url_raw( admin_url( 'admin.php?page=scriptomatic-audit-log&cleared=1' ) ) );
+        }
+        exit;
+    }
+
+    // =========================================================================
     // CONTEXTUAL HELP TABS
     // =========================================================================
 

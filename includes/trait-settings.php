@@ -199,13 +199,70 @@ trait Scriptomatic_Settings {
             ? get_site_option( $option_key, '' )
             : get_option( $option_key, '' );
         if ( $old_content !== $new_content ) {
-            $user = wp_get_current_user();
-            error_log( sprintf(
-                'Scriptomatic: %s script updated by user %s (ID: %d)',
-                ucfirst( $location ),
-                $user->user_login,
-                $user->ID
+            $this->write_audit_log_entry( array(
+                'action'   => 'save',
+                'location' => $location,
+                'chars'    => strlen( $new_content ),
             ) );
         }
+    }
+
+    // =========================================================================
+    // AUDIT LOG
+    // =========================================================================
+
+    /**
+     * Append an entry to the persistent audit log.
+     *
+     * Writes to site options on network admin, regular options otherwise.
+     * The log is capped at {@see SCRIPTOMATIC_MAX_LOG_ENTRIES} to bound storage.
+     *
+     * @since  1.5.0
+     * @access private
+     * @param  array $data Associative array with keys: action (string),
+     *                     location (string), chars (int).
+     * @return void
+     */
+    private function write_audit_log_entry( array $data ) {
+        $user  = wp_get_current_user();
+        $entry = array_merge(
+            array(
+                'timestamp'  => time(),
+                'user_login' => $user->user_login,
+                'user_id'    => (int) $user->ID,
+            ),
+            $data
+        );
+
+        $is_network = is_network_admin();
+        $log        = $is_network
+            ? (array) get_site_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() )
+            : (array) get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+
+        array_unshift( $log, $entry );
+        if ( count( $log ) > SCRIPTOMATIC_MAX_LOG_ENTRIES ) {
+            $log = array_slice( $log, 0, SCRIPTOMATIC_MAX_LOG_ENTRIES );
+        }
+
+        if ( $is_network ) {
+            update_site_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, $log );
+        } else {
+            update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, $log );
+        }
+    }
+
+    /**
+     * Return the stored audit log entries.
+     *
+     * @since  1.5.0
+     * @access private
+     * @param  bool $network Whether to read the network-level log.
+     * @return array
+     */
+    private function get_audit_log( $network = false ) {
+        $log = $network
+            ? get_site_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() )
+            : get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
+        return is_array( $log ) ? $log : array();
     }
 }

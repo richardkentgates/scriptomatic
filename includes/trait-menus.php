@@ -72,6 +72,16 @@ trait Scriptomatic_Menus {
             array( $this, 'render_general_settings_page' )
         );
 
+        // Sub-page: Audit Log.
+        add_submenu_page(
+            'scriptomatic',
+            __( 'Audit Log — Scriptomatic', 'scriptomatic' ),
+            __( 'Audit Log', 'scriptomatic' ),
+            $cap,
+            'scriptomatic-audit-log',
+            array( $this, 'render_audit_log_page' )
+        );
+
         // Attach contextual help to each sub-page.
         add_action( 'load-' . $head_hook,    array( $this, 'add_help_tab' ) );
         add_action( 'load-' . $footer_hook,  array( $this, 'add_help_tab' ) );
@@ -131,6 +141,15 @@ trait Scriptomatic_Menus {
             $cap,
             'scriptomatic-network-settings',
             array( $this, 'render_network_general_page' )
+        );
+
+        add_submenu_page(
+            'scriptomatic-network',
+            __( 'Audit Log — Scriptomatic Network', 'scriptomatic' ),
+            __( 'Audit Log', 'scriptomatic' ),
+            $cap,
+            'scriptomatic-network-audit-log',
+            array( $this, 'render_network_audit_log_page' )
         );
 
         // Attach contextual help to each network sub-page.

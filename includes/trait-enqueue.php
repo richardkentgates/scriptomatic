@@ -40,6 +40,7 @@ trait Scriptomatic_Enqueue {
         );
         $general_hooks = array(
             'scriptomatic_page_scriptomatic-settings',
+            'scriptomatic_page_scriptomatic-audit-log',
         );
         $network_head_hooks = array(
             'toplevel_page_scriptomatic-network',
@@ -50,6 +51,7 @@ trait Scriptomatic_Enqueue {
         );
         $network_general_hooks = array(
             'scriptomatic-network_page_scriptomatic-network-settings',
+            'scriptomatic-network_page_scriptomatic-network-audit-log',
         );
 
         $all_hooks = array_merge(
