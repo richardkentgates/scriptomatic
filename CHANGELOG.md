@@ -26,6 +26,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **Load Conditions section moved above External Script URLs.** On both the Head Scripts and Footer Scripts pages, the Load Conditions section now appears immediately after the Inline Script section, before External Script URLs.
 - **General Settings page renamed to Preferences.** The submenu label, browser tab title, help tab references, and README all updated.
 
+### Security
+- **Singleton clone/deserialization guard.** Added `__clone()` (disabled) and `__wakeup()` (calls `_doing_it_wrong()`) to `class-scriptomatic.php` to prevent the singleton being duplicated via object cloning or PHP `unserialize()` deserialization, which could register duplicate hooks.
+- **`sanitize_linked_for()` — capability + secondary nonce gates added.** The external URL list save callback now verifies `current_user_can( 'manage_options' )` and, when a secondary nonce field is present, validates it against the per-location nonce action. Matches the existing pattern in `sanitize_script_for()`.
+- **`sanitize_conditions_for()` — capability + secondary nonce gates added.** Same two-gate pattern applied to the load-conditions sanitizer callback; it previously had neither check.
+- **`sanitize_plugin_settings()` — capability check added.** The Preferences save callback now verifies `current_user_can( 'manage_options' )` before processing input; the secondary nonce check was already in place.
+- **Open redirect in `maybe_clear_audit_log()` eliminated.** The post-clear redirect was constructed with `wp_get_referer()`, which reads the HTTP `Referer` header and can be spoofed by an attacker. Replaced with an explicit `admin_url( 'admin.php' )` call using the already-validated `$page` slug, so the destination is always a known-safe admin page.
+- **`inject_scripts_for()` — `esc_html()` applied to label in HTML comments.** The location label written into the `<!-- Scriptomatic … -->` page comment is now escaped with `esc_html()` as a defence-in-depth measure (the value is currently constrained to `'head'` or `'footer'` at all call sites, but correct form prevents future exposure if call sites change).
+
 ---
 
 ## [1.7.0] – 2026-02-27
