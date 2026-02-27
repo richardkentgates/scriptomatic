@@ -11,7 +11,9 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 
 - **🔒 Security First**: Comprehensive input validation, sanitization, secondary nonce system, rate limiting, and audit logging
 - **👤 Capability Checks**: Only administrators with `manage_options` can modify scripts
-- **📝 Rich Admin Interface**: Clean, intuitive settings pages with live character counter (colour-coded at 75 % and 90 % of the 100 KB limit)
+- **📝 Rich Admin Interface**: Clean, intuitive settings pages with live character counter (colour-coded at 75 % and 90 % of the 100 KB inline-script limit)
+- **🗂️ Managed JS Files**: Create, edit, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`; each file has its own Head/Footer selector and Load Conditions; managed files survive plugin updates
+- **💻 Built-in Code Editor**: Inline scripts and managed JS files use a full CodeMirror JavaScript editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete hints (`wp.ajax`, `wp.hooks`, `jQuery`, `ajaxurl`, and more). Falls back to a plain textarea if syntax highlighting is disabled in the user profile.
 - **📚 Contextual Help**: Built-in help tabs with detailed documentation on the Head Scripts, Footer Scripts, and Preferences admin pages
 - **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages (8 condition types)
 - **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
@@ -22,7 +24,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 - **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
 - **🎨 WordPress Standards**: WP CS formatting, `esc_*()`, `sanitize_*()`, `wp_*()` throughout
 - **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion; fully multisite-aware
-- **🏗️ Modular Architecture**: Eight PHP traits in separate files; static `assets/admin.css` and `assets/admin.js` enqueued via `wp_enqueue_style` / `wp_enqueue_script`
+- **🏗️ Modular Architecture**: Nine PHP traits in separate files; static `assets/admin.css` and `assets/admin.js` enqueued via `wp_enqueue_style` / `wp_enqueue_script`
 
 ## 📋 Requirements
 
@@ -42,7 +44,7 @@ scriptomatic/
 │   ├── admin.css                 # Admin stylesheet (enqueued via wp_enqueue_style)
 │   └── admin.js                  # Admin JS (enqueued via wp_enqueue_script + wp_localize_script)
 └── includes/
-    ├── class-scriptomatic.php    # Singleton class — uses all eight traits, registers hooks
+    ├── class-scriptomatic.php    # Singleton class — uses all nine traits, registers hooks
     ├── trait-menus.php           # Admin menu & submenu registration; help-tab hooks
     ├── trait-sanitizer.php       # Input validation and sanitisation
     ├── trait-history.php         # Revision history storage and AJAX rollback
@@ -50,7 +52,8 @@ scriptomatic/
     ├── trait-renderer.php        # Settings-field callbacks; load-condition evaluator
     ├── trait-pages.php           # Page renderers, embedded Audit Log, help tabs, action links
     ├── trait-enqueue.php         # Admin-asset enqueuing
-    └── trait-injector.php        # Front-end HTML injection
+    ├── trait-injector.php        # Front-end HTML injection
+    └── trait-files.php           # Managed JS files: CRUD, disk I/O, save + delete handlers
 ```
 
 All traits are `use`d by `class Scriptomatic`, so cross-trait `$this->method()` calls work correctly.

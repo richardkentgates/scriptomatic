@@ -171,7 +171,7 @@ trait Scriptomatic_Settings {
         $max                  = isset( $input['max_history'] ) ? (int) $input['max_history'] : $current['max_history'];
         $clean['max_history'] = max( 3, min( 100, $max ) );
 
-        // max_log_entries: integer clamped to 10–1000.
+        // max_log_entries: integer clamped to 3–1000.
         $max_log                  = isset( $input['max_log_entries'] ) ? (int) $input['max_log_entries'] : $current['max_log_entries'];
         $clean['max_log_entries'] = max( 3, min( 1000, $max_log ) );
 

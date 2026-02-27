@@ -20,6 +20,7 @@ This document describes the internal structure of Scriptomatic for developers wh
    - [trait-pages.php](#trait-pagesphp)
    - [trait-enqueue.php](#trait-enqueuephp)
    - [trait-injector.php](#trait-injectorphp)
+   - [trait-files.php](#trait-filesphp)
 7. [WordPress Hook Map](#7-wordpress-hook-map)
 8. [Settings API Groups](#8-settings-api-groups)
 9. [Option Keys & Data Structures](#9-option-keys--data-structures)
@@ -37,9 +38,9 @@ This document describes the internal structure of Scriptomatic for developers wh
 
 ## 1. Overview
 
-Scriptomatic is a single-file-bootstrapped, trait-based WordPress plugin. The class `Scriptomatic` is a protected singleton that `use`s eight PHP traits — one per logical concern. Because all traits are mixed into the same class, any method on any trait can call `$this->method()` to reach any other trait's methods without indirection.
+Scriptomatic is a single-file-bootstrapped, trait-based WordPress plugin. The class `Scriptomatic` is a protected singleton that `use`s nine PHP traits — one per logical concern. Because all traits are mixed into the same class, any method on any trait can call `$this->method()` to reach any other trait's methods without indirection.
 
-There are no abstract base classes, no dependency injection containers, and no autoloaders. The load order is: `scriptomatic.php` → `class-scriptomatic.php` → eight trait files (via `require_once`).
+There are no abstract base classes, no dependency injection containers, and no autoloaders. The load order is: `scriptomatic.php` → `class-scriptomatic.php` → nine trait files (via `require_once`).
 
 ---
 
@@ -73,7 +74,8 @@ scriptomatic/
     ├── trait-renderer.php        # Settings-field callbacks, load-condition evaluator
     ├── trait-pages.php           # Page renderers, audit log table, help tabs, action links
     ├── trait-enqueue.php         # Admin asset enqueueing
-    └── trait-injector.php        # Front-end HTML output
+    ├── trait-injector.php        # Front-end HTML output
+    └── trait-files.php           # Managed JS files: disk I/O, save/delete handlers
 ```
 
 ---
@@ -83,7 +85,7 @@ scriptomatic/
 `scriptomatic.php` does three things:
 
 1. Defines all plugin-wide constants (see §4).
-2. `require_once`s `includes/class-scriptomatic.php`, which in turn `require_once`s all eight traits.
+2. `require_once`s `includes/class-scriptomatic.php`, which in turn `require_once`s all nine traits.
 3. Registers `scriptomatic_init()` on the `plugins_loaded` action to call `Scriptomatic::get_instance()`.
 
 Nothing runs before `plugins_loaded`. That ensures all WordPress APIs are available when the plugin first executes.
@@ -105,7 +107,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'1.7.0'` |
+| `SCRIPTOMATIC_VERSION` | `'1.8.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
@@ -135,6 +137,12 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 | `SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION` | `scriptomatic_plugin_settings` |
 | `SCRIPTOMATIC_AUDIT_LOG_OPTION` | `scriptomatic_audit_log` |
 
+### Option Keys — Managed JS Files
+
+| Constant | Option Name |
+|---|---|
+| `SCRIPTOMATIC_JS_FILES_OPTION` | `scriptomatic_js_files` |
+
 ### Limits & Timing
 
 | Constant | Value | Description |
@@ -152,6 +160,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 | `SCRIPTOMATIC_FOOTER_NONCE` | `scriptomatic_save_footer` | Footer script / linked URLs / conditions form |
 | `SCRIPTOMATIC_GENERAL_NONCE` | `scriptomatic_save_general` | Preferences form |
 | `SCRIPTOMATIC_ROLLBACK_NONCE` | `scriptomatic_rollback` | AJAX rollback + AJAX get-history-content |
+| `SCRIPTOMATIC_FILES_NONCE` | `scriptomatic_save_js_file` | JS file edit form (admin-post) + AJAX delete |
 
 ---
 
@@ -354,9 +363,10 @@ Full-page renderers, the embedded audit log table, contextual help, and the plug
 **Trait name:** `Scriptomatic_Enqueue`
 
 - `enqueue_admin_scripts( $hook )` — hooked to `admin_enqueue_scripts`. Bails early if `$hook` is not a Scriptomatic page. Enqueues:
-  - `scriptomatic-admin-style` → `assets/admin.css`
-  - `scriptomatic-admin-script` → `assets/admin.js`
-- Calls `wp_localize_script()` with a `scriptomaticData` object passed to `admin.js` containing: `maxLength`, `nonce` (rollback nonce), `ajaxUrl`, `location`, `currentLength`.
+  - `scriptomatic-admin` → `assets/admin.css`
+  - `scriptomatic-admin-js` → `assets/admin.js`
+- On Head Scripts, Footer Scripts, and JS Files pages, calls `wp_enqueue_code_editor( ['type' => 'text/javascript'] )` to activate the built-in WordPress CodeMirror editor. Returns `false` (and skips the editor) when the user has disabled syntax highlighting in their profile.
+- Calls `wp_localize_script()` with a `scriptomaticData` object containing: `ajaxUrl`, `rollbackNonce`, `filesNonce`, `maxLength`, `maxUploadSize`, `location`, `codeEditorSettings`, `i18n`.
 
 ---
 
@@ -365,17 +375,38 @@ Full-page renderers, the embedded audit log table, contextual help, and the plug
 **Trait name:** `Scriptomatic_Injector`
 
 - `inject_head_scripts()` / `inject_footer_scripts()` — public methods hooked at priority 999 on `wp_head` / `wp_footer`. Both guard against `is_admin()` and delegate to `inject_scripts_for()`.
-- `inject_scripts_for( $location )` — reads the inline script content and the linked URL list. For each URL entry, calls `evaluate_conditions_object()` to decide whether to include it. For the inline script, calls `check_load_conditions()`. Collects passing items into `$output_parts`, then emits the Scriptomatic comment block + output only if at least one item passed.
+- `inject_scripts_for( $location )` — reads the inline script content and the linked URL list. For each URL entry, calls `evaluate_conditions_object()` to decide whether to include it. Also iterates `get_js_files_meta()` and emits a `<script src>` tag for each managed file targeting this location that passes its own conditions. For the inline script, calls `check_load_conditions()`. Collects passing items into `$output_parts`, then emits the Scriptomatic comment block + output only if at least one item passed.
 
 Output format:
 ```html
-<!-- Scriptomatic v1.7.0 (head) -->
+<!-- Scriptomatic v1.8.0 (head) -->
 <script src="https://example.com/script.js"></script>
+<script src="/wp-content/uploads/scriptomatic/my-tracker.js"></script>
 <script>
 /* inline content — unescaped; validated at write-time */
 </script>
 <!-- /Scriptomatic (head) -->
 ```
+
+---
+
+### `trait-files.php`
+
+**Trait name:** `Scriptomatic_Files`
+
+**Uploads directory helpers:**
+- `get_js_files_dir()` — returns / creates `wp-content/uploads/scriptomatic/` and drops an `index.php` 403 guard on first call.
+- `get_js_files_url()` — returns the corresponding public URL.
+
+**Metadata CRUD:**
+- `get_js_files_meta()` — reads the `SCRIPTOMATIC_JS_FILES_OPTION` option and returns a decoded array. Each element: `{ id, label, filename, location, conditions }`.
+- `save_js_files_meta( $files )` — JSON-encodes and persists the array.
+
+**`admin_post` save handler:**
+- `handle_save_js_file()` — registered on `admin_post_scriptomatic_save_js_file`. Validates capability (Gate 0) + nonce `SCRIPTOMATIC_FILES_NONCE` (Gate 1). Auto-slugs filename from label if blank; enforces `.js` extension and safe character set; enforces `wp_max_upload_size()`. Writes file bytes with `file_put_contents()`. On rename, removes the old file. Updates metadata array; writes audit log entry.
+
+**AJAX delete handler:**
+- `ajax_delete_js_file()` — registered on `wp_ajax_scriptomatic_delete_js_file`. Same two security gates. Removes file from disk and from the metadata array. Writes audit log entry. Returns JSON success/error.
 
 ---
 
@@ -393,8 +424,11 @@ Output format:
 | `plugin_action_links_{basename}` | default | `add_action_links()` | pages |
 | `wp_ajax_scriptomatic_rollback` | default | `ajax_rollback()` | history |
 | `wp_ajax_scriptomatic_get_history_content` | default | `ajax_get_history_content()` | history |
+| `wp_ajax_scriptomatic_delete_js_file` | default | `ajax_delete_js_file()` | files |
+| `admin_post_scriptomatic_save_js_file` | default | `handle_save_js_file()` | files |
 | `load-{head_hook}` | default | `add_help_tab()` | pages |
 | `load-{footer_hook}` | default | `add_help_tab()` | pages |
+| `load-{files_hook}` | default | `add_help_tab()` | pages |
 | `load-{general_hook}` | default | `add_help_tab()` | pages |
 
 ---

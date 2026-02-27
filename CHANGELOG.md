@@ -10,6 +10,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **Managed JS Files.** New **JS Files** sub-menu (between Footer Scripts and Preferences) lets administrators create, edit, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`. Each file has: a human-readable label; an auto-slugged editable filename with `.js` enforced; a Head / Footer injection selector; the full Load Conditions picker (all 8 condition types); and a CodeMirror JavaScript editor with WP/jQuery-specific autocomplete hints. File size is capped at the site's `wp_max_upload_size()`. The edit form is a full admin page with a size counter showing KB/MB. Files are deleted from disk on uninstall (unless "keep data" is enabled).
+- **CodeMirror code editor for inline scripts.** The inline-script `<textarea>` on the Head Scripts and Footer Scripts pages is now upgraded to a full CodeMirror JavaScript editor (line numbers, bracket matching, auto-close brackets, Ctrl-Space autocomplete). The hint function merges CodeMirror's built-in JS completions with a curated list of WordPress/jQuery globals: `jQuery`, `$.ajax/post/get`, `wp.ajax`, `wp.hooks.addFilter/addAction/applyFilters/doAction`, `wp.data`, `wp.i18n.__`, `wp.apiFetch`, `ajaxurl`, `pagenow`, and more. The form `submit` handler syncs the editor value back to the textarea before POST. Rollback `setValue()` updates the live editor on success. Falls back gracefully to the plain textarea when the user has disabled syntax highlighting in their WordPress profile.
 - **View button on revision history entries.** Each row in the Inline Script History panel now has a **View** button that opens a full-page glass-effect lightbox showing the revision's script content in a monospace block, with the save date and user as metadata. Closes on `Escape`, clicking outside the card, or the `×` button. New AJAX action `scriptomatic_get_history_content` returns the content for a given index/location, reusing the existing rollback nonce.
 - **URL add/remove audit log entries.** `sanitize_linked_for()` now diffs the old and new URL lists on every save and writes a `url_added` or `url_removed` audit log entry for each changed URL, storing the URL in a new `detail` field. A static double-call guard prevents duplicates from the Settings API double-invocation.
 
@@ -39,7 +41,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [1.7.0] – 2026-02-27
 
 ### Added
-- **Configurable audit log limit.** The maximum number of retained audit log entries is now a setting on the General Settings page (10–1000, default 200). Previously the cap was a hard-coded constant.
+- **Configurable audit log limit.** The maximum number of retained audit log entries is now a setting on the General Settings page (3–1000, default 200). Previously the cap was a hard-coded constant.
 
 ### Fixed
 - **`addUrl()` template clone.** The JS `addUrl()` function was using `$.parseHTML( html.trim() ).filter( '.sm-url-entry' )` to extract the cloned entry from the template, which returned an empty set because `$.parseHTML` produces a flat array whose root element is the entry itself. Changed to `$( '<div>' ).html( html ).children( '.sm-url-entry' )`, which reliably wraps and extracts the element. Fixes: no entry card appearing when clicking **Add URL**.
@@ -304,7 +306,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.7.0...HEAD
 [1.5.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.2...v1.4.3
