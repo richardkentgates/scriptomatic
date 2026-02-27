@@ -717,8 +717,48 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <div class="changelog-item">
       <div class="clog-version">v1.5.0</div>
       <div class="clog-body">
-        <h4>URL audit log; double-invocation guard; AJAX rollback fix</h4>
-        <p>url_added / url_removed audit events added. Static double-call guard prevents Settings API duplicate invocations.  AJAX rollback switched to direct <code>$wpdb</code> write to bypass sanitize callbacks in AJAX context.</p>
+        <h4>Persistent Audit Log admin page</h4>
+        <p>All saves and rollbacks are now recorded in a persistent WordPress-native log stored via <code>wp_options</code>. A new <strong>Audit Log</strong> submenu page lets admins review and clear the log. Each entry captures timestamp, user, action (<code>save</code> or <code>rollback</code>), location, and character count. Capped at 200 entries.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.4.0</div>
+      <div class="clog-body">
+        <h4>Trait-based architecture refactor; static asset files</h4>
+        <p>Monolithic 2,696-line <code>scriptomatic.php</code> split into nine focused PHP trait files under <code>includes/</code>. Inline CSS and JS extracted into standalone <code>assets/admin.css</code> and <code>assets/admin.js</code>, enqueued via <code>wp_enqueue_style</code> / <code>wp_enqueue_script</code>.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.3.0</div>
+      <div class="clog-body">
+        <h4>Conditional per-page loading</h4>
+        <p>Scripts can now be restricted to specific pages. Eight condition types: All Pages, Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out. Independent conditions for head and footer scripts.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.2.0</div>
+      <div class="clog-body">
+        <h4>Footer Scripts; multisite / network admin; General Settings</h4>
+        <p>Footer Scripts admin page added (injected via <code>wp_footer</code>). Full multisite / Network Admin support with separate save handlers. General Settings page for history limit and uninstall data-retention. Per-location nonce constants and option keys introduced.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.1.0</div>
+      <div class="clog-body">
+        <h4>Revision history, rollback, and external script URLs</h4>
+        <p>Every save stores a timestamped snapshot; AJAX rollback restores any prior revision without a page reload. External Script URLs manager added — remote <code>&lt;script src&gt;</code> tags injected in order before the inline block. Configurable history limit and uninstall data-retention setting.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.0.0</div>
+      <div class="clog-body">
+        <h4>Initial release</h4>
+        <p>Head script injection via <code>wp_head</code>. Input validation (100 KB limit, UTF-8 / control-character rejection, <code>&lt;script&gt;</code> tag stripping, dangerous-tag detection). Capability gate, nonce verification, live character counter, contextual help tabs, and GPL v2 licence.</p>
       </div>
     </div>
 
