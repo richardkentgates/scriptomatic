@@ -13,6 +13,28 @@ Nothing pending.
 
 ---
 
+## [1.6.0] – 2026-02-27
+
+### Added
+- **Per-script load conditions.** Every entry in the External Script URLs list now has its own independent load-condition picker (All Pages, Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out). The inline script textarea retains its own load-condition picker, unchanged. This replaces the previous model where a single condition applied to every URL in a location's list.
+- New private PHP method `evaluate_conditions_object( array $conditions )` in `trait-renderer.php` — extracted condition-evaluation logic shared by `check_load_conditions()` (inline script) and `inject_scripts_for()` (per-URL checks).
+- New private PHP method `render_url_entry_html( $location, $idx, $url, array $conditions, $post_types, $is_template )` in `trait-renderer.php` — renders a single URL entry card with an embedded conditions wrap; used for both existing entries and the JS `<template>` prototype (with `__IDX__` placeholders).
+- New private PHP method `sanitize_conditions_array( array $raw )` in `trait-sanitizer.php` — shared sanitisation logic for a `{type, values}` conditions object; called by both `sanitize_conditions_for()` (inline) and `sanitize_linked_for()` (per-URL).
+- New JS functions `syncLinked()`, `initEntry()`, and `addUrl()` in `assets/admin.js` replacing the old chicklet-only URL manager (Section 2).
+
+### Changed
+- **Data model for `SCRIPTOMATIC_HEAD_LINKED` / `SCRIPTOMATIC_FOOTER_LINKED`**: Stored format changed from `["url1","url2"]` (plain URL strings) to `[{"url":"url1","conditions":{"type":"all","values":[]}}]` (URL + conditions objects). Legacy plain-string values are automatically migrated on read/save without data loss.
+- `sanitize_linked_for()` in `trait-sanitizer.php`: rewritten to handle the new `{url, conditions}` entry format; delegates conditions sanitisation to `sanitize_conditions_array()`.
+- `sanitize_conditions_for()` in `trait-sanitizer.php`: inner switch factored out to `sanitize_conditions_array()`.
+- `render_linked_field_for()` in `trait-renderer.php`: rewritten to render `.sm-url-manager` entry cards with per-URL conditions and a cloneable `<template>` element.
+- `check_load_conditions()` in `trait-renderer.php`: now delegates to `evaluate_conditions_object()` and applies only to the inline script textarea.
+- `inject_scripts_for()` in `trait-injector.php`: rewrote per-URL loop to evaluate each entry's conditions via `evaluate_conditions_object()` instead of a single global gate; inline script still checked via `check_load_conditions()`.
+- `initConditions()` in `assets/admin.js`: accepts an optional `onUpdate` callback (fired after every `syncJson()`); moved before Section 2 so URL-entry cards can call it during initialisation.
+- Section 4 (page-level conditions) in `assets/admin.js`: scoped to `.scriptomatic-conditions-wrap:not(.sm-url-conditions-wrap)` to skip per-URL condition wraps already initialised by Section 2.
+- Inline-script load-condition section descriptions updated to clarify they apply only to the textarea, not to external URLs.
+
+---
+
 ## [1.5.0] – 2026-02-26
 
 ### Added

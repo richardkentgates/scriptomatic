@@ -275,13 +275,70 @@ trait Scriptomatic_Sanitizer {
     }
 
     /**
-     * Core URL sanitisation logic shared by head and footer linked-script fields.
+     * Sanitise a decoded load-conditions array.
      *
-     * @since  1.2.0
+     * Shared by {@see sanitize_conditions_for()} (inline-script conditions) and
+     * {@see sanitize_linked_for()} (per-URL conditions embedded in every entry).
+     *
+     * @since  1.6.0
+     * @access private
+     * @param  array $raw Decoded `{type, values}` array.
+     * @return array      Sanitised `{type, values}` array.
+     */
+    private function sanitize_conditions_array( array $raw ) {
+        $allowed_types = array( 'all', 'front_page', 'singular', 'post_type', 'page_id', 'url_contains', 'logged_in', 'logged_out' );
+        $type          = ( isset( $raw['type'] ) && in_array( $raw['type'], $allowed_types, true ) )
+                         ? $raw['type'] : 'all';
+        $raw_values    = ( isset( $raw['values'] ) && is_array( $raw['values'] ) ) ? $raw['values'] : array();
+
+        $clean_values = array();
+        switch ( $type ) {
+            case 'post_type':
+                foreach ( $raw_values as $pt ) {
+                    $pt = sanitize_key( (string) $pt );
+                    if ( '' !== $pt && post_type_exists( $pt ) ) {
+                        $clean_values[] = $pt;
+                    }
+                }
+                break;
+
+            case 'page_id':
+                foreach ( $raw_values as $id ) {
+                    $id = absint( $id );
+                    if ( $id > 0 ) {
+                        $clean_values[] = $id;
+                    }
+                }
+                break;
+
+            case 'url_contains':
+                foreach ( $raw_values as $pattern ) {
+                    $pattern = sanitize_text_field( wp_unslash( (string) $pattern ) );
+                    if ( '' !== $pattern ) {
+                        $clean_values[] = $pattern;
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        return array( 'type' => $type, 'values' => $clean_values );
+    }
+
+    /**
+     * Core sanitisation logic for linked-script entries with per-URL conditions.
+     *
+     * Accepts the new `[{url, conditions}]` format or the legacy `["url"]` format
+     * (plain strings are automatically migrated). Validates each URL and sanitises
+     * each entry's conditions object via {@see sanitize_conditions_array()}.
+     *
+     * @since  1.2.0 (rewritten 1.6.0)
      * @access private
      * @param  mixed  $input    Raw value (expected JSON string).
      * @param  string $location `'head'` or `'footer'`.
-     * @return string JSON-encoded array of valid URLs.
+     * @return string JSON-encoded array of `{url, conditions}` objects.
      */
     private function sanitize_linked_for( $input, $location ) {
         $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
@@ -298,11 +355,36 @@ trait Scriptomatic_Sanitizer {
         }
 
         $clean = array();
-        foreach ( $decoded as $url ) {
-            $url = esc_url_raw( trim( (string) $url ) );
-            if ( ! empty( $url ) && preg_match( '/^https?:\/\//i', $url ) ) {
-                $clean[] = $url;
+        foreach ( $decoded as $entry ) {
+            // Migrate legacy plain URL strings to the new {url, conditions} structure.
+            if ( is_string( $entry ) ) {
+                $url = esc_url_raw( trim( $entry ) );
+                if ( ! empty( $url ) && preg_match( '/^https?:\/\//i', $url ) ) {
+                    $clean[] = array(
+                        'url'        => $url,
+                        'conditions' => array( 'type' => 'all', 'values' => array() ),
+                    );
+                }
+                continue;
             }
+
+            if ( ! is_array( $entry ) ) {
+                continue;
+            }
+
+            $url = isset( $entry['url'] ) ? esc_url_raw( trim( (string) $entry['url'] ) ) : '';
+            if ( empty( $url ) || ! preg_match( '/^https?:\/\//i', $url ) ) {
+                continue;
+            }
+
+            $raw_cond = ( isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
+                        ? $entry['conditions']
+                        : array();
+
+            $clean[] = array(
+                'url'        => $url,
+                'conditions' => $this->sanitize_conditions_array( $raw_cond ),
+            );
         }
 
         return wp_json_encode( $clean );
@@ -361,45 +443,6 @@ trait Scriptomatic_Sanitizer {
                 : get_option( $option_key, $default );
         }
 
-        $allowed_types = array( 'all', 'front_page', 'singular', 'post_type', 'page_id', 'url_contains', 'logged_in', 'logged_out' );
-        $type          = ( isset( $decoded['type'] ) && in_array( $decoded['type'], $allowed_types, true ) )
-                         ? $decoded['type'] : 'all';
-        $raw_values    = ( isset( $decoded['values'] ) && is_array( $decoded['values'] ) ) ? $decoded['values'] : array();
-
-        $clean_values = array();
-        switch ( $type ) {
-            case 'post_type':
-                foreach ( $raw_values as $pt ) {
-                    $pt = sanitize_key( (string) $pt );
-                    if ( '' !== $pt && post_type_exists( $pt ) ) {
-                        $clean_values[] = $pt;
-                    }
-                }
-                break;
-
-            case 'page_id':
-                foreach ( $raw_values as $id ) {
-                    $id = absint( $id );
-                    if ( $id > 0 ) {
-                        $clean_values[] = $id;
-                    }
-                }
-                break;
-
-            case 'url_contains':
-                foreach ( $raw_values as $pattern ) {
-                    $pattern = sanitize_text_field( wp_unslash( (string) $pattern ) );
-                    if ( '' !== $pattern ) {
-                        $clean_values[] = $pattern;
-                    }
-                }
-                break;
-
-            default:
-                // all / front_page / singular / logged_in / logged_out: no values needed.
-                break;
-        }
-
-        return wp_json_encode( array( 'type' => $type, 'values' => $clean_values ) );
+        return wp_json_encode( $this->sanitize_conditions_array( $decoded ) );
     }
 }
