@@ -70,6 +70,12 @@ trait Scriptomatic_Sanitizer {
      * @return string Sanitised content, or the previously-stored value on any failure.
      */
     private function sanitize_script_for( $input, $location ) {
+        // WordPress Settings API can invoke the sanitize callback twice per
+        // request (once for comparison, once to persist). Track which locations
+        // have already been processed in this request so the second call skips
+        // the rate limiter and duplicate log/history recording.
+        static $processed_this_request = array();
+
         $option_key       = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
         $previous_content = get_option( $option_key, '' );
         $nonce_action     = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_NONCE : SCRIPTOMATIC_HEAD_NONCE;
@@ -91,8 +97,10 @@ trait Scriptomatic_Sanitizer {
             return $previous_content;
         }
 
-        // Gate 2: Rate limiter.
-        if ( $this->is_rate_limited( $location ) ) {
+        // Gate 2: Rate limiter — skipped on the second invocation within the
+        // same request (Settings API double-call) to avoid false positives.
+        $already_processed = isset( $processed_this_request[ $location ] );
+        if ( ! $already_processed && $this->is_rate_limited( $location ) ) {
             add_settings_error( $error_slug, 'rate_limited',
                 sprintf(
                     /* translators: %d: seconds to wait */
@@ -156,10 +164,14 @@ trait Scriptomatic_Sanitizer {
 
         $input = trim( $input );
 
-        $this->log_change( $input, $option_key, $location );
-        $this->push_history( $input, $location );
-
-        $this->record_save_timestamp( $location );
+        // Only log, record history, and stamp the rate-limit transient once per
+        // request — guards against the Settings API double-call.
+        if ( ! $already_processed ) {
+            $this->log_change( $input, $option_key, $location );
+            $this->push_history( $input, $location );
+            $this->record_save_timestamp( $location );
+            $processed_this_request[ $location ] = true;
+        }
 
         return $input;
     }
