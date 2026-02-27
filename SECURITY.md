@@ -25,7 +25,9 @@ We provide security updates for the following versions:
 
 - **Length Limits**: Maximum script content length enforced (100KB)
 - **Tag Stripping**: Automatic removal of `<script>` tags to prevent double-wrapping
-- **Dangerous Content Detection**: Scanning for potentially harmful HTML tags (iframe, object, embed)
+- **Dangerous Content Detection**: Scanning for potentially harmful HTML tags (iframe, object, embed, link, style, meta)
+- **Encoding Validation**: Invalid UTF-8 is rejected to avoid malformed content
+- **Control Character Blocking**: Disallowed control characters are rejected
 - **WordPress Sanitization**: Using `esc_textarea()`, `esc_html()`, `esc_attr()`, and other WordPress core functions
 - **Type Validation**: Strict typing in function parameters and return values
 
@@ -58,6 +60,7 @@ We provide security updates for the following versions:
 - **WordPress Coding Standards**: Follows official WordPress PHP coding standards
 - **OOP Architecture**: Clean object-oriented design with singleton pattern
 - **No Deprecated Functions**: Uses current WordPress APIs only
+- **SQL Injection Protection**: No raw SQL from user input; data access is via WordPress options APIs
 - **Type Safety**: Strict parameter and return type declarations
 
 ## Known Limitations
@@ -86,7 +89,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 
 ### DO
 
-1. **Email**: Send details to security@gapcreekmedia.com
+1. **Email**: Send details to mail@richardkentgates.com
 2. **Include**:
    - Description of the vulnerability
    - Steps to reproduce
@@ -202,9 +205,9 @@ We appreciate responsible security researchers who help keep Scriptomatic secure
 
 ## Contact
 
-- **Security Issues**: security@gapcreekmedia.com
+- **Security Issues**: mail@richardkentgates.com
 - **General Support**: https://github.com/richardkentgates/scriptomatic/issues
-- **Website**: https://gapcreekmedia.com
+- **Website**: https://github.com/richardkentgates
 
 ---
 

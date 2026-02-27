@@ -1,0 +1,455 @@
+# Copyright (C) 2026 Richard Kent Gates
+# This file is distributed under the same license as the Scriptomatic plugin.
+# Richard Kent Gates <mail@richardkentgates.com>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Scriptomatic 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/richardkentgates/scriptomatic/issues\n"
+"POT-Creation-Date: 2026-02-26T00:00:00+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"X-Generator: WP-CLI 2.x\n"
+"X-Domain: scriptomatic\n"
+
+#. Plugin Name of the plugin
+msgid "Scriptomatic"
+msgstr ""
+
+#. Plugin URI of the plugin
+msgid "https://github.com/richardkentgates/scriptomatic"
+msgstr ""
+
+#. Description of the plugin
+msgid "Securely inject custom JavaScript code into the head section of your WordPress site with advanced validation and safety features."
+msgstr ""
+
+#. Author of the plugin
+msgid "Richard Kent Gates"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Scriptomatic Settings"
+msgstr ""
+
+#: scriptomatic.php
+msgid "JavaScript Code Configuration"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script Content"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script content must be plain text."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script content contains invalid UTF-8 characters."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script content contains disallowed control characters."
+msgstr ""
+
+#: scriptomatic.php
+msgid "PHP tags are not allowed in script content."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script tags were removed automatically. Enter JavaScript only."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script content exceeds maximum length of %s characters."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script content contains potentially dangerous HTML tags. Please use JavaScript only."
+msgstr ""
+
+#: scriptomatic.php
+msgid "You are saving too quickly. Please wait a moment before trying again."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Security check failed. Please refresh the page and try again."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Add custom JavaScript code that will be injected into the head section of your WordPress site, right before the closing </head> tag."
+msgstr ""
+
+#: scriptomatic.php
+msgid "This is useful for adding tracking codes, analytics, custom scripts, or third-party integrations."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Enter your JavaScript code here (without <script> tags)"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Character count: %s / %s"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Important:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Enter only JavaScript code. Do not include <script> tags - they will be added automatically."
+msgstr ""
+
+#: scriptomatic.php
+msgid "The code will be executed on every page of your site. Test thoroughly before deploying."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Security Notice"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Only administrators with \"manage_options\" capability can modify this content."
+msgstr ""
+
+#: scriptomatic.php
+msgid "All changes are logged for security auditing."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Content is validated to prevent certain dangerous HTML tags."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Always verify code from trusted sources before adding it here."
+msgstr ""
+
+#: scriptomatic.php
+msgid "You do not have sufficient permissions to access this page."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Permission Denied"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Version"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Author"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Documentation"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Quick Start Guide"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Enter your JavaScript code in the textarea above (without <script> tags)."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Click \"Save Script\" to store your changes."
+msgstr ""
+
+#: scriptomatic.php
+msgid "The script will automatically be injected before the closing </head> tag on all pages."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Test your site to ensure the script works as expected."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Common Use Cases"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Google Analytics or other tracking codes"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Facebook Pixel or conversion tracking"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Custom JavaScript libraries or functions"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Third-party integration scripts"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Performance monitoring tools"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Save Script"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Settings"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Overview"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Scriptomatic Overview"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Scriptomatic allows you to safely inject custom JavaScript code into the head section of your WordPress site. The code is executed on every page, right before the closing </head> tag."
+msgstr ""
+
+#: scriptomatic.php
+msgid "This plugin is designed with security and performance in mind, providing input validation, sanitization, and audit logging."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Usage"
+msgstr ""
+
+#: scriptomatic.php
+msgid "How to Use"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Add Your Code:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Paste your JavaScript code into the textarea. Do not include <script> tags - they will be added automatically."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Save Changes:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Click the \"Save Script\" button to store your code."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Verify:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Check your website's source code to confirm the script is injected in the <head> section."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Test:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Thoroughly test your site to ensure the script functions correctly."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Example:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Security"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Security Features"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Capability Check:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Only users with \"manage_options\" capability (typically administrators) can modify scripts."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Input Validation:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "All input is validated for length and potentially dangerous content."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Sanitization:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script tags are automatically removed to prevent double-wrapping."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Audit Logging:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "All changes are logged with user information and IP address."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Output Escaping:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Content is properly escaped when displayed in the admin interface."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Best Practices"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Test First:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Always test scripts in a staging environment before deploying to production."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Use Comments:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Add comments to your code to document what it does and where it came from."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Keep It Clean:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Remove unused or outdated scripts regularly."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Verify Sources:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Only use code from trusted sources. Review all third-party scripts."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Monitor Performance:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Heavy scripts can slow down your site. Use browser dev tools to monitor impact."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Backup:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Keep a backup of your script content before making major changes."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Async/Defer:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Consider using async or defer attributes for external scripts to improve page load times."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Troubleshooting"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script not appearing:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Check that you clicked \"Save Script\" after entering your code."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Clear your site cache and browser cache."
+msgstr ""
+
+#: scriptomatic.php
+msgid "View page source to verify the script tag is present."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Check if another plugin or theme is preventing wp_head from running."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Script causing errors:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Check the browser console for JavaScript errors."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Verify syntax errors in your JavaScript code."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Ensure external resources are loading properly (check network tab)."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Test with a simple console.log() first to verify injection is working."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Cannot save:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Verify you have administrator privileges."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Check if script exceeds the maximum length limit."
+msgstr ""
+
+#: scriptomatic.php
+msgid "Remove any HTML tags (only JavaScript is allowed)."
+msgstr ""
+
+#: scriptomatic.php
+msgid "For more information:"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Plugin Documentation"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Report Issues"
+msgstr ""
+
+#: scriptomatic.php
+msgid "Developer Profile"
+msgstr ""
+
+#: scriptomatic.php
+msgid "WordPress wp_head Documentation"
+msgstr ""

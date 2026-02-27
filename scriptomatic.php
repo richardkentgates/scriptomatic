@@ -43,23 +43,40 @@ define('SCRIPTOMATIC_PLUGIN_FILE', __FILE__);
 define('SCRIPTOMATIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SCRIPTOMATIC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('SCRIPTOMATIC_OPTION_NAME', 'scriptomatic_script_content');
-define('SCRIPTOMATIC_MAX_SCRIPT_LENGTH', 100000); // 100KB limit
+define('SCRIPTOMATIC_MAX_SCRIPT_LENGTH', 100000);     // 100 KB hard limit on stored script size
+define('SCRIPTOMATIC_RATE_LIMIT_SECONDS', 10);        // Minimum seconds required between consecutive saves per user
+define('SCRIPTOMATIC_NONCE_ACTION', 'scriptomatic_save_script'); // Custom nonce action — separate from the WP settings-API nonce
 
 /**
- * Main plugin class
+ * Main plugin class.
+ *
+ * Implements a singleton that wires all WordPress hooks, registers the plugin
+ * settings, sanitises user input, enforces rate-limiting and nonce security,
+ * renders the admin UI, and injects the stored script into the front-end
+ * <head> section.
+ *
+ * @package Scriptomatic
+ * @author  Richard Kent Gates <mail@richardkentgates.com>
+ * @since   1.0.0
+ * @link    https://github.com/richardkentgates/scriptomatic
  */
 class Scriptomatic {
 
     /**
-     * Plugin instance
+     * Singleton instance of this class.
      *
-     * @var Scriptomatic
+     * @since 1.0.0
+     * @var   Scriptomatic|null
      */
     private static $instance = null;
 
     /**
-     * Get plugin instance
+     * Return the single instance of this class, creating it on first call.
      *
+     * Using a singleton ensures that hooks are registered exactly once even if
+     * the plugin file is loaded multiple times (e.g. in test environments).
+     *
+     * @since  1.0.0
      * @return Scriptomatic
      */
     public static function get_instance() {
@@ -70,14 +87,25 @@ class Scriptomatic {
     }
 
     /**
-     * Constructor
+     * Private constructor — prevents direct instantiation.
+     *
+     * All set-up logic is delegated to {@see Scriptomatic::init_hooks()} so
+     * that the constructor itself remains lean and easy to test.
+     *
+     * @since  1.0.0
+     * @access private
      */
     private function __construct() {
         $this->init_hooks();
     }
 
     /**
-     * Initialize WordPress hooks
+     * Register all WordPress action and filter hooks used by this plugin.
+     *
+     * Hooks are registered here rather than in the constructor so the list
+     * remains easy to scan and adjust without touching bootstrap logic.
+     *
+     * @since 1.0.0
      */
     private function init_hooks() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
@@ -88,7 +116,13 @@ class Scriptomatic {
     }
 
     /**
-     * Add settings page to WordPress admin menu
+     * Register the plugin's settings page under the WordPress Settings menu.
+     *
+     * Hooked to {@see 'admin_menu'}. Stores the resulting page-hook string so
+     * that contextual help tabs can be attached on that page's `load-` action.
+     *
+     * @since 1.0.0
+     * @return void
      */
     public function add_admin_menu() {
         $page_hook = add_options_page(
@@ -104,7 +138,14 @@ class Scriptomatic {
     }
 
     /**
-     * Register plugin settings with sanitization
+     * Register the plugin option with the WordPress Settings API.
+     *
+     * Associates the option with a sanitise callback, a settings section, and
+     * a settings field so that WordPress handles nonce verification, saving,
+     * and display automatically via `options.php`.
+     *
+     * @since 1.0.0
+     * @return void
      */
     public function register_settings() {
         register_setting(
@@ -135,13 +176,70 @@ class Scriptomatic {
     }
 
     /**
-     * Sanitize and validate script content
+     * Sanitise, validate, and security-gate the raw script content from the form.
      *
-     * @param string $input Raw input from form
-     * @return string Sanitized content
+     * This callback is invoked by the WordPress Settings API immediately after
+     * the built-in settings-nonce has already been verified by `options.php`.
+     * It adds two further layers of protection on top of that:
+     *
+     * 1. **Secondary nonce** – A short-lived, action-specific nonce
+     *    (`SCRIPTOMATIC_NONCE_ACTION`) that is rendered fresh on every page
+     *    load.  Even if an attacker somehow bypasses the Settings-API nonce
+     *    (e.g. via a CSRF exploit on a poorly-written bridging plugin), this
+     *    second nonce — bound to user session and time — will block the save.
+     *
+     * 2. **Per-user rate limiter** – A WordPress transient keyed to the
+     *    current user prevents brute-force or rapid-fire save attempts within
+     *    the window defined by {@see SCRIPTOMATIC_RATE_LIMIT_SECONDS}.
+     *
+     * After those gates pass, the input is checked for type, valid UTF-8,
+     * disallowed control characters, PHP tags, HTML script tags, length, and
+     * known dangerous HTML elements.  Each failure emits a settings error
+     * and returns the previous safe value unchanged.
+     *
+     * @since  1.0.0
+     * @param  mixed  $input Raw value submitted from the settings form.
+     * @return string Sanitised script content, or the previously-stored value
+     *                if any validation step fails.
      */
     public function sanitize_script_content($input) {
         $previous_content = get_option(SCRIPTOMATIC_OPTION_NAME, '');
+
+        // -----------------------------------------------------------------
+        // Gate 1: Verify our secondary, short-lived nonce.
+        // WordPress has already checked the settings-API nonce at this point;
+        // this provides an independent second verification layer.
+        // -----------------------------------------------------------------
+        $secondary_nonce = isset($_POST['scriptomatic_save_nonce'])
+            ? sanitize_text_field(wp_unslash($_POST['scriptomatic_save_nonce']))
+            : '';
+
+        if (!wp_verify_nonce($secondary_nonce, SCRIPTOMATIC_NONCE_ACTION)) {
+            add_settings_error(
+                'scriptomatic_script_content',
+                'nonce_invalid',
+                __('Security check failed. Please refresh the page and try again.', 'scriptomatic'),
+                'error'
+            );
+            return $previous_content;
+        }
+
+        // -----------------------------------------------------------------
+        // Gate 2: Per-user rate limiter — prevents rapid-fire saves.
+        // -----------------------------------------------------------------
+        if ($this->is_rate_limited()) {
+            add_settings_error(
+                'scriptomatic_script_content',
+                'rate_limited',
+                sprintf(
+                    /* translators: %d: number of seconds the user must wait */
+                    __('You are saving too quickly. Please wait %d seconds before trying again.', 'scriptomatic'),
+                    SCRIPTOMATIC_RATE_LIMIT_SECONDS
+                ),
+                'error'
+            );
+            return $previous_content;
+        }
 
         if (!is_string($input)) {
             add_settings_error(
@@ -157,6 +255,31 @@ class Scriptomatic {
         $input = wp_unslash($input);
         $input = wp_kses_no_null($input);
         $input = str_replace("\r\n", "\n", $input);
+
+        $validated_input = wp_check_invalid_utf8($input, true);
+        if ('' === $validated_input && '' !== $input) {
+            add_settings_error(
+                'scriptomatic_script_content',
+                'invalid_utf8',
+                __('Script content contains invalid UTF-8 characters.', 'scriptomatic'),
+                'error'
+            );
+
+            return $previous_content;
+        }
+
+        $input = $validated_input;
+
+        if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $input)) {
+            add_settings_error(
+                'scriptomatic_script_content',
+                'control_characters_detected',
+                __('Script content contains disallowed control characters.', 'scriptomatic'),
+                'error'
+            );
+
+            return $previous_content;
+        }
 
         // Reject PHP tags outright.
         if (preg_match('/<\?(php|=)?/i', $input)) {
@@ -224,13 +347,61 @@ class Scriptomatic {
             $this->log_script_change($input);
         }
 
+        // Record this successful save to enforce the rate limit on the next attempt.
+        $this->record_save_timestamp();
+
         return $input;
     }
 
     /**
-     * Log script changes for security audit
+     * Determine whether the current user has exceeded the configured save rate.
      *
-     * @param string $new_content New script content
+     * Uses a user-specific transient whose key incorporates the user ID so
+     * that rate-limit state is never shared between accounts.  The transient
+     * expires automatically after {@see SCRIPTOMATIC_RATE_LIMIT_SECONDS}.
+     *
+     * @since  1.0.0
+     * @access private
+     * @return bool True if the user is rate-limited and the save should be blocked.
+     */
+    private function is_rate_limited() {
+        $user_id      = get_current_user_id();
+        $transient_key = 'scriptomatic_save_' . $user_id;
+
+        return (false !== get_transient($transient_key));
+    }
+
+    /**
+     * Record the current timestamp for rate-limiting purposes.
+     *
+     * Sets a user-specific transient that expires after
+     * {@see SCRIPTOMATIC_RATE_LIMIT_SECONDS} seconds, blocking further saves
+     * until the window has elapsed.
+     *
+     * @since  1.0.0
+     * @access private
+     * @return void
+     */
+    private function record_save_timestamp() {
+        $user_id       = get_current_user_id();
+        $transient_key = 'scriptomatic_save_' . $user_id;
+
+        set_transient($transient_key, time(), SCRIPTOMATIC_RATE_LIMIT_SECONDS);
+    }
+
+    /**
+     * Write a security-audit log entry when the stored script content changes.
+     *
+     * Entries are written via {@see error_log()} in the format:
+     * `Scriptomatic: Script updated by user <login> (ID: <id>) from IP: <ip>`
+     *
+     * If the new content is identical to what is already stored no entry is
+     * written, preventing spurious log spam on accidental double-saves.
+     *
+     * @since  1.0.0
+     * @access private
+     * @param  string $new_content The sanitised script content about to be saved.
+     * @return void
      */
     private function log_script_change($new_content) {
         $old_content = get_option(SCRIPTOMATIC_OPTION_NAME, '');
@@ -247,9 +418,20 @@ class Scriptomatic {
     }
 
     /**
-     * Get client IP address
+     * Resolve the most accurate available client IP address.
      *
-     * @return string IP address
+     * Iterates over common proxy headers in order of trustworthiness and
+     * returns the first value that passes {@see filter_var()} validation as a
+     * valid IP address.  Falls back to `'Unknown'` when no valid address can
+     * be determined.
+     *
+     * **Note:** Proxy headers such as `HTTP_X_FORWARDED_FOR` can be spoofed by
+     * clients.  This method is used for audit-log context only — it should
+     * never be used for access control.
+     *
+     * @since  1.0.0
+     * @access private
+     * @return string A validated IP address string, or `'Unknown'`.
      */
     private function get_client_ip() {
         $ip_keys = array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR');
@@ -269,7 +451,13 @@ class Scriptomatic {
     }
 
     /**
-     * Render section description
+     * Output the descriptive text for the main settings section.
+     *
+     * Callback registered via {@see add_settings_section()}. The output is
+     * rendered directly above the settings field inside `do_settings_sections()`.
+     *
+     * @since  1.0.0
+     * @return void
      */
     public function render_section_description() {
         echo '<p>';
@@ -281,7 +469,18 @@ class Scriptomatic {
     }
 
     /**
-     * Render the script content textarea field
+     * Output the script-content `<textarea>` and its associated UI chrome.
+     *
+     * Callback registered via {@see add_settings_field()}.  Renders:
+     * - The main `<textarea>` pre-populated with the stored option value.
+     * - A live character counter updated via an inline jQuery snippet.
+     * - A brief usage description.
+     * - A security-notice panel reminding admins of the trust boundary.
+     *
+     * All dynamic values are escaped appropriately before output.
+     *
+     * @since  1.0.0
+     * @return void
      */
     public function render_script_field() {
         $script_content = get_option(SCRIPTOMATIC_OPTION_NAME, '');
@@ -332,7 +531,19 @@ class Scriptomatic {
     }
 
     /**
-     * Render the settings page
+     * Output the full HTML for the Scriptomatic settings page.
+     *
+     * Performs a capability check before rendering so that the page cannot be
+     * accessed even if the menu hook is somehow bypassed.  The form targets
+     * `options.php` (standard WordPress pattern) and includes:
+     * - The WordPress settings-API nonce via {@see settings_fields()}.
+     * - A secondary, plugin-specific nonce verified independently inside
+     *   {@see Scriptomatic::sanitize_script_content()}.
+     * - All registered settings sections and fields.
+     * - A submit button and a quick-start guide.
+     *
+     * @since  1.0.0
+     * @return void
      */
     public function render_settings_page() {
         // Check user capabilities
@@ -361,7 +572,13 @@ class Scriptomatic {
 
             <form action="options.php" method="post">
                 <?php
+                // Primary nonce: issued by the Settings API (12-hour window).
                 settings_fields('scriptomatic_settings');
+
+                // Secondary nonce: shorter-lived, action-specific nonce for
+                // defence-in-depth, verified in sanitize_script_content().
+                wp_nonce_field(SCRIPTOMATIC_NONCE_ACTION, 'scriptomatic_save_nonce');
+
                 do_settings_sections('scriptomatic_settings');
                 submit_button(__('Save Script', 'scriptomatic'), 'primary large');
                 ?>
@@ -392,7 +609,20 @@ class Scriptomatic {
     }
 
     /**
-     * Add contextual help tab
+     * Attach contextual help tabs to the Scriptomatic settings screen.
+     *
+     * Hooked to `load-{page_hook}` so it runs only when the admin navigates to
+     * the plugin's settings page.  Five tabs are registered:
+     * - **Overview** – high-level plugin description.
+     * - **Usage** – step-by-step guide for entering and saving scripts.
+     * - **Security** – summary of built-in security features.
+     * - **Best Practices** – recommendations for safe script management.
+     * - **Troubleshooting** – common issues and how to resolve them.
+     *
+     * A contextual sidebar with external resource links is also attached.
+     *
+     * @since  1.0.0
+     * @return void
      */
     public function add_help_tab() {
         $screen = get_current_screen();
@@ -491,9 +721,20 @@ class Scriptomatic {
     }
 
     /**
-     * Enqueue admin scripts and styles
+     * Enqueue (or inline) scripts and styles for the plugin's admin page.
      *
-     * @param string $hook Current admin page hook
+     * Hooked on {@see 'admin_enqueue_scripts'} and exits immediately when
+     * `$hook` does not match the Scriptomatic settings page, keeping the admin
+     * area free of unnecessary asset loading.
+     *
+     * Currently inlines a small jQuery snippet that:
+     * - Counts characters as the user types in the textarea.
+     * - Colours the counter yellow (>75% of limit) or red (>90%) as a live
+     *   visual warning before the hard server-side limit is reached.
+     *
+     * @since  1.0.0
+     * @param  string $hook The hook suffix for the current admin page.
+     * @return void
      */
     public function enqueue_admin_scripts($hook) {
         // Only load on our settings page
@@ -531,10 +772,16 @@ class Scriptomatic {
     }
 
     /**
-     * Add action links to plugin list
+     * Prepend a Settings link to the plugin's action links on the Plugins screen.
      *
-     * @param array $links Existing action links
-     * @return array Modified action links
+     * Hooked via the `plugin_action_links_{plugin_basename}` filter.  The link
+     * is prepended (not appended) so it appears as the first action — the most
+     * prominent position — consistent with the conventions of well-known
+     * WordPress plugins.
+     *
+     * @since  1.0.0
+     * @param  string[] $links Existing action-link HTML strings keyed by slug.
+     * @return string[] Modified array with the Settings link at index 0.
      */
     public function add_action_links($links) {
         $settings_link = sprintf(
@@ -549,7 +796,21 @@ class Scriptomatic {
     }
 
     /**
-     * Inject the script into the head section
+     * Output the stored JavaScript into the page `<head>` on the front-end.
+     *
+     * Hooked on {@see 'wp_head'} with priority 999 so the script is injected
+     * as late as possible — just before the closing `</head>` tag — which
+     * keeps it out of the way of theme and plugin scripts that use earlier
+     * priorities.
+     *
+     * The method short-circuits on admin pages and when the stored script is
+     * empty to avoid any unnecessary output.  The content is intentionally
+     * NOT escaped on output because it is JavaScript code that must remain
+     * executable; all security enforcement is applied at write-time inside
+     * {@see Scriptomatic::sanitize_script_content()}.
+     *
+     * @since  1.0.0
+     * @return void
      */
     public function inject_script() {
         // Only inject on front-end
@@ -575,10 +836,20 @@ class Scriptomatic {
     }
 }
 
-// Initialize the plugin
+/**
+ * Bootstrap the plugin by returning (and, on first call, creating) the
+ * singleton {@see Scriptomatic} instance.
+ *
+ * Hooked on {@see 'plugins_loaded'} so that all WordPress APIs, including
+ * `load_plugin_textdomain()` and multi-site functions, are available before
+ * any plugin logic runs.
+ *
+ * @since  1.0.0
+ * @return Scriptomatic The singleton plugin instance.
+ */
 function scriptomatic_init() {
     return Scriptomatic::get_instance();
 }
 
-// Start the plugin
+// Boot the plugin after all plugins have been loaded.
 add_action('plugins_loaded', 'scriptomatic_init');

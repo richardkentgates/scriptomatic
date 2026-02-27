@@ -118,7 +118,8 @@ Scriptomatic is built with security as a top priority:
 ### Input Validation
 - Maximum content length enforced (100KB)
 - Automatic removal of `<script>` tags to prevent double-wrapping
-- Detection of potentially dangerous HTML tags (iframe, object, embed)
+- Detection of potentially dangerous HTML tags (iframe, object, embed, link, style, meta)
+- Invalid UTF-8 and control characters are rejected
 - Input sanitization using WordPress core functions
 - Admin notices for failed validation checks and automatic cleanup
 
@@ -141,6 +142,7 @@ Scriptomatic is built with security as a top priority:
 - Clean uninstall removes all plugin data
 - Multisite-aware data handling
 - No external dependencies or API calls
+- No raw SQL from user input (options API only)
 
 ## 🛠️ Best Practices
 
@@ -291,4 +293,4 @@ This plugin allows you to inject arbitrary JavaScript code into your website. Wh
 
 ---
 
-Made with ❤️ by [Richard Kent Gates](https://gapcreekmedia.com)
+Made with ❤️ by [Richard Kent Gates](https://github.com/richardkentgates)

@@ -61,6 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Reject invalid UTF-8 input and disallowed control characters
+- Document SQL injection protections (no raw SQL from user input)
+
 ### Planned Features
 - WordPress.org repository submission
 - Translation support (i18n) for multiple languages

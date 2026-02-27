@@ -17,7 +17,7 @@ First off, thank you for considering contributing to Scriptomatic! It's people l
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to conduct@gapcreekmedia.com.
+This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to mail@richardkentgates.com.
 
 ## How Can I Contribute?
 
@@ -398,7 +398,7 @@ Bad:
 
 - **GitHub Issues**: For bugs and feature requests
 - **GitHub Discussions**: For questions and community discussion (coming soon)
-- **Email**: support@gapcreekmedia.com
+- **Email**: mail@richardkentgates.com
 
 ### Recognition
 
@@ -432,7 +432,7 @@ Don't be intimidated! Everyone was a beginner once.
 
 Don't hesitate to ask! Contact:
 - GitHub Issues: https://github.com/richardkentgates/scriptomatic/issues
-- Email: support@gapcreekmedia.com
+- Email: mail@richardkentgates.com
 
 ## Thank You!
 
