@@ -13,6 +13,22 @@ Nothing pending.
 
 ---
 
+## [1.4.2] – 2026-02-26
+
+### Fixed
+- **`wp_redirect()` missing `esc_url_raw()` on error path.** In `handle_network_settings_save()`, the failed-nonce redirect used  `add_query_arg( 'error', '1', wp_get_referer() )` without wrapping it in `esc_url_raw()`. The success-path redirect one line below already used `esc_url_raw()`. Both redirects are now consistent.
+- **Redundant capability check in `sanitize_script_for()`.** A second `if ( current_user_can( $this->get_required_cap() ) )` guard wrapped the `log_change()` and `push_history()` calls at the end of the method. Gate 0 at the top of the same function — `if ( ! current_user_can(...) ) return` — ensures the inner check is always true, making it dead conditional logic. The redundant wrapper has been removed; `log_change()` and `push_history()` are now called unconditionally at that point.
+
+### Changed
+- **`enqueue_admin_scripts()` `@since` tag corrected.** The method docblock said `@since 1.0.0`; the containing trait (`Scriptomatic_Enqueue`) was introduced in v1.4.0 along with this specific implementation (static file enqueuing via `wp_enqueue_script` / `wp_localize_script`). Tag updated to `@since 1.4.0`.
+- **Dead hook entry removed from `$head_hooks`.** The array in `enqueue_admin_scripts()` included `'scriptomatic_page_scriptomatic'`. When a top-level menu page slug and its first submenu slug are identical, WordPress generates only `toplevel_page_scriptomatic` — the `scriptomatic_page_scriptomatic` hook is never fired. The dead entry has been removed.
+- **Network admin page header now shows version/author/docs.** `render_network_page_header()` previously rendered only the page `<h1>` title, unlike the per-site `render_page_header()` which appends a version/author/documentation line. The network header now includes the same `<p class="description">` block for consistency.
+
+### Documentation
+- **`inject_head_scripts()` docblock simplified.** The PHPDoc listed "Handles two sources: Linked URLs / Inline content" — a description that belongs on `inject_scripts_for()` (the method that implements the logic, where the same text also appears). The `inject_head_scripts()` docblock now accurately describes what the method actually does: guard against admin context and delegate.
+
+---
+
 ## [1.4.1] – 2026-02-26
 
 ### Fixed
@@ -167,6 +183,7 @@ Nothing pending.
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 1.4.2   | 2026-02-26 | Code-quality fixes, dead-code removal, doc accuracy |
 | 1.4.1   | 2026-02-26 | Multisite network-admin bug fixes              |
 | 1.4.0   | 2026-02-26 | Trait refactor, static assets, modular architecture |
 | 1.3.1   | 2026-02-26 | Dead-code removal, doc accuracy, i18n fix      |
@@ -178,7 +195,8 @@ Nothing pending.
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/richardkentgates/scriptomatic/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/richardkentgates/scriptomatic/compare/v1.3.0...v1.3.1

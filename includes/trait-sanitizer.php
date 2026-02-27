@@ -208,10 +208,8 @@ trait Scriptomatic_Sanitizer {
 
         $input = trim( $input );
 
-        if ( current_user_can( $this->get_required_cap() ) ) {
-            $this->log_change( $input, $option_key, $location );
-            $this->push_history( $input, $location );
-        }
+        $this->log_change( $input, $option_key, $location );
+        $this->push_history( $input, $location );
 
         $this->record_save_timestamp( $location );
 

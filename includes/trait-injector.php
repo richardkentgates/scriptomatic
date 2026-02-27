@@ -21,9 +21,7 @@ trait Scriptomatic_Injector {
     /**
      * Inject stored scripts into the page `<head>` on the front-end.
      *
-     * Handles two sources:
-     * 1. **Linked URLs** — each emitted as a `<script src="...">` tag.
-     * 2. **Inline content** — wrapped in a `<script>` block.
+     * Guards against admin context, then delegates to {@see inject_scripts_for()}.
      *
      * @since  1.0.0
      * @return void

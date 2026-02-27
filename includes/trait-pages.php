@@ -245,6 +245,11 @@ trait Scriptomatic_Pages {
             <span class="dashicons dashicons-editor-code" style="font-size:32px;width:32px;height:32px;"></span>
             <?php echo esc_html( get_admin_page_title() ); ?>
         </h1>
+        <p class="description" style="font-size:14px;margin-bottom:20px;">
+            <?php esc_html_e( 'Version', 'scriptomatic' ); ?>: <?php echo esc_html( SCRIPTOMATIC_VERSION ); ?> |
+            <?php esc_html_e( 'Author', 'scriptomatic' ); ?>: <a href="https://github.com/richardkentgates" target="_blank" rel="noopener noreferrer">Richard Kent Gates</a> |
+            <a href="https://github.com/richardkentgates/scriptomatic" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Documentation', 'scriptomatic' ); ?></a>
+        </p>
         <?php
     }
 
@@ -332,7 +337,7 @@ trait Scriptomatic_Pages {
     public function handle_network_settings_save() {
         if ( ! isset( $_POST['scriptomatic_network_nonce'] ) ||
              ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['scriptomatic_network_nonce'] ) ), SCRIPTOMATIC_NETWORK_NONCE ) ) {
-            wp_redirect( add_query_arg( 'error', '1', wp_get_referer() ) );
+            wp_redirect( esc_url_raw( add_query_arg( 'error', '1', wp_get_referer() ) ) );
             exit;
         }
 

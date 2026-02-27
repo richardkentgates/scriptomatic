@@ -27,14 +27,13 @@ trait Scriptomatic_Enqueue {
      * Fires on `admin_enqueue_scripts` (and `network_admin_enqueue_scripts`).
      * Early-returns on any hook not belonging to this plugin.
      *
-     * @since  1.0.0
+     * @since  1.4.0
      * @param  string $hook The current admin-page hook suffix.
      * @return void
      */
     public function enqueue_admin_scripts( $hook ) {
         $head_hooks = array(
             'toplevel_page_scriptomatic',
-            'scriptomatic_page_scriptomatic',
         );
         $footer_hooks = array(
             'scriptomatic_page_scriptomatic-footer',
