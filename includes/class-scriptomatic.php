@@ -22,6 +22,7 @@ require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-pages.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-enqueue.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-injector.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-files.php';
+require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-api.php';
 
 /**
  * Main plugin class.
@@ -40,6 +41,7 @@ require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-files.php';
  * - Scriptomatic_Enqueue   — admin asset enqueueing.
  * - Scriptomatic_Injector  — front-end script injection.
  * - Scriptomatic_Files     — managed JS file CRUD, AJAX handlers, and disk I/O.
+ * - Scriptomatic_API       — REST API (scriptomatic/v1) route registration and shared service-layer methods.
  *
  * @package Scriptomatic
  * @author  Richard Kent Gates <mail@richardkentgates.com>
@@ -57,6 +59,7 @@ class Scriptomatic {
     use Scriptomatic_Enqueue;
     use Scriptomatic_Injector;
     use Scriptomatic_Files;
+    use Scriptomatic_API;
 
     // =========================================================================
     // SINGLETON
@@ -91,6 +94,12 @@ class Scriptomatic {
      */
     private function __construct() {
         $this->init_hooks();
+
+        // WP-CLI commands are only registered in a CLI context.
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/class-scriptomatic-cli.php';
+            WP_CLI::add_command( 'scriptomatic', new Scriptomatic_CLI_Commands() );
+        }
     }
 
     // =========================================================================
@@ -127,6 +136,9 @@ class Scriptomatic {
 
         // Admin-post: JS file save form.
         add_action( 'admin_post_scriptomatic_save_js_file',      array( $this, 'handle_save_js_file' ) );
+
+        // REST API routes (authentication via WordPress Application Passwords).
+        add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
     }
 
     /**

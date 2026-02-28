@@ -299,7 +299,7 @@
 <!-- HERO -->
 <section class="hero">
   <img src="scriptomatic-logo.png" alt="Scriptomatic" class="hero-logo" />
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.5.3</div>
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.6.0</div>
   <h1>Inject custom JavaScript<br/><span>the right way.</span></h1>
   <p>Scriptomatic gives WordPress administrators full control over custom scripts — inline JavaScript with a built-in code editor, managed JS files, and external script URLs — injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer with conditional loading, revision history, one-click rollback, and a complete activity log.</p>
   <div class="hero-actions">
@@ -691,6 +691,14 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
 
     <div class="changelog-item">
+      <div class="clog-version">v2.6.0</div>
+      <div class="clog-body">
+        <h4>REST API &amp; WP-CLI command group</h4>
+        <p>Every Scriptomatic operation is now available over a first-party REST API (<code>scriptomatic/v1</code>) and through a <code>wp scriptomatic</code> WP-CLI command group. All REST endpoints are POST-only &mdash; credentials always travel in the <code>Authorization: Basic</code> header via WordPress Application Passwords, never in the URL. The two interfaces share a public service layer (<code>service_*</code> methods) so validation, rate-limiting, and activity logging are identical regardless of how a change is made. Twelve REST routes cover inline scripts, external URL lists, and managed JS files, including read, write, rollback, and history. Eight CLI subcommands mirror the same operations with table, JSON, CSV, and YAML output formats.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
       <div class="clog-version">v2.5.3</div>
       <div class="clog-body">
         <h4>External URL Restore polish; docblock audit; language consistency</h4>
@@ -927,7 +935,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <a href="https://github.com/richardkentgates/scriptomatic/issues">Issues</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v2.5.3 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v2.6.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>

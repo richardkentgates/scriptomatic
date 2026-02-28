@@ -4,7 +4,7 @@ Tags: javascript, script injection, code manager, head scripts, footer scripts, 
 Requires at least: 5.3
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 2.5.0
+Stable tag: 2.6.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,7 +26,7 @@ Scriptomatic is a secure, production-ready WordPress plugin for injecting custom
 
 = Architecture =
 
-Nine PHP traits in separate files, a singleton class, and static `assets/admin.css` / `assets/admin.js`. No external dependencies, no autoloader, no REST API routes, no external API calls.
+Nine PHP traits in separate files, a singleton class, and static `assets/admin.css` / `assets/admin.js`. REST API under `scriptomatic/v1` (all POST, WordPress Application Passwords). WP-CLI command group `wp scriptomatic`. No external dependencies, no autoloader, no external API calls.
 
 = Multisite =
 
@@ -93,6 +93,11 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 
 == Changelog ==
 
+= 2.6.0 =
+* **Added**: REST API under namespace `scriptomatic/v1`. All twelve endpoints use POST; credentials travel in the `Authorization: Basic` header via WordPress Application Passwords.
+* **Added**: WP-CLI command group `wp scriptomatic` — subcommands for inline scripts, external URLs, managed JS files, and history, with table/JSON/CSV/YAML output formats.
+* **Added**: Shared service layer (`service_*()` public methods) used by both the REST API and WP-CLI so validation, rate-limiting, and activity logging are identical regardless of how a change is triggered.
+
 = 2.5.0 =
 * **Changed**: Activity Log now writes one combined snapshot entry per save. Previously a single Save could produce up to three separate partial entries. Now every entry contains the full state — inline script, URL list, and load conditions — and a single Restore brings everything back simultaneously.
 * **Changed**: Restore now writes the script, URL list, and conditions via direct `$wpdb` writes together, bypassing the sanitize callbacks exactly as the previous script-only rollback did.
@@ -121,6 +126,9 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 * All internal development backward-compatibility code removed.
 
 == Upgrade Notice ==
+
+= 2.6.0 =
+Adds a REST API (`scriptomatic/v1`, all POST endpoints) and `wp scriptomatic` WP-CLI commands. No breaking changes; existing data and settings are unaffected.
 
 = 2.5.0 =
 Activity Log entries are now combined snapshots. Restore brings back the script, URL list, and conditions simultaneously — no further Save needed after a Restore. No database migration required; existing log entries continue to display and function correctly.

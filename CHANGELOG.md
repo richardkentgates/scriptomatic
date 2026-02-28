@@ -13,6 +13,42 @@ _Nothing yet._
 
 ---
 
+## [2.6.0] – 2026-03-07
+
+### Added
+- **REST API (`scriptomatic/v1`).**
+  All twelve endpoints are POST-only; credentials travel exclusively in the
+  `Authorization: Basic` header via WordPress Application Passwords (no custom
+  key storage, no credentials in URLs).
+  - `POST /wp-json/scriptomatic/v1/script` — read current inline script.
+  - `POST /wp-json/scriptomatic/v1/script/set` — save inline script + optional load conditions.
+  - `POST /wp-json/scriptomatic/v1/script/rollback` — restore inline script to snapshot (index ≥ 1).
+  - `POST /wp-json/scriptomatic/v1/history` — list inline script history.
+  - `POST /wp-json/scriptomatic/v1/urls` — read current external URL list.
+  - `POST /wp-json/scriptomatic/v1/urls/set` — replace external URL list.
+  - `POST /wp-json/scriptomatic/v1/urls/rollback` — restore external URLs to snapshot.
+  - `POST /wp-json/scriptomatic/v1/urls/history` — list external URL history.
+  - `POST /wp-json/scriptomatic/v1/files` — list managed JS files.
+  - `POST /wp-json/scriptomatic/v1/files/get` — read one file's content + metadata.
+  - `POST /wp-json/scriptomatic/v1/files/set` — create or update a managed JS file.
+  - `POST /wp-json/scriptomatic/v1/files/delete` — delete a managed JS file.
+- **WP-CLI command group (`wp scriptomatic`).**
+  - `wp scriptomatic script get|set|rollback` — manage inline scripts.
+  - `wp scriptomatic history` — list inline script history.
+  - `wp scriptomatic urls get|set|rollback|history` — manage external URL lists.
+  - `wp scriptomatic files list|get|set|delete` — manage JS files.
+  All write commands delegate to the same service layer as the REST API to
+  ensure identical validation, rate-limiting, and activity logging.
+- **Service layer** — public `service_*()` methods on the main class shared by
+  both the REST API callbacks and WP-CLI commands, eliminating code duplication.
+- **`includes/trait-api.php`** — new trait housing REST route registration,
+  permission callbacks, argument schemas, REST callback methods, the service
+  layer, and the `api_validate_script_content()` private helper.
+- **`includes/class-scriptomatic-cli.php`** — new class extending
+  `WP_CLI_Command`; loaded only when `WP_CLI` is defined.
+
+---
+
 ## [2.5.3] – 2026-02-28
 
 ### Fixed
