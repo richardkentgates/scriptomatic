@@ -191,11 +191,21 @@ trait Scriptomatic_Pages {
                     $restore_title = '';
                 }
 
-                // URL Restore is greyed out when this entry IS the current URL list.
-                $url_restore_greyed = $has_url_entry && 0 === $this_url_index;
-                $url_restore_title  = $url_restore_greyed
-                    ? __( 'This is the current URL list — nothing to restore.', 'scriptomatic' )
-                    : '';
+                // URL Restore is greyed out when this entry IS the current URL list
+                // (index 0) or when the snapshot is an empty URL list — restoring
+                // an empty snapshot would just wipe the list, same logic as
+                // greying inline Restore when content is ''.
+                $url_snap_empty     = $has_url_entry
+                    && '[]' === trim( (string) ( $entry['urls_snapshot'] ?? '' ) );
+                $url_restore_greyed = $has_url_entry && ( 0 === $this_url_index || $url_snap_empty );
+
+                if ( $has_url_entry && 0 === $this_url_index ) {
+                    $url_restore_title = __( 'This is the current URL list — nothing to restore.', 'scriptomatic' );
+                } elseif ( $url_snap_empty ) {
+                    $url_restore_title = __( 'URL list is empty — nothing to restore.', 'scriptomatic' );
+                } else {
+                    $url_restore_title = '';
+                }
 
                 $is_file_entry = ( 'file' === ( isset( $entry['location'] ) ? $entry['location'] : '' ) );
                 // Map action keys to human-readable Event labels.
