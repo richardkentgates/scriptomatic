@@ -22,7 +22,7 @@ Scriptomatic is a secure, production-ready WordPress plugin for injecting custom
 * **Conditional Loading** — 11 condition types per location: Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, ISO Week Number, and Month. AND/OR stacked rules with short-circuit evaluation.
 * **Revision History &amp; Rollback** — every save writes a complete snapshot (inline script + URL list + load conditions). Click Restore to bring all three back simultaneously via AJAX — no further Save needed.
 * **Activity Log** — all saves, rollbacks, and JS file events are recorded in a persistent log embedded at the bottom of each admin page. Configurable limit of 3–1,000 entries (default 200).
-* **Security First** — dual nonce verification, `manage_options` capability gate, transient-based rate limiting (10-second cooldown per user per location), UTF-8 and control-character rejection, 100 KB content cap, PHP-tag detection, and dangerous-HTML-tag warning.
+* **Security First** — dual nonce verification, `manage_options` capability gate, transient-based rate limiting (10-second cooldown per user per location), UTF-8 and control-character rejection, 100 KB content cap for inline scripts (JS files are limited by the server's upload setting), PHP-tag detection, and dangerous-HTML-tag warning.
 
 = Architecture =
 

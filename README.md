@@ -267,7 +267,7 @@ eval(someUntrustedString); // Never use eval!
 
 **Solutions**:
 - Verify you have administrator privileges
-- Check if script exceeds the 100 KB limit
+- Check if the inline script exceeds the 100 KB limit (JS files are limited by the server's upload setting, not this plugin)
 - Remove any HTML tags (JavaScript only)
 - Check browser console for JavaScript errors
 - If you saved very recently, the **rate limiter** (10-second cooldown per user/location) may have rejected the save — wait a moment and try again
