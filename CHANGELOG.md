@@ -13,6 +13,25 @@ _Nothing yet._
 
 ---
 
+## [1.10.0] – 2026-02-27
+
+### Added
+- **Four new date/time condition types.** Load conditions now support date and time-based targeting in addition to the existing page/user-state types:
+  - `by_date` — loads only between a **From** and **To** calendar date (inclusive). Leave _To_ blank for an exact single-day match.
+  - `by_datetime` — loads only within a **From** / **To** `datetime-local` window (inclusive), evaluated against the site timezone via `current_time()`.
+  - `week_number` — loads when the current ISO week number (1–53) matches any of the listed values; uses a chicklet input identical to the existing Page ID picker.
+  - `by_month` — loads during specific months; uses a 12-checkbox grid (January–December) identical to the Post Types picker. Month labels use `date_i18n( 'F' )` for full locale support.
+- All four types are available on every conditions picker: inline-script load conditions (head and footer), per-URL entry conditions, and managed JS file conditions.
+
+### Changed
+- `sanitize_conditions_array()` in `trait-sanitizer.php`: extended `$allowed_types`; added `by_date`/`by_datetime` (truncate to 2 string values), `week_number` (validated 1–53 integers), and `by_month` (validated 1–12 integers) sanitization cases.
+- `evaluate_conditions_object()` in `trait-renderer.php`: added four new `switch` cases using `current_time()` for timezone-correct evaluation.
+- All three render methods (`render_conditions_field_for()`, `render_url_entry_html()`, `render_file_conditions_widget()`) updated with new labels and sub-panels for each type.
+- `initConditions()` in `admin.js`: `syncJson()` extended with four new branches; delegated `change` handlers added for date/datetime inputs and month checkboxes; week-number chicklet manager (range validation 1–53, duplicate detection, Enter-key support) and extended shared remove handler added.
+- `$condition_labels` in `render_js_file_list_view()` (`trait-pages.php`) updated with the four new display labels for the JS Files list view.
+
+---
+
 ## [1.9.0] – 2026-02-27
 
 ### Added
@@ -322,6 +341,7 @@ _Nothing yet._
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 1.10.0  | 2026-02-27 | Four new date/time condition types             |
 | 1.9.0   | 2026-02-27 | Unified Activity Log, JS file history, bug fixes |
 | 1.8.0   | 2026-02-27 | Managed JS Files, CodeMirror editor, security hardening |
 | 1.7.0   | 2026-02-27 | Configurable audit log limit, addUrl fix, network UI removed |
@@ -341,7 +361,8 @@ _Nothing yet._
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.6.0...v1.7.0

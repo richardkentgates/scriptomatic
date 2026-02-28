@@ -536,6 +536,10 @@ Conditions are stored per-location for the inline script, and per-entry for each
 | `url_contains` | `['/shop/', …]` | `strpos()` on `$_SERVER['REQUEST_URI']` |
 | `logged_in` | empty | `is_user_logged_in()` |
 | `logged_out` | empty | `! is_user_logged_in()` |
+| `by_date` | `['YYYY-MM-DD', 'YYYY-MM-DD']` | `current_time('Y-m-d')` between From–To (To optional) |
+| `by_datetime` | `['YYYY-MM-DDTHH:MM', '…']` | `current_time('Y-m-d\TH:i')` within window, site timezone |
+| `week_number` | `[5, 22, …]` | `current_time('W')` in values array |
+| `by_month` | `[1, 3, 12, …]` | `current_time('n')` in values array |
 
 Evaluation methods are in `trait-renderer.php`:
 - `check_load_conditions( $location )` — reads the location-level option and delegates.

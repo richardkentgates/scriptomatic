@@ -342,7 +342,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-green">🎯</div>
         <h3>Conditional Loading</h3>
-        <p>Eight condition types — All Pages, Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out — per location, independently configured.</p>
+        <p>Twelve condition types — All Pages, Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, Week Number, Month — per location, independently configured.</p>
       </div>
 
       <div class="feature-card">
@@ -610,12 +610,12 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
           <tr>
             <td>Head Scripts</td>
             <td>Scriptomatic → Head Scripts</td>
-            <td>Inline JS editor, external URL manager, load conditions, revision history lightbox, audit log (head entries only)</td>
+            <td>Inline JS editor, external URL manager, load conditions, Activity Log (head entries only)</td>
           </tr>
           <tr>
             <td>Footer Scripts</td>
             <td>Scriptomatic → Footer Scripts</td>
-            <td>Inline JS editor, external URL manager, load conditions, revision history lightbox, audit log (footer entries only)</td>
+            <td>Inline JS editor, external URL manager, load conditions, Activity Log (footer entries only)</td>
           </tr>
           <tr>
             <td>JS Files</td>
@@ -625,7 +625,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
           <tr>
             <td>Preferences</td>
             <td>Scriptomatic → Preferences</td>
-            <td>History revision limit, audit log entry limit (3–1000), uninstall data-retention toggle</td>
+            <td>Activity log limit (3–1000), uninstall data-retention toggle</td>
           </tr>
         </tbody>
       </table>
@@ -689,6 +689,22 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <span class="section-label">Release History</span>
     <h2>Changelog</h2>
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.10.0</div>
+      <div class="clog-body">
+        <h4>Four new date/time load condition types</h4>
+        <p>Added <strong>by_date</strong> (date range), <strong>by_datetime</strong> (date &amp; time window), <strong>week_number</strong> (ISO week numbers 1&ndash;53), and <strong>by_month</strong> (month checkboxes) condition types. All twelve condition types are available on every conditions picker: inline scripts, per-URL entries, and managed JS files. Evaluation uses <code>current_time()</code> for site-timezone correctness.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.9.0</div>
+      <div class="clog-body">
+        <h4>Unified Activity Log, JS file revision history</h4>
+        <p>Merged separate Revision History and Audit Log panels into a single <strong>Activity Log</strong> per location. JS file saves, rollbacks, and deletions are now logged with View &amp; Restore buttons where applicable. Per-location Clear Log button. One-time migration of legacy data. Fixed broken <code>log_change()</code> 4-arg calls in <code>trait-files.php</code>.</p>
+      </div>
+    </div>
 
     <div class="changelog-item">
       <div class="clog-version">v1.8.0</div>

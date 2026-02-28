@@ -382,6 +382,10 @@ trait Scriptomatic_Pages {
             'url_contains' => __( 'URL contains', 'scriptomatic' ),
             'logged_in'    => __( 'Logged-in only', 'scriptomatic' ),
             'logged_out'   => __( 'Logged-out only', 'scriptomatic' ),
+            'by_date'      => __( 'Date range', 'scriptomatic' ),
+            'by_datetime'  => __( 'Date & time range', 'scriptomatic' ),
+            'week_number'  => __( 'Week numbers', 'scriptomatic' ),
+            'by_month'     => __( 'Specific months', 'scriptomatic' ),
         );
         ?>
         <div class="wrap">
@@ -735,7 +739,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Choose a location:', 'scriptomatic' ) . '</strong> ' . __( 'Use <em>Head Scripts</em> for early-loading code (analytics, pixels) or <em>Footer Scripts</em> for deferred code.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Add Your Code:', 'scriptomatic' ) . '</strong> ' . __( 'Write or paste your JavaScript into the <strong>CodeMirror editor</strong>. Do not include &lt;script&gt; tags — they are added automatically. Use Ctrl-Space for WordPress/jQuery autocomplete hints.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Add external URLs (optional):', 'scriptomatic' ) . '</strong> ' . __( 'Enter remote script URLs in the External Script URLs section. They load before the inline block.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Set Load Conditions (optional):', 'scriptomatic' ) . '</strong> ' . __( 'Use the Load Conditions drop-down to restrict injection to specific pages, post types, URL patterns, or user login state. Defaults to all pages.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Set Load Conditions (optional):', 'scriptomatic' ) . '</strong> ' . __( 'Use the Load Conditions drop-down to restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months. Defaults to all pages.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Save Changes:', 'scriptomatic' ) . '</strong> ' . __( 'Click the Save button at the bottom of the page.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Verify:', 'scriptomatic' ) . '</strong> ' . __( 'View your page source to confirm the script is injected in the correct location.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Test:', 'scriptomatic' ) . '</strong> ' . __( 'Thoroughly test your site to ensure the script functions correctly.', 'scriptomatic' ) . '</li>' .

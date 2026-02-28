@@ -19,7 +19,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **🗂️ Managed JS Files**: Create, edit, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`; each file has its own Head/Footer selector and Load Conditions; managed files survive plugin updates
 - **💻 Built-in Code Editor**: Inline scripts and managed JS files use a full CodeMirror JavaScript editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete hints (`wp.ajax`, `wp.hooks`, `jQuery`, `ajaxurl`, and more). Falls back to a plain textarea if syntax highlighting is disabled in the user profile.
 - **📚 Contextual Help**: Built-in help tabs with detailed documentation on the Head Scripts, Footer Scripts, and Preferences admin pages
-- **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages (8 condition types)
+- **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months — or leave it on all pages (12 condition types)
 - **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
 - **📋 Activity Log**: All script saves, rollbacks, external URL changes, and JS file events are recorded in a persistent **Activity Log** embedded at the bottom of each admin page. Entries that carry a content snapshot expose **View** and **Restore** buttons for instant AJAX rollback; informational entries (URL changes, file deletions) are shown without action buttons. Log limit is configurable in Preferences (3–1000, default 200); oldest entries are discarded automatically once the cap is reached.
@@ -93,7 +93,7 @@ Then activate via WordPress admin.
 
 1. Navigate to **Scriptomatic → Head Scripts** (or **Footer Scripts**) in your WordPress admin
 2. Enter your inline JavaScript in the textarea **or** add external script URLs via the URL manager
-3. Optionally configure **Load Conditions** to restrict the script to specific pages, post types, URL patterns, or user login state
+3. Optionally configure **Load Conditions** to restrict the script to specific pages, post types, URL patterns, user login state, date ranges, datetime windows, week numbers, or months
 4. Click **Save Head Scripts** (or **Save Footer Scripts**)
 5. Your code will be automatically injected into the `<head>` or just before `</body>` depending on which page you used
 
