@@ -13,6 +13,37 @@ _Nothing yet._
 
 ---
 
+## [2.5.0] – 2026-03-01
+
+### Changed
+- **Activity Log now writes one combined snapshot entry per save click.**
+  Previously, a single Head/Footer Save produced up to three separate partial
+  entries (`save`, `url_added`, `conditions_save`). Now the WordPress Settings
+  API sanitize callbacks each contribute their piece to a shared accumulator
+  and a single combined entry is flushed at PHP shutdown. Every entry contains
+  the full state at that moment — inline script content, external URL list, and
+  load conditions — so a single Restore brings everything back simultaneously.
+- **Restore now restores all three fields at once.** When a combined snapshot
+  entry (v2.5.0+) is available, clicking Restore writes the script content,
+  URL list, and conditions options back together via direct `$wpdb` writes,
+  bypassing the sanitize callbacks exactly as the script-only rollback did.
+  Rollback log entries also carry all three snapshots for forward reference.
+- **Activity Log table "Size / Detail" column renamed to "Changes".** The column
+  now shows a human-readable summary built from the combined entry's `detail`
+  field (e.g. `Script: 245 chars · 1 URL added · Conditions: Front page only`),
+  giving immediate visibility into what changed on each save.
+- **Event column now uses explicit human-readable labels.** A label map replaces
+  the generic `ucwords(str_replace('_', ' ', $action))` fallback for all known
+  action types (Save, Restore, URL Added, URL Removed, Conditions,
+  Conditions Restored, URLs Restored, File Save, File Restore, File Deleted).
+
+### Removed
+- **`log_change()` private method** in `trait-settings.php`. Logging of script
+  content changes is now handled by `contribute_to_pending_save()` in
+  `trait-sanitizer.php` as part of the combined-snapshot accumulator.
+
+---
+
 ## [2.4.0] – 2026-02-28
 
 ### Fixed

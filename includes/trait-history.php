@@ -96,12 +96,47 @@ trait Scriptomatic_History {
         );
         wp_cache_delete( $option_key, 'options' );
 
-        $this->write_activity_entry( array(
+        // Restore the URL list snapshot if the entry carries one (combined save
+        // entries from v2.5.0+ always include all three field snapshots).
+        if ( array_key_exists( 'urls_snapshot', $entry ) && null !== $entry['urls_snapshot'] ) {
+            $linked_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
+            $wpdb->update(
+                $wpdb->options,
+                array( 'option_value' => $entry['urls_snapshot'] ),
+                array( 'option_name'  => $linked_key ),
+                array( '%s' ),
+                array( '%s' )
+            );
+            wp_cache_delete( $linked_key, 'options' );
+        }
+
+        // Restore the conditions snapshot if the entry carries one.
+        if ( array_key_exists( 'conditions_snapshot', $entry ) && null !== $entry['conditions_snapshot'] ) {
+            $cond_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
+            $wpdb->update(
+                $wpdb->options,
+                array( 'option_value' => $entry['conditions_snapshot'] ),
+                array( 'option_name'  => $cond_key ),
+                array( '%s' ),
+                array( '%s' )
+            );
+            wp_cache_delete( $cond_key, 'options' );
+        }
+
+        $rollback_entry = array(
             'action'   => 'rollback',
             'location' => $location,
             'content'  => $content,
             'chars'    => strlen( $content ),
-        ) );
+            'detail'   => __( 'Restored from snapshot', 'scriptomatic' ),
+        );
+        if ( array_key_exists( 'urls_snapshot', $entry ) ) {
+            $rollback_entry['urls_snapshot'] = $entry['urls_snapshot'];
+        }
+        if ( array_key_exists( 'conditions_snapshot', $entry ) ) {
+            $rollback_entry['conditions_snapshot'] = $entry['conditions_snapshot'];
+        }
+        $this->write_activity_entry( $rollback_entry );
 
         wp_send_json_success( array(
             'content'  => $content,

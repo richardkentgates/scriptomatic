@@ -142,7 +142,7 @@ trait Scriptomatic_Pages {
                     <th><?php esc_html_e( 'Date / Time', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'Event', 'scriptomatic' ); ?></th>
-                    <th><?php esc_html_e( 'Size / Detail', 'scriptomatic' ); ?></th>
+                    <th><?php esc_html_e( 'Changes', 'scriptomatic' ); ?></th>
                     <?php if ( $has_content_entries ) : ?>
                     <th style="width:170px;"><?php esc_html_e( 'Actions', 'scriptomatic' ); ?></th>
                     <?php endif; ?>
@@ -203,7 +203,22 @@ trait Scriptomatic_Pages {
                 if ( $has_delete_snap )  { $file_del_index++; }
 
                 $is_file_entry = ( 'file' === ( isset( $entry['location'] ) ? $entry['location'] : '' ) );
-                $action_label  = ucwords( str_replace( '_', ' ', $action ) );
+                // Map action keys to human-readable Event labels.
+                $action_label_map = array(
+                    'save'                 => __( 'Save', 'scriptomatic' ),
+                    'rollback'             => __( 'Restore', 'scriptomatic' ),
+                    'url_added'            => __( 'URL Added', 'scriptomatic' ),
+                    'url_removed'          => __( 'URL Removed', 'scriptomatic' ),
+                    'conditions_save'      => __( 'Conditions', 'scriptomatic' ),
+                    'conditions_restored'  => __( 'Conditions Restored', 'scriptomatic' ),
+                    'url_list_restored'    => __( 'URLs Restored', 'scriptomatic' ),
+                    'file_save'            => __( 'File Save', 'scriptomatic' ),
+                    'file_rollback'        => __( 'File Restore', 'scriptomatic' ),
+                    'file_delete'          => __( 'File Deleted', 'scriptomatic' ),
+                );
+                $action_label = isset( $action_label_map[ $action ] )
+                    ? $action_label_map[ $action ]
+                    : ucwords( str_replace( '_', ' ', $action ) );
                 $label_str     = ( $ts ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) : '' )
                                . ( $ulogin ? ' — ' . $ulogin : '' );
             ?>

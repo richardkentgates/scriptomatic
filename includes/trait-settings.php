@@ -202,35 +202,6 @@ trait Scriptomatic_Settings {
         return isset( $settings['max_log_entries'] ) ? (int) $settings['max_log_entries'] : SCRIPTOMATIC_MAX_LOG_ENTRIES;
     }
 
-    /**
-     * Write a security-audit log entry when a script changes.
-     *
-     * In v1.2.0–v1.4.x this wrote to the PHP error log.  Since v1.5.0 it
-     * delegates to {@see write_audit_log_entry()} which persists the entry
-     * to the WordPress options table, visible in the Audit Log embedded on the
-     * Head Scripts and Footer Scripts pages.
-     *
-     * @since  1.2.0
-     * @since  1.5.0 Writes to the persistent in-admin audit log instead of
-     *               the PHP error log.
-     * @access private
-     * @param  string $new_content Sanitised content about to be saved.
-     * @param  string $option_key  WordPress option key being updated.
-     * @param  string $location    `'head'` or `'footer'`.
-     * @return void
-     */
-    private function log_change( $new_content, $option_key, $location ) {
-        $old_content = get_option( $option_key, '' );
-        if ( $old_content !== $new_content ) {
-            $this->write_activity_entry( array(
-                'action'   => 'save',
-                'location' => $location,
-                'content'  => $new_content,
-                'chars'    => strlen( $new_content ),
-            ) );
-        }
-    }
-
     // =========================================================================
     // ACTIVITY LOG
     // =========================================================================
@@ -242,12 +213,14 @@ trait Scriptomatic_Settings {
      * the stored array, and trims to the configured maximum.
      *
      * Accepted $data keys:
-     *   action   (string) — 'save'|'rollback'|'url_added'|'url_removed'|'file_save'|'file_rollback'|'file_delete'
-     *   location (string) — 'head'|'footer'|'file'
-     *   content  (string) — snapshot; only for save/rollback/file_save/file_rollback (enables View+Restore buttons)
-     *   chars    (int)    — byte length of content
-     *   detail   (string) — URL for url_added/url_removed; human label for file events
-     *   file_id  (string) — only for file actions
+     *   action               (string) — 'save'|'rollback'|'file_save'|'file_rollback'|'file_delete'
+     *   location             (string) — 'head'|'footer'|'file'
+     *   content              (string) — snapshot; for save/rollback types (enables View+Restore)
+     *   chars                (int)    — byte length of content
+     *   detail               (string) — human-readable summary of what changed
+     *   urls_snapshot        (string) — JSON URL list; included in combined save/rollback entries
+     *   conditions_snapshot  (string) — JSON conditions; included in combined save/rollback entries
+     *   file_id              (string) — only for file actions
      *
      * @since  1.0.0
      * @access private

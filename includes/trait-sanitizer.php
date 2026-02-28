@@ -167,7 +167,18 @@ trait Scriptomatic_Sanitizer {
         // Only log, record history, and stamp the rate-limit transient once per
         // request — guards against the Settings API double-call.
         if ( ! $already_processed ) {
-            $this->log_change( $input, $option_key, $location );
+            // Contribute the script snapshot to the combined pending-save entry.
+            // The entry is flushed once at shutdown after all three callbacks
+            // (script, urls, conditions) have contributed their pieces.
+            $old_content  = get_option( $option_key, '' );
+            $pending_data = array(
+                'content' => $input,
+                'chars'   => strlen( $input ),
+            );
+            if ( $old_content !== $input ) {
+                $pending_data['script_changed'] = true;
+            }
+            $this->contribute_to_pending_save( $location, $pending_data );
             $this->record_save_timestamp( $location );
             $processed_this_request[ $location ] = true;
             add_settings_error(
@@ -442,25 +453,20 @@ trait Scriptomatic_Sanitizer {
             $new_urls = array_column( $clean, 'url' );
 
             $new_urls_json = wp_json_encode( $clean );
-            $old_urls_json = wp_json_encode( is_array( $old_decoded ) ? $old_decoded : array() );
 
-            foreach ( array_diff( $new_urls, $old_urls ) as $url ) {
-                $this->write_activity_entry( array(
-                    'action'        => 'url_added',
-                    'location'      => $location,
-                    'detail'        => $url,
-                    'urls_snapshot' => $new_urls_json, // state after addition — Restore returns URL list to this state
-                ) );
-            }
+            $added_urls   = array_diff( $new_urls, $old_urls );
+            $removed_urls = array_diff( $old_urls, $new_urls );
 
-            foreach ( array_diff( $old_urls, $new_urls ) as $url ) {
-                $this->write_activity_entry( array(
-                    'action'        => 'url_removed',
-                    'location'      => $location,
-                    'detail'        => $url,
-                    'urls_snapshot' => $old_urls_json, // state before removal — shown in lightbox; Restore is greyed out
-                ) );
+            // Contribute the URL snapshot and change counts to the combined
+            // pending-save entry that is flushed as one entry at shutdown.
+            $pending_data = array( 'urls_snapshot' => $new_urls_json );
+            if ( count( $added_urls ) > 0 ) {
+                $pending_data['urls_added'] = count( $added_urls );
             }
+            if ( count( $removed_urls ) > 0 ) {
+                $pending_data['urls_removed'] = count( $removed_urls );
+            }
+            $this->contribute_to_pending_save( $location, $pending_data );
         }
 
         return wp_json_encode( $clean );
@@ -539,46 +545,183 @@ trait Scriptomatic_Sanitizer {
         $new_json       = wp_json_encode( $new_conditions );
         $old_json       = get_option( $option_key, $default );
 
-        if ( $old_json !== $new_json && ! isset( $logged_this_request[ $location ] ) ) {
+        if ( ! isset( $logged_this_request[ $location ] ) ) {
             $logged_this_request[ $location ] = true;
-            // Derive a short human-readable summary for the Detail column.
-            $ctype_labels = array(
-                'front_page'   => 'Front page only',
-                'singular'     => 'Any singular post/page',
-                'post_type'    => 'Specific post types',
-                'page_id'      => 'Specific page IDs',
-                'url_contains' => 'URL contains',
-                'logged_in'    => 'Logged-in users only',
-                'logged_out'   => 'Logged-out visitors only',
-                'by_date'      => 'Date range',
-                'by_datetime'  => 'Date & time range',
-                'week_number'  => 'Specific week numbers',
-                'by_month'     => 'Specific months',
-            );
-            if ( isset( $new_conditions['rules'] ) && is_array( $new_conditions['rules'] ) ) {
-                $stack_rules  = $new_conditions['rules'];
-                $stack_logic  = isset( $new_conditions['logic'] ) ? strtoupper( $new_conditions['logic'] ) : 'AND';
-            } else {
-                $stack_rules = array();
-                $stack_logic = 'AND';
+
+            // Always contribute the conditions snapshot so the combined entry
+            // can fully restore all three fields regardless of what changed.
+            $pending_data = array( 'conditions_snapshot' => $new_json );
+
+            if ( $old_json !== $new_json ) {
+                // Derive a short human-readable summary for the Changes column.
+                $ctype_labels = array(
+                    'front_page'   => 'Front page only',
+                    'singular'     => 'Any singular post/page',
+                    'post_type'    => 'Specific post types',
+                    'page_id'      => 'Specific page IDs',
+                    'url_contains' => 'URL contains',
+                    'logged_in'    => 'Logged-in users only',
+                    'logged_out'   => 'Logged-out visitors only',
+                    'by_date'      => 'Date range',
+                    'by_datetime'  => 'Date & time range',
+                    'week_number'  => 'Specific week numbers',
+                    'by_month'     => 'Specific months',
+                );
+                if ( isset( $new_conditions['rules'] ) && is_array( $new_conditions['rules'] ) ) {
+                    $stack_rules  = $new_conditions['rules'];
+                    $stack_logic  = isset( $new_conditions['logic'] ) ? strtoupper( $new_conditions['logic'] ) : 'AND';
+                } else {
+                    $stack_rules = array();
+                    $stack_logic = 'AND';
+                }
+                $rcount = count( $stack_rules );
+                if ( 0 === $rcount ) {
+                    $cond_detail = __( 'All pages', 'scriptomatic' );
+                } elseif ( 1 === $rcount ) {
+                    $rt          = isset( $stack_rules[0]['type'] ) ? $stack_rules[0]['type'] : '';
+                    $cond_detail = isset( $ctype_labels[ $rt ] ) ? $ctype_labels[ $rt ] : $rt;
+                } else {
+                    $cond_detail = sprintf( '%d rules (%s)', $rcount, $stack_logic );
+                }
+
+                $pending_data['conditions_changed'] = true;
+                $pending_data['conditions_detail']  = $cond_detail;
             }
-            $rcount = count( $stack_rules );
-            if ( 0 === $rcount ) {
-                $cond_detail = __( 'All pages', 'scriptomatic' );
-            } elseif ( 1 === $rcount ) {
-                $rt          = isset( $stack_rules[0]['type'] ) ? $stack_rules[0]['type'] : '';
-                $cond_detail = isset( $ctype_labels[ $rt ] ) ? $ctype_labels[ $rt ] : $rt;
-            } else {
-                $cond_detail = sprintf( '%d rules (%s)', $rcount, $stack_logic );
-            }
-            $this->write_activity_entry( array(
-                'action'              => 'conditions_save',
-                'location'            => $location,
-                'detail'              => $cond_detail,
-                'conditions_snapshot' => $new_json, // state after save — Restore returns conditions to this state
-            ) );
+
+            $this->contribute_to_pending_save( $location, $pending_data );
         }
 
         return $new_json;
+    }
+
+    // =========================================================================
+    // COMBINED SAVE ENTRY ACCUMULATOR
+    // =========================================================================
+
+    /**
+     * Accumulate data from each Settings API sanitize callback into a single
+     * pending-save record, then flush it as one combined log entry at shutdown.
+     *
+     * The WordPress Settings API fires a separate sanitize callback for every
+     * registered option in the group. For a Head/Footer Save click that means
+     * three separate invocations: script, linked URLs, and conditions. Rather
+     * than write three partial entries, each callback contributes its piece
+     * here and one combined snapshot entry is written once at shutdown.
+     *
+     * @since  2.5.0
+     * @access private
+     * @param  string $location 'head'|'footer'.
+     * @param  array  $data     Data fragment to merge into the pending entry.
+     * @return void
+     */
+    private function contribute_to_pending_save( $location, array $data ) {
+        static $pending = array();
+        static $hooked  = array();
+
+        $pending[ $location ] = isset( $pending[ $location ] )
+            ? array_merge( $pending[ $location ], $data )
+            : $data;
+
+        if ( empty( $hooked[ $location ] ) ) {
+            $hooked[ $location ] = true;
+
+            // Bind the flush closure to $this so it can access private methods.
+            $bound = Closure::bind(
+                function () use ( $location, &$pending ) {
+                    if ( ! empty( $pending[ $location ] ) ) {
+                        $this->flush_pending_save_entry( $location, $pending[ $location ] );
+                    }
+                },
+                $this,
+                get_class( $this )
+            );
+            add_action( 'shutdown', $bound );
+        }
+    }
+
+    /**
+     * Write the combined save entry assembled from all three sanitize callbacks.
+     *
+     * Called once per location at PHP shutdown, after the Settings API has
+     * finished invoking all callbacks. Builds the entry from the accumulated
+     * data, derives a human-readable "Changes" summary, and persists it via
+     * {@see write_activity_entry()}.
+     *
+     * @since  2.5.0
+     * @access private
+     * @param  string $location   'head'|'footer'.
+     * @param  array  $accumulated Merged data contributed by the three callbacks.
+     * @return void
+     */
+    private function flush_pending_save_entry( $location, array $accumulated ) {
+        $entry = array(
+            'action'   => 'save',
+            'location' => $location,
+        );
+
+        // Script content snapshot — always included when present.
+        if ( array_key_exists( 'content', $accumulated ) ) {
+            $entry['content'] = $accumulated['content'];
+            $entry['chars']   = array_key_exists( 'chars', $accumulated )
+                ? (int) $accumulated['chars']
+                : strlen( $accumulated['content'] );
+        }
+
+        // URL list snapshot — current state at time of save.
+        if ( array_key_exists( 'urls_snapshot', $accumulated ) ) {
+            $entry['urls_snapshot'] = $accumulated['urls_snapshot'];
+        }
+
+        // Inline conditions snapshot — current state at time of save.
+        if ( array_key_exists( 'conditions_snapshot', $accumulated ) ) {
+            $entry['conditions_snapshot'] = $accumulated['conditions_snapshot'];
+        }
+
+        // Build human-readable summary of what changed for the Changes column.
+        $detail_parts = array();
+
+        if ( ! empty( $accumulated['script_changed'] ) ) {
+            $chars          = isset( $entry['chars'] ) ? (int) $entry['chars'] : 0;
+            $detail_parts[] = sprintf(
+                /* translators: %s: character count */
+                __( 'Script: %s chars', 'scriptomatic' ),
+                number_format( $chars )
+            );
+        }
+
+        if ( ! empty( $accumulated['urls_added'] ) ) {
+            $n              = (int) $accumulated['urls_added'];
+            $detail_parts[] = sprintf(
+                /* translators: %d: number of URLs added */
+                _n( '%d URL added', '%d URLs added', $n, 'scriptomatic' ),
+                $n
+            );
+        }
+
+        if ( ! empty( $accumulated['urls_removed'] ) ) {
+            $n              = (int) $accumulated['urls_removed'];
+            $detail_parts[] = sprintf(
+                /* translators: %d: number of URLs removed */
+                _n( '%d URL removed', '%d URLs removed', $n, 'scriptomatic' ),
+                $n
+            );
+        }
+
+        if ( ! empty( $accumulated['conditions_changed'] ) && ! empty( $accumulated['conditions_detail'] ) ) {
+            $detail_parts[] = sprintf(
+                /* translators: %s: conditions summary label */
+                __( 'Conditions: %s', 'scriptomatic' ),
+                $accumulated['conditions_detail']
+            );
+        }
+
+        // Do not write anything if nothing actually changed this request.
+        if ( empty( $detail_parts ) ) {
+            return;
+        }
+
+        $entry['detail'] = implode( ' · ', $detail_parts );
+
+        $this->write_activity_entry( $entry );
     }
 }
