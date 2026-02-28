@@ -253,10 +253,13 @@ trait Scriptomatic_Files {
         }
 
         // Read and sanitise POST fields.
-        $original_id = isset( $_POST['_sm_file_original_id'] )
+        $original_id   = isset( $_POST['_sm_file_original_id'] )
             ? sanitize_key( wp_unslash( $_POST['_sm_file_original_id'] ) )
             : '';
-        $label       = isset( $_POST['sm_file_label'] )
+        $upload_source = isset( $_POST['_sm_upload_source'] )
+            ? sanitize_key( wp_unslash( $_POST['_sm_upload_source'] ) )
+            : '';
+        $label         = isset( $_POST['sm_file_label'] )
             ? sanitize_text_field( wp_unslash( $_POST['sm_file_label'] ) )
             : '';
         $filename    = isset( $_POST['sm_file_name'] )
@@ -280,6 +283,15 @@ trait Scriptomatic_Files {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
             $upload_result = $this->validate_js_upload( $_FILES['sm_file_upload'] );
             if ( is_wp_error( $upload_result ) ) {
+                if ( 'list' === $upload_source ) {
+                    wp_safe_redirect(
+                        add_query_arg(
+                            array( 'page' => 'scriptomatic-files', 'upload_error' => $upload_result->get_error_code() ),
+                            admin_url( 'admin.php' )
+                        )
+                    );
+                    exit;
+                }
                 $this->redirect_file_edit( $original_id, $upload_result->get_error_code() );
                 return;
             }
@@ -471,6 +483,19 @@ trait Scriptomatic_Files {
                 'location' => $location,
             ),
         ) );
+
+        // When the save was triggered from the list-page upload form, redirect
+        // to the edit view for the new file so the user can review the code
+        // and configure the label, inject location, and load conditions.
+        if ( 'list' === $upload_source && '' === $original_id ) {
+            wp_safe_redirect(
+                add_query_arg(
+                    array( 'page' => 'scriptomatic-files', 'action' => 'edit', 'file' => $new_id ),
+                    admin_url( 'admin.php' )
+                )
+            );
+            exit;
+        }
 
         wp_safe_redirect(
             add_query_arg(

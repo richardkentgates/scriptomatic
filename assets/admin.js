@@ -757,49 +757,6 @@ jQuery( document ).ready( function ( $ ) {
             } );
         }
 
-        /* 5c. File upload: read a selected .js file into the code editor. */
-        var $fileInput   = $( '#sm-file-upload-input' );
-        var $filePreview = $( '#sm-file-upload-preview' );
-        if ( $fileInput.length ) {
-            $fileInput.on( 'change', function () {
-                var file = this.files && this.files[0];
-                if ( ! file ) {
-                    $filePreview.hide().text( '' );
-                    return;
-                }
-                $filePreview.text( file.name + ' \u2014 ' + formatBytes( file.size ) ).show();
-
-                var reader = new FileReader();
-                reader.onload = function ( e ) {
-                    var content = e.target.result || '';
-
-                    // Populate the CodeMirror editor if available; fall back to textarea.
-                    if ( cmEditor && loc === 'files' ) {
-                        cmEditor.setValue( content );
-                        updateCounter( content.length );
-                    } else {
-                        var $ta = $( '#sm-file-content' );
-                        if ( $ta.length ) { $ta.val( content ).trigger( 'input' ); }
-                    }
-
-                    // Auto-fill filename when it has not been manually edited.
-                    if ( $fileSlug.length && ! slugEdited ) {
-                        $fileSlug.val( file.name );
-                        slugEdited = true; // lock: user is choosing a file, treat as manual.
-                    }
-
-                    // Auto-fill label from filename when still empty.
-                    if ( $fileLabel.length && '' === $fileLabel.val().trim() ) {
-                        $fileLabel.val( file.name.replace( /\.js$/i, '' ) );
-                    }
-                };
-                reader.onerror = function () {
-                    $filePreview.text( ( i18n.uploadReadError || 'Could not read the selected file.' ) ).show();
-                };
-                reader.readAsText( file );
-            } );
-        }
-
         /* 5b. AJAX delete: confirm, POST, remove row on success. */
         $( document ).on( 'click', '.sm-file-delete', function ( e ) {
             e.preventDefault();

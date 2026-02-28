@@ -465,9 +465,48 @@ trait Scriptomatic_Pages {
             <div class="notice notice-warning is-dismissible"><p><?php esc_html_e( 'File was empty and has been deleted.', 'scriptomatic' ); ?></p></div>
             <?php endif; ?>
 
+            <?php
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $upload_error_code = isset( $_GET['upload_error'] ) ? sanitize_key( wp_unslash( $_GET['upload_error'] ) ) : '';
+            $upload_error_messages = array(
+                'invalid_type'     => __( 'Only .js files may be uploaded. Please select a .js file.', 'scriptomatic' ),
+                'upload_too_large' => __( 'The uploaded file exceeds the maximum size allowed by this server.', 'scriptomatic' ),
+                'upload_error'     => __( 'File upload failed. Please try again.', 'scriptomatic' ),
+                'upload_no_file'   => __( 'No file was received. Please choose a .js file to upload.', 'scriptomatic' ),
+            );
+            if ( '' !== $upload_error_code && isset( $upload_error_messages[ $upload_error_code ] ) ) :
+            ?>
+            <div class="notice notice-error is-dismissible"><p><?php echo esc_html( $upload_error_messages[ $upload_error_code ] ); ?></p></div>
+            <?php endif; ?>
+
             <p class="description" style="margin-top:8px;">
                 <?php esc_html_e( 'Manage standalone JavaScript files stored on this server. Each file can be loaded in the head or footer with its own conditions.', 'scriptomatic' ); ?>
             </p>
+
+            <div class="sm-upload-section" style="margin:16px 0;padding:16px 16px 8px;background:#fff;border:1px solid #c3c4c7;max-width:480px;">
+                <h3 style="margin-top:0;"><?php esc_html_e( 'Upload a JS File', 'scriptomatic' ); ?></h3>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="scriptomatic_save_js_file">
+                    <input type="hidden" name="_sm_upload_source" value="list">
+                    <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo esc_attr( (int) wp_max_upload_size() ); ?>">
+                    <?php wp_nonce_field( SCRIPTOMATIC_FILES_NONCE, '_sm_files_nonce' ); ?>
+                    <p style="margin-top:0;">
+                        <input type="file" name="sm_file_upload" accept=".js,text/javascript,application/javascript">
+                    </p>
+                    <p class="description" style="margin-bottom:12px;">
+                        <?php
+                        printf(
+                            /* translators: %s: human-readable maximum upload size (e.g. "8 MB") */
+                            esc_html__( 'Select a local .js file. Max: %s. You will be taken to the edit page to review the code and set the label, location, and conditions before the file goes live.', 'scriptomatic' ),
+                            esc_html( size_format( wp_max_upload_size() ) )
+                        );
+                        ?>
+                    </p>
+                    <p>
+                        <button type="submit" class="button button-secondary"><?php esc_html_e( 'Upload &amp; Edit', 'scriptomatic' ); ?></button>
+                    </p>
+                </form>
+            </div>
 
             <?php if ( empty( $files ) ) : ?>
             <div class="sm-files-empty">
@@ -652,29 +691,7 @@ trait Scriptomatic_Pages {
                             </p>
                         </td>
                     </tr>
-                    <tr>
-                        <th scope="row"><label for="sm-file-upload-input"><?php esc_html_e( 'Upload .js File', 'scriptomatic' ); ?></label></th>
-                        <td>
-                            <input
-                                type="file"
-                                id="sm-file-upload-input"
-                                name="sm_file_upload"
-                                accept=".js,text/javascript,application/javascript"
-                                aria-describedby="sm-upload-desc"
-                            >
-                            <span id="sm-file-upload-preview" class="description" style="display:none;margin-left:8px;"></span>
-                            <p id="sm-upload-desc" class="description">
-                                <?php
-                                printf(
-                                    /* translators: %s: human-readable maximum upload size (e.g. "8 MB") */
-                                    esc_html__( 'Optional. Select a local .js file to populate the JavaScript editor below. Max: %s.', 'scriptomatic' ),
-                                    esc_html( $max_bytes_fmt )
-                                );
-                                ?>
-                            </p>
-                            <p class="description"><?php esc_html_e( 'Tip: review the imported code in the editor before saving.', 'scriptomatic' ); ?></p>
-                        </td>
-                    </tr>
+
                     <tr>
                         <th scope="row"><?php esc_html_e( 'Inject In', 'scriptomatic' ); ?></th>
                         <td>
@@ -787,7 +804,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Verify &amp; Test:', 'scriptomatic' ) . '</strong> ' . __( 'View your page source to confirm the script is injected in the correct location, then test your site to ensure it behaves as expected.', 'scriptomatic' ) . '</li>' .
                 '</ol>' .
                 '<p><strong>' . __( 'Managed JS Files:', 'scriptomatic' ) . '</strong> ' . __( 'Use <em>Scriptomatic &rarr; JS Files</em> to create and manage standalone <code>.js</code> files. Each file has its own label, filename, Head/Footer selector, Load Conditions, and CodeMirror editor. Files are stored in <code>wp-content/uploads/scriptomatic/</code> and survive plugin updates.', 'scriptomatic' ) . '</p>' .
-                '<p><strong>' . __( 'File Upload:', 'scriptomatic' ) . '</strong> ' . __( 'On the JS File edit page, use the <strong>Upload .js File</strong> field to import a local file. The browser reads the file into the editor so you can review and edit it before saving. Falls back to a server-side upload when JavaScript is unavailable. The REST API (<code>POST /wp-json/scriptomatic/v1/files/upload</code>) and WP-CLI (<code>wp scriptomatic files upload --path=&lt;file&gt;</code>) also support file uploads.', 'scriptomatic' ) . '</p>' .
+                '<p><strong>' . __( 'File Upload:', 'scriptomatic' ) . '</strong> ' . __( 'On the <strong>JS Files</strong> page, use the <strong>Upload a JS File</strong> form to import a local .js file directly from your computer. The file is uploaded to the server and you are taken to the edit page to review the code and configure the label, inject location, and load conditions before the file goes live. The REST API (<code>POST /wp-json/scriptomatic/v1/files/upload</code>) and WP-CLI (<code>wp scriptomatic files upload --path=&lt;file&gt;</code>) also support file uploads.', 'scriptomatic' ) . '</p>' .
                 '<p><strong>' . __( 'Example:', 'scriptomatic' ) . '</strong></p>' .
                 '<pre>console.log("Hello from Scriptomatic!");\n' .
                 'var myCustomVar = "Hello World";</pre>',
