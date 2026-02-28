@@ -13,6 +13,29 @@ _Nothing yet._
 
 ---
 
+## [1.12.0] – 2026-06-05
+
+### Added
+- **Full Activity Log snapshots.** Every log entry now bundles:
+  - `urls_snapshot` — the complete URL list at the time of the change.
+  - `conditions_snapshot` — the full conditions data at the time of the change.
+- **Conditions changes logged.** `sanitize_conditions_for()` now detects when load conditions change and writes a dedicated `conditions_save` event to the Activity Log with a human-readable summary in the Detail column.
+- **URL-list snapshot on URL add/remove.** `sanitize_linked_for()` attaches the full new URL list to every `url_added` / `url_removed` entry.
+- **File save/delete snapshots.** `handle_save_js_file()` includes `conditions` and file `meta` in `file_save` log entries; `ajax_delete_js_file()` captures `content`, `conditions`, and `meta` in `file_delete` entries to enable full restoration.
+- **Rich View lightbox.** The View lightbox now shows a formatted plaintext display (`format_entry_display`) that includes File Info, Script Code, External Script URLs, and Load Conditions — for _all_ entry types.
+- **Universal Restore.** New Restore buttons for every Activity Log row type:
+  - `url_added` / `url_removed` → "Restore" restores the complete URL list.
+  - `conditions_save` → "Restore" re-applies the saved conditions.
+  - `file_delete` → "Re-create" writes the deleted JS file back to disk and re-inserts its metadata.
+  - Inline script `save` / `rollback` now also restores URL list and conditions alongside the code.
+  - Managed JS File `file_save` / `file_rollback` now also restores file conditions alongside the code.
+- **Five new AJAX endpoints:** `scriptomatic_get_url_list_content`, `scriptomatic_restore_url_list`, `scriptomatic_get_conditions_content`, `scriptomatic_restore_conditions`, `scriptomatic_restore_deleted_file`.
+
+### Fixed
+- `handle_save_js_file()` was parsing the `sm_file_conditions` POST field with a hard-coded legacy `{type, values}` parser introduced before v1.11.0; now correctly delegates to `sanitize_conditions_array()` which handles the current `{logic, rules}` stacked format.
+
+---
+
 ## [1.11.0] – 2026-03-04
 
 ### Added

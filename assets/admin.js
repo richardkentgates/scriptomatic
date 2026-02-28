@@ -522,7 +522,7 @@ jQuery( document ).ready( function ( $ ) {
             }, function ( response ) {
                 $btn.prop( 'disabled', false ).text( orig );
                 if ( response.success ) {
-                    var content = response.data.content || '';
+                    var content = response.data.display || response.data.content || '';
                     $lightbox.find( '.sm-history-lightbox__title' ).text( i18n.viewTitle || 'Revision Preview' );
                     $lightbox.find( '.sm-history-lightbox__meta' ).text( label );
                     var $pre = $lightbox.find( '.sm-history-lightbox__pre' );
@@ -586,6 +586,145 @@ jQuery( document ).ready( function ( $ ) {
             } );
         } );
 
+        /* =====================================================================
+         * 3.7  URL list snapshot — View + Restore
+         * ==================================================================== */
+        $( document ).on( 'click', '.sm-url-list-view', function () {
+            var $btn  = $( this );
+            var index = $btn.data( 'index' );
+            var entryLoc = $btn.data( 'location' ) || loc;
+            var label = $btn.data( 'label' ) || '';
+            var orig  = $btn.text();
+            $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading…' );
+            $.post( data.ajaxUrl, {
+                action:   'scriptomatic_get_url_list_content',
+                nonce:    data.rollbackNonce,
+                index:    index,
+                location: entryLoc
+            }, function ( response ) {
+                $btn.prop( 'disabled', false ).text( orig );
+                if ( response.success ) {
+                    var content = response.data.display || '';
+                    $lightbox.find( '.sm-history-lightbox__title' ).text( i18n.viewTitle || 'Revision Preview' );
+                    $lightbox.find( '.sm-history-lightbox__meta' ).text( label );
+                    var $pre = $lightbox.find( '.sm-history-lightbox__pre' );
+                    $pre.text( content || ( i18n.emptyScript || '(empty)' ) ).toggleClass( 'sm-history-lightbox__empty', ! content );
+                    $lightbox.addClass( 'is-open' );
+                    $( 'body' ).css( 'overflow', 'hidden' );
+                } else {
+                    alert( i18n.viewError || 'Could not load revision.' );
+                }
+            } ).fail( function () {
+                $btn.prop( 'disabled', false ).text( orig );
+                alert( i18n.viewError || 'Could not load revision.' );
+            } );
+        } );
+
+        $( document ).on( 'click', '.sm-url-list-restore', function () {
+            if ( ! confirm( i18n.rollbackConfirm ) ) { return; }
+            var $btn  = $( this );
+            var orig  = $btn.data( 'original-text' ) || 'Restore';
+            $btn.prop( 'disabled', true ).text( i18n.restoring || 'Restoring…' );
+            $.post( data.ajaxUrl, {
+                action:   'scriptomatic_restore_url_list',
+                nonce:    data.rollbackNonce,
+                index:    $btn.data( 'index' ),
+                location: $btn.data( 'location' ) || loc
+            }, function ( response ) {
+                if ( response.success ) {
+                    $( '<div>' ).addClass( 'notice notice-success is-dismissible' )
+                        .html( '<p>' + ( response.data.message || 'URL list restored.' ) + '</p>' )
+                        .insertAfter( '.wp-header-end' );
+                    setTimeout( function () { location.reload(); }, 800 );
+                } else {
+                    alert( i18n.rollbackError || 'Restore failed.' );
+                    $btn.prop( 'disabled', false ).text( orig );
+                }
+            } ).fail( function () { alert( i18n.rollbackError || 'Restore failed.' ); $btn.prop( 'disabled', false ).text( orig ); } );
+        } );
+
+        /* =====================================================================
+         * 3.8  Conditions snapshot — View + Restore
+         * ==================================================================== */
+        $( document ).on( 'click', '.sm-cond-snapshot-view', function () {
+            var $btn  = $( this );
+            var index = $btn.data( 'index' );
+            var entryLoc = $btn.data( 'location' ) || loc;
+            var label = $btn.data( 'label' ) || '';
+            var orig  = $btn.text();
+            $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading…' );
+            $.post( data.ajaxUrl, {
+                action:   'scriptomatic_get_conditions_content',
+                nonce:    data.rollbackNonce,
+                index:    index,
+                location: entryLoc
+            }, function ( response ) {
+                $btn.prop( 'disabled', false ).text( orig );
+                if ( response.success ) {
+                    var content = response.data.display || '';
+                    $lightbox.find( '.sm-history-lightbox__title' ).text( i18n.viewTitle || 'Revision Preview' );
+                    $lightbox.find( '.sm-history-lightbox__meta' ).text( label );
+                    var $pre = $lightbox.find( '.sm-history-lightbox__pre' );
+                    $pre.text( content || ( i18n.emptyScript || '(empty)' ) ).toggleClass( 'sm-history-lightbox__empty', ! content );
+                    $lightbox.addClass( 'is-open' );
+                    $( 'body' ).css( 'overflow', 'hidden' );
+                } else {
+                    alert( i18n.viewError || 'Could not load revision.' );
+                }
+            } ).fail( function () {
+                $btn.prop( 'disabled', false ).text( orig );
+                alert( i18n.viewError || 'Could not load revision.' );
+            } );
+        } );
+
+        $( document ).on( 'click', '.sm-cond-snapshot-restore', function () {
+            if ( ! confirm( i18n.rollbackConfirm ) ) { return; }
+            var $btn  = $( this );
+            var orig  = $btn.data( 'original-text' ) || 'Restore';
+            $btn.prop( 'disabled', true ).text( i18n.restoring || 'Restoring…' );
+            $.post( data.ajaxUrl, {
+                action:   'scriptomatic_restore_conditions',
+                nonce:    data.rollbackNonce,
+                index:    $btn.data( 'index' ),
+                location: $btn.data( 'location' ) || loc
+            }, function ( response ) {
+                if ( response.success ) {
+                    $( '<div>' ).addClass( 'notice notice-success is-dismissible' )
+                        .html( '<p>' + ( response.data.message || 'Conditions restored.' ) + '</p>' )
+                        .insertAfter( '.wp-header-end' );
+                    setTimeout( function () { location.reload(); }, 800 );
+                } else {
+                    alert( i18n.rollbackError || 'Restore failed.' );
+                    $btn.prop( 'disabled', false ).text( orig );
+                }
+            } ).fail( function () { alert( i18n.rollbackError || 'Restore failed.' ); $btn.prop( 'disabled', false ).text( orig ); } );
+        } );
+
+        /* =====================================================================
+         * 3.9  Deleted-file restore — "sm-file-reanimate" button
+         * ==================================================================== */
+        $( document ).on( 'click', '.sm-file-reanimate', function () {
+            if ( ! confirm( i18n.rollbackConfirm ) ) { return; }
+            var $btn  = $( this );
+            var orig  = $btn.data( 'original-text' ) || 'Re-create';
+            $btn.prop( 'disabled', true ).text( i18n.restoring || 'Restoring…' );
+            $.post( data.ajaxUrl, {
+                action: 'scriptomatic_restore_deleted_file',
+                nonce:  data.filesNonce,
+                index:  $btn.data( 'index' )
+            }, function ( response ) {
+                if ( response.success ) {
+                    $( '<div>' ).addClass( 'notice notice-success is-dismissible' )
+                        .html( '<p>' + ( response.data.message || 'File re-created.' ) + '</p>' )
+                        .insertAfter( '.wp-header-end' );
+                    setTimeout( function () { location.reload(); }, 800 );
+                } else {
+                    alert( i18n.rollbackError || 'Restore failed.' );
+                    $btn.prop( 'disabled', false ).text( orig );
+                }
+            } ).fail( function () { alert( i18n.rollbackError || 'Restore failed.' ); $btn.prop( 'disabled', false ).text( orig ); } );
+        } );
+
         $( document ).on( 'click', '.sm-file-view', function () {
             var $btn   = $( this );
             var index  = $btn.data( 'index' );
@@ -596,14 +735,15 @@ jQuery( document ).ready( function ( $ ) {
             $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading\u2026' );
 
             $.post( data.ajaxUrl, {
-                action:  'scriptomatic_get_file_activity_content',
-                nonce:   data.filesNonce,
-                index:   index,
-                file_id: fileId
+                action:    'scriptomatic_get_file_activity_content',
+                nonce:     data.filesNonce,
+                index:     index,
+                file_id:   fileId,
+                is_delete: $btn.data( 'is-delete' ) ? 1 : 0
             }, function ( response ) {
                 $btn.prop( 'disabled', false ).text( orig );
                 if ( response.success ) {
-                    var content = response.data.content || '';
+                    var content = response.data.display || response.data.content || '';
                     $lightbox.find( '.sm-history-lightbox__title' ).text( i18n.viewTitle || 'Revision Preview' );
                     $lightbox.find( '.sm-history-lightbox__meta' ).text( label );
                     var $pre = $lightbox.find( '.sm-history-lightbox__pre' );

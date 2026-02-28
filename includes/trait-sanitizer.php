@@ -467,19 +467,23 @@ trait Scriptomatic_Sanitizer {
 
             $new_urls = array_column( $clean, 'url' );
 
+            $new_urls_json = wp_json_encode( $clean );
+
             foreach ( array_diff( $new_urls, $old_urls ) as $url ) {
                 $this->write_audit_log_entry( array(
-                    'action'   => 'url_added',
-                    'location' => $location,
-                    'detail'   => $url,
+                    'action'        => 'url_added',
+                    'location'      => $location,
+                    'detail'        => $url,
+                    'urls_snapshot' => $new_urls_json,
                 ) );
             }
 
             foreach ( array_diff( $old_urls, $new_urls ) as $url ) {
                 $this->write_audit_log_entry( array(
-                    'action'   => 'url_removed',
-                    'location' => $location,
-                    'detail'   => $url,
+                    'action'        => 'url_removed',
+                    'location'      => $location,
+                    'detail'        => $url,
+                    'urls_snapshot' => $new_urls_json,
                 ) );
             }
         }
@@ -553,6 +557,52 @@ trait Scriptomatic_Sanitizer {
             return get_option( $option_key, $default );
         }
 
-        return wp_json_encode( $this->sanitize_conditions_array( $decoded ) );
+        $new_conditions = $this->sanitize_conditions_array( $decoded );
+        $new_json       = wp_json_encode( $new_conditions );
+        $old_json       = get_option( $option_key, $default );
+
+        if ( $old_json !== $new_json ) {
+            // Derive a short human-readable summary for the Detail column.
+            $ctype_labels = array(
+                'front_page'   => 'Front page only',
+                'singular'     => 'Any singular post/page',
+                'post_type'    => 'Specific post types',
+                'page_id'      => 'Specific page IDs',
+                'url_contains' => 'URL contains',
+                'logged_in'    => 'Logged-in users only',
+                'logged_out'   => 'Logged-out visitors only',
+                'by_date'      => 'Date range',
+                'by_datetime'  => 'Date & time range',
+                'week_number'  => 'Specific week numbers',
+                'by_month'     => 'Specific months',
+            );
+            if ( isset( $new_conditions['rules'] ) && is_array( $new_conditions['rules'] ) ) {
+                $stack_rules  = $new_conditions['rules'];
+                $stack_logic  = isset( $new_conditions['logic'] ) ? strtoupper( $new_conditions['logic'] ) : 'AND';
+            } elseif ( isset( $new_conditions['type'] ) && 'all' !== $new_conditions['type'] ) {
+                $stack_rules = array( $new_conditions );
+                $stack_logic = 'AND';
+            } else {
+                $stack_rules = array();
+                $stack_logic = 'AND';
+            }
+            $rcount = count( $stack_rules );
+            if ( 0 === $rcount ) {
+                $cond_detail = __( 'All pages', 'scriptomatic' );
+            } elseif ( 1 === $rcount ) {
+                $rt          = isset( $stack_rules[0]['type'] ) ? $stack_rules[0]['type'] : '';
+                $cond_detail = isset( $ctype_labels[ $rt ] ) ? $ctype_labels[ $rt ] : $rt;
+            } else {
+                $cond_detail = sprintf( '%d rules (%s)', $rcount, $stack_logic );
+            }
+            $this->write_audit_log_entry( array(
+                'action'              => 'conditions_save',
+                'location'            => $location,
+                'detail'              => $cond_detail,
+                'conditions_snapshot' => $new_json,
+            ) );
+        }
+
+        return $new_json;
     }
 }

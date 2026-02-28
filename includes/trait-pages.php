@@ -106,12 +106,15 @@ trait Scriptomatic_Pages {
             ? array( 'file_save', 'file_rollback' )
             : array( 'save', 'rollback' );
 
-        // Check whether any displayed entry has a snapshot (determines Actions column).
+        // Check whether any displayed entry supports View/Restore in any form.
         $has_content_entries = false;
         foreach ( $log as $e ) {
-            if ( array_key_exists( 'content', $e )
-                && isset( $e['action'] )
-                && in_array( $e['action'], $content_actions, true ) ) {
+            $ea = isset( $e['action'] ) ? $e['action'] : '';
+            if ( ( array_key_exists( 'content', $e ) && in_array( $ea, $content_actions, true ) )
+                || ( in_array( $ea, array( 'url_added', 'url_removed' ), true ) && array_key_exists( 'urls_snapshot', $e ) )
+                || ( 'conditions_save' === $ea && array_key_exists( 'conditions_snapshot', $e ) )
+                || ( 'file_delete' === $ea && array_key_exists( 'content', $e ) )
+            ) {
                 $has_content_entries = true;
                 break;
             }
@@ -147,7 +150,10 @@ trait Scriptomatic_Pages {
             </thead>
             <tbody>
             <?php
-            $content_index = 0;
+            $content_index    = 0;
+            $url_snap_index   = 0;
+            $cond_snap_index  = 0;
+            $file_del_index   = 0;
             foreach ( $log as $entry ) :
                 if ( ! is_array( $entry ) ) { continue; }
                 $ts       = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : 0;
@@ -188,38 +194,66 @@ trait Scriptomatic_Pages {
                     ?></td>
                     <?php if ( $has_content_entries ) : ?>
                     <td>
-                        <?php if ( $has_content ) : ?>
+                        <?php if ( $has_code_content ) : ?>
                             <?php if ( $is_file_entry ) : ?>
-                            <button
-                                type="button"
-                                class="button button-small sm-file-view"
-                                data-index="<?php echo esc_attr( $this_index ); ?>"
+                            <button type="button" class="button button-small sm-file-view"
+                                data-index="<?php echo esc_attr( $this_code_index ); ?>"
                                 data-file-id="<?php echo esc_attr( $file_eid ); ?>"
                                 data-label="<?php echo esc_attr( $label_str ); ?>"
                             ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
-                            <button
-                                type="button"
-                                class="button button-small sm-file-restore"
-                                data-index="<?php echo esc_attr( $this_index ); ?>"
+                            <button type="button" class="button button-small sm-file-restore"
+                                data-index="<?php echo esc_attr( $this_code_index ); ?>"
                                 data-file-id="<?php echo esc_attr( $file_eid ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                             <?php else : ?>
-                            <button
-                                type="button"
-                                class="button button-small scriptomatic-history-view"
-                                data-index="<?php echo esc_attr( $this_index ); ?>"
+                            <button type="button" class="button button-small scriptomatic-history-view"
+                                data-index="<?php echo esc_attr( $this_code_index ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-label="<?php echo esc_attr( $label_str ); ?>"
                             ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
-                            <button
-                                type="button"
-                                class="button button-small scriptomatic-history-restore"
-                                data-index="<?php echo esc_attr( $this_index ); ?>"
+                            <button type="button" class="button button-small scriptomatic-history-restore"
+                                data-index="<?php echo esc_attr( $this_code_index ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                             <?php endif; ?>
+                        <?php endif; ?>
+                        <?php if ( $has_url_snap ) : ?>
+                            <button type="button" class="button button-small sm-url-list-view"
+                                data-index="<?php echo esc_attr( $this_url_index ); ?>"
+                                data-location="<?php echo esc_attr( $location ); ?>"
+                                data-label="<?php echo esc_attr( $label_str ); ?>"
+                            ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
+                            <button type="button" class="button button-small sm-url-list-restore"
+                                data-index="<?php echo esc_attr( $this_url_index ); ?>"
+                                data-location="<?php echo esc_attr( $location ); ?>"
+                                data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
+                            ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
+                        <?php endif; ?>
+                        <?php if ( $has_cond_snap ) : ?>
+                            <button type="button" class="button button-small sm-cond-snapshot-view"
+                                data-index="<?php echo esc_attr( $this_cond_index ); ?>"
+                                data-location="<?php echo esc_attr( $location ); ?>"
+                                data-label="<?php echo esc_attr( $label_str ); ?>"
+                            ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
+                            <button type="button" class="button button-small sm-cond-snapshot-restore"
+                                data-index="<?php echo esc_attr( $this_cond_index ); ?>"
+                                data-location="<?php echo esc_attr( $location ); ?>"
+                                data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
+                            ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
+                        <?php endif; ?>
+                        <?php if ( $has_delete_snap ) : ?>
+                            <button type="button" class="button button-small sm-file-view"
+                                data-index="<?php echo esc_attr( $this_delete_index ); ?>"
+                                data-file-id="<?php echo esc_attr( $file_eid ); ?>"
+                                data-label="<?php echo esc_attr( $label_str ); ?>"
+                                data-is-delete="1"
+                            ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
+                            <button type="button" class="button button-small sm-file-reanimate"
+                                data-index="<?php echo esc_attr( $this_delete_index ); ?>"
+                                data-original-text="<?php esc_attr_e( 'Re-create', 'scriptomatic' ); ?>"
+                            ><?php esc_html_e( 'Re-create', 'scriptomatic' ); ?></button>
                         <?php endif; ?>
                     </td>
                     <?php endif; ?>

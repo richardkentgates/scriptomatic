@@ -95,11 +95,29 @@ trait Scriptomatic_History {
             array( '%s' )
         );
         wp_cache_delete( $option_key, 'options' );
+
+        // Also restore the URL list and conditions that were captured with this entry.
+        $urls_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED     : SCRIPTOMATIC_HEAD_LINKED;
+        $cond_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
+        $urls_snap = isset( $entry['urls_snapshot'] )       ? $entry['urls_snapshot']       : null;
+        $cond_snap = isset( $entry['conditions_snapshot'] ) ? $entry['conditions_snapshot'] : null;
+
+        if ( null !== $urls_snap ) {
+            update_option( $urls_key, $urls_snap );
+            wp_cache_delete( $urls_key, 'options' );
+        }
+        if ( null !== $cond_snap ) {
+            update_option( $cond_key, $cond_snap );
+            wp_cache_delete( $cond_key, 'options' );
+        }
+
         $this->write_activity_entry( array(
-            'action'   => 'rollback',
-            'location' => $location,
-            'content'  => $content,
-            'chars'    => strlen( $content ),
+            'action'              => 'rollback',
+            'location'            => $location,
+            'content'             => $content,
+            'chars'               => strlen( $content ),
+            'urls_snapshot'       => $urls_snap,
+            'conditions_snapshot' => $cond_snap,
         ) );
 
         wp_send_json_success( array(
@@ -133,8 +151,11 @@ trait Scriptomatic_History {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
         }
 
+        $entry = $history[ $index ];
+
         wp_send_json_success( array(
-            'content' => $history[ $index ]['content'],
+            'content' => $entry['content'],
+            'display' => $this->format_entry_display( $entry ),
         ) );
     }
 
@@ -192,13 +213,29 @@ trait Scriptomatic_History {
             wp_send_json_error( array( 'message' => __( 'Could not write file.', 'scriptomatic' ) ) );
         }
 
+        // Also restore the conditions that were saved with this snapshot.
+        if ( isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) ) {
+            $updated_meta = $file_meta;
+            $updated_meta['conditions'] = $entry['conditions'];
+            $all_files = $this->get_js_files_meta();
+            foreach ( $all_files as $fi => $fm ) {
+                if ( $fm['id'] === $file_id ) {
+                    $all_files[ $fi ] = $updated_meta;
+                    break;
+                }
+            }
+            $this->save_js_files_meta( $all_files );
+        }
+
         $this->write_activity_entry( array(
-            'action'   => 'file_rollback',
-            'location' => 'file',
-            'file_id'  => $file_id,
-            'content'  => $content,
-            'chars'    => strlen( $content ),
-            'detail'   => $file_meta['label'],
+            'action'     => 'file_rollback',
+            'location'   => 'file',
+            'file_id'    => $file_id,
+            'content'    => $content,
+            'chars'      => strlen( $content ),
+            'detail'     => $file_meta['label'],
+            'conditions' => isset( $entry['conditions'] ) ? $entry['conditions'] : null,
+            'meta'       => isset( $entry['meta'] )       ? $entry['meta']       : null,
         ) );
 
         wp_send_json_success( array(
@@ -222,14 +259,17 @@ trait Scriptomatic_History {
             wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
         }
 
-        $file_id = isset( $_POST['file_id'] ) ? sanitize_key( wp_unslash( $_POST['file_id'] ) ) : '';
-        $index   = isset( $_POST['index'] )   ? absint( $_POST['index'] )                        : PHP_INT_MAX;
+        $file_id   = isset( $_POST['file_id'] )   ? sanitize_key( wp_unslash( $_POST['file_id'] ) ) : '';
+        $index     = isset( $_POST['index'] )       ? absint( $_POST['index'] )                        : PHP_INT_MAX;
+        $is_delete = ! empty( $_POST['is_delete'] );
+
+        $filter_actions = $is_delete ? array( 'file_delete' ) : array( 'file_save', 'file_rollback' );
 
         $file_history = array_values(
-            array_filter( $this->get_activity_log(), function ( $e ) use ( $file_id ) {
+            array_filter( $this->get_activity_log(), function ( $e ) use ( $file_id, $filter_actions ) {
                 return isset( $e['file_id'] ) && $e['file_id'] === $file_id
                     && array_key_exists( 'content', $e )
-                    && isset( $e['action'] ) && in_array( $e['action'], array( 'file_save', 'file_rollback' ), true );
+                    && isset( $e['action'] ) && in_array( $e['action'], $filter_actions, true );
             } )
         );
 
@@ -237,8 +277,432 @@ trait Scriptomatic_History {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
         }
 
+        $entry = $file_history[ $index ];
+
         wp_send_json_success( array(
-            'content' => $file_history[ $index ]['content'],
+            'content' => $entry['content'],
+            'display' => $this->format_entry_display( $entry ),
+        ) );
+    }
+
+    // =========================================================================
+    // DISPLAY HELPERS
+    // =========================================================================
+
+    /**
+     * Build a human-readable plaintext string for a conditions array.
+     *
+     * Accepts both legacy {type,values} and new {logic,rules} formats.
+     *
+     * @since  1.12.0
+     * @access private
+     * @param  array|string $cond Decoded conditions array or JSON string.
+     * @return string
+     */
+    private function format_conditions_display( $cond ) {
+        if ( is_string( $cond ) ) {
+            $cond = json_decode( $cond, true );
+        }
+        if ( ! is_array( $cond ) ) {
+            return 'All pages (no conditions)';
+        }
+
+        $type_labels = array(
+            'front_page'   => 'Front page only',
+            'singular'     => 'Any singular post/page',
+            'post_type'    => 'Specific post types',
+            'page_id'      => 'Specific page IDs',
+            'url_contains' => 'URL contains',
+            'logged_in'    => 'Logged-in users only',
+            'logged_out'   => 'Logged-out visitors only',
+            'by_date'      => 'Date range',
+            'by_datetime'  => 'Date & time range',
+            'week_number'  => 'Specific week numbers',
+            'by_month'     => 'Specific months',
+        );
+
+        if ( isset( $cond['rules'] ) && is_array( $cond['rules'] ) ) {
+            $rules = $cond['rules'];
+            $logic = ( isset( $cond['logic'] ) && 'or' === $cond['logic'] ) ? 'OR' : 'AND';
+        } elseif ( isset( $cond['type'] ) && 'all' !== $cond['type'] && '' !== $cond['type'] ) {
+            $rules = array( $cond );
+            $logic = 'AND';
+        } else {
+            return 'All pages (no conditions)';
+        }
+
+        if ( empty( $rules ) ) {
+            return 'All pages (no conditions)';
+        }
+
+        $lines = array( 'Match: ' . $logic . ' of:' );
+        foreach ( $rules as $idx => $rule ) {
+            $t    = isset( $rule['type'] ) ? $rule['type'] : '';
+            $lbl  = isset( $type_labels[ $t ] ) ? $type_labels[ $t ] : $t;
+            $vals = isset( $rule['values'] ) && is_array( $rule['values'] ) ? $rule['values'] : array();
+            $vstr = ! empty( $vals ) ? ' → ' . implode( ', ', array_map( 'strval', $vals ) ) : '';
+            $lines[] = '  Rule ' . ( $idx + 1 ) . ': ' . $lbl . $vstr;
+        }
+        return implode( "
+", $lines );
+    }
+
+    /**
+     * Build a human-readable plaintext string for a URL list snapshot.
+     *
+     * @since  1.12.0
+     * @access private
+     * @param  string|array $urls_json JSON string or already-decoded array.
+     * @return string
+     */
+    private function format_url_list_display( $urls_json ) {
+        $list = is_array( $urls_json ) ? $urls_json : json_decode( $urls_json, true );
+        if ( ! is_array( $list ) || empty( $list ) ) {
+            return '(no URLs)';
+        }
+        $lines = array();
+        foreach ( $list as $i => $entry ) {
+            $url  = is_array( $entry ) ? ( isset( $entry['url'] ) ? $entry['url'] : '' ) : (string) $entry;
+            $cond = is_array( $entry ) && isset( $entry['conditions'] ) ? $entry['conditions'] : array();
+            $lines[] = ( $i + 1 ) . '. ' . $url;
+            $lines[] = '   Conditions: ' . $this->format_conditions_display( $cond );
+        }
+        return implode( "
+", $lines );
+    }
+
+    /**
+     * Compose a complete lightbox display string for any activity-log entry.
+     *
+     * Includes code, URL list, conditions, and file metadata depending on
+     * what keys are present in the entry.
+     *
+     * @since  1.12.0
+     * @access private
+     * @param  array $entry Activity log entry.
+     * @return string
+     */
+    private function format_entry_display( array $entry ) {
+        $parts  = array();
+        $action = isset( $entry['action'] ) ? $entry['action'] : '';
+
+        // === File Info ===
+        if ( array_key_exists( 'meta', $entry ) && is_array( $entry['meta'] ) ) {
+            $meta  = $entry['meta'];
+            $lines = array( '=== File Info ===' );
+            if ( ! empty( $meta['label'] ) )    { $lines[] = 'Label:    ' . $meta['label']; }
+            if ( ! empty( $meta['filename'] ) ) { $lines[] = 'Filename: ' . $meta['filename']; }
+            if ( ! empty( $meta['location'] ) ) { $lines[] = 'Location: ' . ucfirst( $meta['location'] ); }
+            $parts[] = implode( "
+", $lines );
+        }
+
+        // === Script / File Content ===
+        if ( array_key_exists( 'content', $entry ) ) {
+            $code_title = in_array( $action, array( 'file_save', 'file_rollback', 'file_delete' ), true )
+                ? '=== File Content ===' : '=== Script Code ===';
+            $code_body  = '' !== $entry['content'] ? $entry['content'] : '(empty)';
+            $parts[]    = $code_title . "
+" . $code_body;
+        }
+
+        // === External Script URLs ===
+        if ( array_key_exists( 'urls_snapshot', $entry ) && null !== $entry['urls_snapshot'] ) {
+            $parts[] = '=== External Script URLs ===' . "
+"
+                . $this->format_url_list_display( $entry['urls_snapshot'] );
+        }
+
+        // === Load Conditions ===
+        if ( array_key_exists( 'conditions_snapshot', $entry ) && null !== $entry['conditions_snapshot'] ) {
+            $parts[] = '=== Load Conditions ===' . "
+"
+                . $this->format_conditions_display( $entry['conditions_snapshot'] );
+        } elseif ( array_key_exists( 'conditions', $entry ) && is_array( $entry['conditions'] ) ) {
+            $parts[] = '=== Load Conditions ===' . "
+"
+                . $this->format_conditions_display( $entry['conditions'] );
+        }
+
+        // Fallback for url_added/url_removed with no additional sections
+        if ( empty( $parts ) && in_array( $action, array( 'url_added', 'url_removed' ), true ) ) {
+            $url     = isset( $entry['detail'] ) ? $entry['detail'] : '';
+            $parts[] = ( 'url_added' === $action ? 'URL Added' : 'URL Removed' ) . ': ' . $url;
+        }
+
+        return implode( "
+
+", $parts );
+    }
+
+    /**
+     * Filter activity log to url_added/url_removed entries with a urls_snapshot.
+     *
+     * @since  1.12.0
+     * @access private
+     * @param  string $location 'head'|'footer'.
+     * @return array
+     */
+    private function get_url_snap_entries( $location ) {
+        return array_values( array_filter( $this->get_activity_log(), function ( $e ) use ( $location ) {
+            return isset( $e['location'] ) && $e['location'] === $location
+                && isset( $e['action'] ) && in_array( $e['action'], array( 'url_added', 'url_removed' ), true )
+                && array_key_exists( 'urls_snapshot', $e );
+        } ) );
+    }
+
+    /**
+     * Filter activity log to conditions_save entries with a conditions_snapshot.
+     *
+     * @since  1.12.0
+     * @access private
+     * @param  string $location 'head'|'footer'.
+     * @return array
+     */
+    private function get_cond_snap_entries( $location ) {
+        return array_values( array_filter( $this->get_activity_log(), function ( $e ) use ( $location ) {
+            return isset( $e['location'] ) && $e['location'] === $location
+                && isset( $e['action'] ) && 'conditions_save' === $e['action']
+                && array_key_exists( 'conditions_snapshot', $e );
+        } ) );
+    }
+
+    /**
+     * Filter activity log to file_delete entries that have a content snapshot.
+     *
+     * @since  1.12.0
+     * @access private
+     * @return array
+     */
+    private function get_file_delete_entries() {
+        return array_values( array_filter( $this->get_activity_log(), function ( $e ) {
+            return 'file' === ( isset( $e['location'] ) ? $e['location'] : '' )
+                && 'file_delete' === ( isset( $e['action'] ) ? $e['action'] : '' )
+                && array_key_exists( 'content', $e );
+        } ) );
+    }
+
+    // =========================================================================
+    // NEW AJAX HANDLERS
+    // =========================================================================
+
+    /**
+     * AJAX handler — return formatted display for a URL-list snapshot entry.
+     *
+     * Expects POST fields: `nonce`, `index` (int), `location`.
+     *
+     * @since  1.12.0
+     * @return void
+     */
+    public function ajax_get_url_list_content() {
+        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
+        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $entries  = $this->get_url_snap_entries( $location );
+
+        if ( ! array_key_exists( $index, $entries ) ) {
+            wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
+        }
+
+        $entry = $entries[ $index ];
+        wp_send_json_success( array(
+            'display' => $this->format_entry_display( $entry ),
+        ) );
+    }
+
+    /**
+     * AJAX handler — restore a URL-list snapshot to the linked-scripts option.
+     *
+     * Expects POST fields: `nonce`, `index` (int), `location`.
+     *
+     * @since  1.12.0
+     * @return void
+     */
+    public function ajax_restore_url_list() {
+        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
+        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $entries  = $this->get_url_snap_entries( $location );
+
+        if ( ! array_key_exists( $index, $entries ) ) {
+            wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
+        }
+
+        $entry      = $entries[ $index ];
+        $snapshot   = $entry['urls_snapshot'];
+        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
+
+        update_option( $option_key, $snapshot );
+        wp_cache_delete( $option_key, 'options' );
+
+        $this->write_activity_entry( array(
+            'action'        => 'url_list_restored',
+            'location'      => $location,
+            'detail'        => __( 'URL list restored from snapshot', 'scriptomatic' ),
+            'urls_snapshot' => $snapshot,
+        ) );
+
+        wp_send_json_success( array( 'message' => __( 'URL list restored.', 'scriptomatic' ) ) );
+    }
+
+    /**
+     * AJAX handler — return formatted display for a conditions snapshot entry.
+     *
+     * Expects POST fields: `nonce`, `index` (int), `location`.
+     *
+     * @since  1.12.0
+     * @return void
+     */
+    public function ajax_get_conditions_content() {
+        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
+        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $entries  = $this->get_cond_snap_entries( $location );
+
+        if ( ! array_key_exists( $index, $entries ) ) {
+            wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
+        }
+
+        $entry = $entries[ $index ];
+        wp_send_json_success( array(
+            'display' => $this->format_entry_display( $entry ),
+        ) );
+    }
+
+    /**
+     * AJAX handler — restore a conditions snapshot to the conditions option.
+     *
+     * Expects POST fields: `nonce`, `index` (int), `location`.
+     *
+     * @since  1.12.0
+     * @return void
+     */
+    public function ajax_restore_conditions() {
+        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
+        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $entries  = $this->get_cond_snap_entries( $location );
+
+        if ( ! array_key_exists( $index, $entries ) ) {
+            wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
+        }
+
+        $entry      = $entries[ $index ];
+        $snapshot   = $entry['conditions_snapshot'];
+        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
+
+        update_option( $option_key, $snapshot );
+        wp_cache_delete( $option_key, 'options' );
+
+        $this->write_activity_entry( array(
+            'action'              => 'conditions_restored',
+            'location'            => $location,
+            'detail'              => __( 'Conditions restored from snapshot', 'scriptomatic' ),
+            'conditions_snapshot' => $snapshot,
+        ) );
+
+        wp_send_json_success( array(
+            'message'  => __( 'Conditions restored.', 'scriptomatic' ),
+            'snapshot' => $snapshot,
+        ) );
+    }
+
+    /**
+     * AJAX handler — re-create a JS file from a file_delete activity-log entry.
+     *
+     * Writes the file back to disk and re-inserts the metadata stored in the
+     * snapshot taken at the time of deletion.
+     *
+     * Expects POST fields: `nonce`, `index` (int).
+     *
+     * @since  1.12.0
+     * @return void
+     */
+    public function ajax_restore_deleted_file() {
+        check_ajax_referer( SCRIPTOMATIC_FILES_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $index   = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $entries = $this->get_file_delete_entries();
+
+        if ( ! array_key_exists( $index, $entries ) ) {
+            wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
+        }
+
+        $entry    = $entries[ $index ];
+        $content  = isset( $entry['content'] )    ? (string) $entry['content']    : '';
+        $cond     = isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) ? $entry['conditions'] : array();
+        $meta     = isset( $entry['meta'] )       && is_array( $entry['meta'] )       ? $entry['meta']       : array();
+        $file_id  = isset( $entry['file_id'] )    ? (string) $entry['file_id']    : '';
+
+        $label    = isset( $meta['label'] )    ? (string) $meta['label']    : $file_id;
+        $filename = isset( $meta['filename'] ) ? (string) $meta['filename'] : $file_id . '.js';
+        $location = isset( $meta['location'] ) ? (string) $meta['location'] : 'head';
+
+        if ( '' === $filename || '' === $file_id ) {
+            wp_send_json_error( array( 'message' => __( 'Snapshot is missing file metadata.', 'scriptomatic' ) ) );
+        }
+
+        $dir  = $this->get_js_files_dir();
+        $path = $dir . $filename;
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+        if ( false === file_put_contents( $path, $content ) ) {
+            wp_send_json_error( array( 'message' => __( 'Could not write file to disk.', 'scriptomatic' ) ) );
+        }
+
+        // Re-insert metadata if the file ID is not already present.
+        $files  = $this->get_js_files_meta();
+        $exists = false;
+        foreach ( $files as $f ) {
+            if ( $f['id'] === $file_id ) { $exists = true; break; }
+        }
+
+        if ( ! $exists ) {
+            $files[] = array(
+                'id'         => $file_id,
+                'label'      => $label,
+                'filename'   => $filename,
+                'location'   => $location,
+                'conditions' => $cond,
+            );
+            $this->save_js_files_meta( $files );
+        }
+
+        $this->write_activity_entry( array(
+            'action'   => 'file_restored',
+            'location' => 'file',
+            'file_id'  => $file_id,
+            'detail'   => $label,
+        ) );
+
+        wp_send_json_success( array(
+            'message'  => __( 'File restored successfully.', 'scriptomatic' ),
+            'filename' => $filename,
+            'label'    => $label,
         ) );
     }
 }

@@ -182,18 +182,13 @@ trait Scriptomatic_Files {
             return;
         }
 
-        // Parse conditions JSON.
-        $conditions = json_decode( $cond_raw, true );
-        if ( ! is_array( $conditions ) ) {
-            $conditions = array( 'type' => 'all', 'values' => array() );
+        // Parse and sanitise conditions JSON (handles both legacy {type,values}
+        // and new stacked {logic,rules} format via sanitize_conditions_array()).
+        $conditions_raw = json_decode( $cond_raw, true );
+        if ( ! is_array( $conditions_raw ) ) {
+            $conditions_raw = array( 'logic' => 'and', 'rules' => array() );
         }
-        $cond_type   = ( isset( $conditions['type'] ) && is_string( $conditions['type'] ) )
-            ? sanitize_key( $conditions['type'] )
-            : 'all';
-        $cond_values = ( isset( $conditions['values'] ) && is_array( $conditions['values'] ) )
-            ? array_map( 'sanitize_text_field', $conditions['values'] )
-            : array();
-        $conditions  = array( 'type' => $cond_type, 'values' => $cond_values );
+        $conditions = $this->sanitize_conditions_array( $conditions_raw );
 
         $dir   = $this->get_js_files_dir();
         $files = $this->get_js_files_meta();
@@ -266,14 +261,20 @@ trait Scriptomatic_Files {
 
         $this->save_js_files_meta( $files );
 
-        // Activity log — record the save with a full content snapshot.
+        // Activity log — record the save with a full content + conditions snapshot.
         $this->write_activity_entry( array(
-            'action'   => 'file_save',
-            'location' => 'file',
-            'file_id'  => $new_id,
-            'content'  => $content,
-            'chars'    => strlen( $content ),
-            'detail'   => $label,
+            'action'     => 'file_save',
+            'location'   => 'file',
+            'file_id'    => $new_id,
+            'content'    => $content,
+            'chars'      => strlen( $content ),
+            'detail'     => $label,
+            'conditions' => $conditions,
+            'meta'       => array(
+                'label'    => $label,
+                'filename' => $filename,
+                'location' => $location,
+            ),
         ) );
 
         wp_safe_redirect(
@@ -348,19 +349,29 @@ trait Scriptomatic_Files {
             wp_send_json_error( array( 'message' => __( 'File not found.', 'scriptomatic' ) ) );
         }
 
-        // Remove from disk.
-        $dir  = $this->get_js_files_dir();
-        $path = $dir . $found['filename'];
+        // Remove from disk — capture content first so the entry can be restored.
+        $dir          = $this->get_js_files_dir();
+        $path         = $dir . $found['filename'];
+        $file_content = '';
         if ( file_exists( $path ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+            $file_content = (string) file_get_contents( $path );
             @unlink( $path ); // phpcs:ignore
         }
 
         $this->save_js_files_meta( $files );
         $this->write_activity_entry( array(
-            'action'   => 'file_delete',
-            'location' => 'file',
-            'file_id'  => $id,
-            'detail'   => $found['label'],
+            'action'     => 'file_delete',
+            'location'   => 'file',
+            'file_id'    => $id,
+            'detail'     => $found['label'],
+            'content'    => $file_content,
+            'conditions' => isset( $found['conditions'] ) ? $found['conditions'] : array(),
+            'meta'       => array(
+                'label'    => $found['label'],
+                'filename' => $found['filename'],
+                'location' => isset( $found['location'] ) ? $found['location'] : 'head',
+            ),
         ) );
 
         wp_send_json_success( array( 'message' => __( 'File deleted.', 'scriptomatic' ) ) );
