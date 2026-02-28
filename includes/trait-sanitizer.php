@@ -672,12 +672,20 @@ trait Scriptomatic_Sanitizer {
                 'location' => $location,
             );
 
+            // Always snapshot the script content so the entry represents a
+            // complete, restorable inline dataset even when only conditions
+            // changed (in which case the script sanitizer never ran and
+            // 'content' was never contributed to $accumulated).
             if ( array_key_exists( 'content', $accumulated ) ) {
-                $inline_entry['content'] = $accumulated['content'];
-                $inline_entry['chars']   = isset( $accumulated['chars'] )
-                    ? (int) $accumulated['chars']
-                    : strlen( $accumulated['content'] );
+                $snap_content = $accumulated['content'];
+            } else {
+                $script_key   = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
+                $snap_content = (string) get_option( $script_key, '' );
             }
+            $inline_entry['content'] = $snap_content;
+            $inline_entry['chars']   = isset( $accumulated['chars'] )
+                ? (int) $accumulated['chars']
+                : strlen( $snap_content );
 
             // Snapshot the current inline conditions alongside the script so
             // a single Restore brings back the full inline dataset at once.
