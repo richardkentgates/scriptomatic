@@ -3,7 +3,7 @@
  * Trait: Admin page renderers for Scriptomatic.
  *
  * Covers per-site page rendering (Head Scripts, Footer Scripts, General
- * Settings), the embedded Audit Log table, contextual help tabs, the
+ * Settings), the embedded Activity Log table, contextual help tabs, the
  * Plugins-page action links.
  *
  * @package  Scriptomatic
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Admin page builders, Audit Log renderers, help tabs, and action links.
+ * Admin page builders, Activity Log renderers, help tabs, and action links.
  */
 trait Scriptomatic_Pages {
 
@@ -52,16 +52,6 @@ trait Scriptomatic_Pages {
         <?php
     }
 
-    /**
-     * Output the revision history panel for a given location.
-     *
-     * Renders nothing when the history array is empty.
-     *
-     * @since  1.2.0
-     * @access private
-     * @param  string $location `'head'` or `'footer'`.
-     * @return void
-     */
     /**
      * Render the unified Activity Log panel for a given location.
      *

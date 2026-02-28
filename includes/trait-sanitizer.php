@@ -556,17 +556,17 @@ trait Scriptomatic_Sanitizer {
             if ( $old_json !== $new_json ) {
                 // Derive a short human-readable summary for the Changes column.
                 $ctype_labels = array(
-                    'front_page'   => 'Front page only',
-                    'singular'     => 'Any singular post/page',
-                    'post_type'    => 'Specific post types',
-                    'page_id'      => 'Specific page IDs',
-                    'url_contains' => 'URL contains',
-                    'logged_in'    => 'Logged-in users only',
-                    'logged_out'   => 'Logged-out visitors only',
-                    'by_date'      => 'Date range',
-                    'by_datetime'  => 'Date & time range',
-                    'week_number'  => 'Specific week numbers',
-                    'by_month'     => 'Specific months',
+                    'front_page'   => __( 'Front page only', 'scriptomatic' ),
+                    'singular'     => __( 'Any singular post/page', 'scriptomatic' ),
+                    'post_type'    => __( 'Specific post types', 'scriptomatic' ),
+                    'page_id'      => __( 'Specific page IDs', 'scriptomatic' ),
+                    'url_contains' => __( 'URL contains', 'scriptomatic' ),
+                    'logged_in'    => __( 'Logged-in users only', 'scriptomatic' ),
+                    'logged_out'   => __( 'Logged-out visitors only', 'scriptomatic' ),
+                    'by_date'      => __( 'Date range', 'scriptomatic' ),
+                    'by_datetime'  => __( 'Date & time range', 'scriptomatic' ),
+                    'week_number'  => __( 'Specific week numbers', 'scriptomatic' ),
+                    'by_month'     => __( 'Specific months', 'scriptomatic' ),
                 );
                 if ( isset( $new_conditions['rules'] ) && is_array( $new_conditions['rules'] ) ) {
                     $stack_rules  = $new_conditions['rules'];

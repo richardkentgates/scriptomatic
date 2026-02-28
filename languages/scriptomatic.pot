@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-02-28T16:17:13+00:00\n"
+"POT-Creation-Date: 2026-02-28T16:30:15+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: scriptomatic\n"
@@ -54,7 +54,7 @@ msgid "Restore this revision? The current script will be preserved in history."
 msgstr ""
 
 #: includes/trait-enqueue.php:107
-#: includes/trait-history.php:152
+#: includes/trait-history.php:140
 msgid "Script restored successfully."
 msgstr ""
 
@@ -63,7 +63,7 @@ msgid "Restore failed. Please try again."
 msgstr ""
 
 #: includes/trait-enqueue.php:109
-msgid "Restoring\\u2026"
+msgid "Restoring…"
 msgstr ""
 
 #: includes/trait-enqueue.php:110
@@ -87,7 +87,7 @@ msgid "Revision Preview"
 msgstr ""
 
 #: includes/trait-enqueue.php:115
-msgid "Loading\\u2026"
+msgid "Loading…"
 msgstr ""
 
 #: includes/trait-enqueue.php:116
@@ -107,7 +107,7 @@ msgid "Delete failed. Please try again."
 msgstr ""
 
 #: includes/trait-enqueue.php:120
-msgid "Deleting\\u2026"
+msgid "Deleting…"
 msgstr ""
 
 #: includes/trait-files.php:121
@@ -119,11 +119,11 @@ msgid "Security check failed. Please try again."
 msgstr ""
 
 #: includes/trait-files.php:374
-#: includes/trait-history.php:76
-#: includes/trait-history.php:168
-#: includes/trait-history.php:200
-#: includes/trait-history.php:284
-#: includes/trait-history.php:488
+#: includes/trait-history.php:64
+#: includes/trait-history.php:156
+#: includes/trait-history.php:188
+#: includes/trait-history.php:272
+#: includes/trait-history.php:476
 msgid "Permission denied."
 msgstr ""
 
@@ -132,7 +132,7 @@ msgid "Security check failed."
 msgstr ""
 
 #: includes/trait-files.php:398
-#: includes/trait-history.php:232
+#: includes/trait-history.php:220
 msgid "File not found."
 msgstr ""
 
@@ -140,35 +140,35 @@ msgstr ""
 msgid "File deleted."
 msgstr ""
 
-#: includes/trait-history.php:85
-#: includes/trait-history.php:176
-#: includes/trait-history.php:216
-#: includes/trait-history.php:302
+#: includes/trait-history.php:73
+#: includes/trait-history.php:164
+#: includes/trait-history.php:204
+#: includes/trait-history.php:290
 msgid "History entry not found."
 msgstr ""
 
-#: includes/trait-history.php:138
+#: includes/trait-history.php:126
 msgid "Restored from snapshot"
 msgstr ""
 
-#: includes/trait-history.php:238
+#: includes/trait-history.php:226
 msgid "Could not write file."
 msgstr ""
 
-#: includes/trait-history.php:268
-#: includes/trait-history.php:546
+#: includes/trait-history.php:256
+#: includes/trait-history.php:534
 msgid "File restored successfully."
 msgstr ""
 
-#: includes/trait-history.php:495
+#: includes/trait-history.php:483
 msgid "Entry not found."
 msgstr ""
 
-#: includes/trait-history.php:509
+#: includes/trait-history.php:497
 msgid "Snapshot is missing file metadata."
 msgstr ""
 
-#: includes/trait-history.php:517
+#: includes/trait-history.php:505
 msgid "Could not write file to disk."
 msgstr ""
 
@@ -193,7 +193,7 @@ msgid "JS Files — Scriptomatic"
 msgstr ""
 
 #: includes/trait-menus.php:72
-#: includes/trait-pages.php:417
+#: includes/trait-pages.php:407
 msgid "JS Files"
 msgstr ""
 
@@ -202,7 +202,7 @@ msgid "Preferences — Scriptomatic"
 msgstr ""
 
 #: includes/trait-menus.php:82
-#: includes/trait-pages.php:821
+#: includes/trait-pages.php:811
 msgid "Preferences"
 msgstr ""
 
@@ -214,664 +214,671 @@ msgstr ""
 msgid "Permission Denied"
 msgstr ""
 
-#: includes/trait-pages.php:124
+#: includes/trait-pages.php:114
 msgid "Activity Log"
 msgstr ""
 
 #. translators: %d: maximum number of retained log entries
-#: includes/trait-pages.php:130
+#: includes/trait-pages.php:120
 #, php-format
 msgid "All script saves, rollbacks, and file events for this location. The most recent %d entries are retained. Each save entry is a complete snapshot — View shows all saved data, Restore brings everything back at once."
 msgstr ""
 
-#: includes/trait-pages.php:140
+#: includes/trait-pages.php:130
 msgid "Date / Time"
 msgstr ""
 
-#: includes/trait-pages.php:141
+#: includes/trait-pages.php:131
 msgid "User"
 msgstr ""
 
-#: includes/trait-pages.php:142
+#: includes/trait-pages.php:132
 msgid "Event"
 msgstr ""
 
-#: includes/trait-pages.php:143
+#: includes/trait-pages.php:133
 msgid "Changes"
 msgstr ""
 
-#: includes/trait-pages.php:145
-#: includes/trait-pages.php:447
+#: includes/trait-pages.php:135
+#: includes/trait-pages.php:437
 msgid "Actions"
 msgstr ""
 
-#: includes/trait-pages.php:175
+#: includes/trait-pages.php:165
 msgid "Script is empty — nothing to restore. Find an earlier Save entry to restore content."
 msgstr ""
 
-#: includes/trait-pages.php:177
+#: includes/trait-pages.php:167
 msgid "File was deleted. Use the Re-create button on an earlier File Save entry."
 msgstr ""
 
-#: includes/trait-pages.php:191
+#: includes/trait-pages.php:181
 msgid "Save"
 msgstr ""
 
-#: includes/trait-pages.php:192
-#: includes/trait-pages.php:238
+#: includes/trait-pages.php:182
+#: includes/trait-pages.php:228
+#: includes/trait-pages.php:230
 #: includes/trait-pages.php:240
-#: includes/trait-pages.php:250
-#: includes/trait-pages.php:252
+#: includes/trait-pages.php:242
 msgid "Restore"
 msgstr ""
 
-#: includes/trait-pages.php:193
+#: includes/trait-pages.php:183
 msgid "URL Added"
 msgstr ""
 
-#: includes/trait-pages.php:194
+#: includes/trait-pages.php:184
 msgid "URL Removed"
 msgstr ""
 
-#: includes/trait-pages.php:195
-#: includes/trait-pages.php:446
+#: includes/trait-pages.php:185
+#: includes/trait-pages.php:436
 msgid "Conditions"
 msgstr ""
 
-#: includes/trait-pages.php:196
+#: includes/trait-pages.php:186
 msgid "Conditions Restored"
 msgstr ""
 
-#: includes/trait-pages.php:197
+#: includes/trait-pages.php:187
 msgid "URLs Restored"
 msgstr ""
 
-#: includes/trait-pages.php:198
+#: includes/trait-pages.php:188
 msgid "File Save"
 msgstr ""
 
-#: includes/trait-pages.php:199
+#: includes/trait-pages.php:189
 msgid "File Restore"
 msgstr ""
 
-#: includes/trait-pages.php:200
+#: includes/trait-pages.php:190
 msgid "File Deleted"
 msgstr ""
 
-#: includes/trait-pages.php:221
+#: includes/trait-pages.php:211
 msgid "chars"
 msgstr ""
 
-#: includes/trait-pages.php:234
-#: includes/trait-pages.php:246
-#: includes/trait-pages.php:261
+#: includes/trait-pages.php:224
+#: includes/trait-pages.php:236
+#: includes/trait-pages.php:251
 msgid "View"
 msgstr ""
 
-#: includes/trait-pages.php:264
-#: includes/trait-pages.php:266
+#: includes/trait-pages.php:254
+#: includes/trait-pages.php:256
 msgid "Re-create"
 msgstr ""
 
-#: includes/trait-pages.php:275
+#: includes/trait-pages.php:265
 msgid "No activity yet. Script saves and rollbacks will appear here."
 msgstr ""
 
-#: includes/trait-pages.php:287
+#: includes/trait-pages.php:277
 msgid "Close"
 msgstr ""
 
-#: includes/trait-pages.php:311
+#: includes/trait-pages.php:301
 msgid "Save Head Scripts"
 msgstr ""
 
-#: includes/trait-pages.php:333
+#: includes/trait-pages.php:323
 msgid "Save Footer Scripts"
 msgstr ""
 
-#: includes/trait-pages.php:355
+#: includes/trait-pages.php:345
 msgid "Save Settings"
 msgstr ""
 
-#: includes/trait-pages.php:377
+#: includes/trait-pages.php:367
 msgid "You do not have permission to access this page."
 msgstr ""
 
-#: includes/trait-pages.php:402
-#: includes/trait-pages.php:462
+#: includes/trait-pages.php:392
+#: includes/trait-pages.php:452
 #: includes/trait-sanitizer.php:580
 msgid "All pages"
 msgstr ""
 
-#: includes/trait-pages.php:403
+#: includes/trait-pages.php:393
 #: includes/trait-renderer.php:455
+#: includes/trait-sanitizer.php:559
 msgid "Front page only"
 msgstr ""
 
-#: includes/trait-pages.php:404
+#: includes/trait-pages.php:394
 msgid "Any singular"
 msgstr ""
 
-#: includes/trait-pages.php:405
+#: includes/trait-pages.php:395
 #: includes/trait-renderer.php:457
+#: includes/trait-sanitizer.php:561
 msgid "Specific post types"
 msgstr ""
 
-#: includes/trait-pages.php:406
+#: includes/trait-pages.php:396
+#: includes/trait-sanitizer.php:562
 msgid "Specific page IDs"
 msgstr ""
 
-#: includes/trait-pages.php:407
+#: includes/trait-pages.php:397
+#: includes/trait-sanitizer.php:563
 msgid "URL contains"
 msgstr ""
 
-#: includes/trait-pages.php:408
+#: includes/trait-pages.php:398
 msgid "Logged-in only"
 msgstr ""
 
-#: includes/trait-pages.php:409
+#: includes/trait-pages.php:399
 msgid "Logged-out only"
 msgstr ""
 
-#: includes/trait-pages.php:410
+#: includes/trait-pages.php:400
 #: includes/trait-renderer.php:462
+#: includes/trait-sanitizer.php:566
 msgid "Date range"
 msgstr ""
 
-#: includes/trait-pages.php:411
+#: includes/trait-pages.php:401
 #: includes/trait-renderer.php:463
+#: includes/trait-sanitizer.php:567
 msgid "Date & time range"
 msgstr ""
 
-#: includes/trait-pages.php:412
+#: includes/trait-pages.php:402
 msgid "Week numbers"
 msgstr ""
 
-#: includes/trait-pages.php:413
+#: includes/trait-pages.php:403
 #: includes/trait-renderer.php:465
+#: includes/trait-sanitizer.php:569
 msgid "Specific months"
 msgstr ""
 
-#: includes/trait-pages.php:419
+#: includes/trait-pages.php:409
 msgid "Add New"
 msgstr ""
 
-#: includes/trait-pages.php:424
+#: includes/trait-pages.php:414
 msgid "File saved."
 msgstr ""
 
-#: includes/trait-pages.php:428
+#: includes/trait-pages.php:418
 msgid "File was empty and has been deleted."
 msgstr ""
 
-#: includes/trait-pages.php:432
+#: includes/trait-pages.php:422
 msgid "Manage standalone JavaScript files stored on this server. Each file can be loaded in the head or footer with its own conditions."
 msgstr ""
 
-#: includes/trait-pages.php:437
+#: includes/trait-pages.php:427
 msgid "No JS files yet."
 msgstr ""
 
-#: includes/trait-pages.php:437
+#: includes/trait-pages.php:427
 msgid "Add your first file."
 msgstr ""
 
-#: includes/trait-pages.php:443
-#: includes/trait-pages.php:580
+#: includes/trait-pages.php:433
+#: includes/trait-pages.php:570
 msgid "Label"
 msgstr ""
 
-#: includes/trait-pages.php:444
-#: includes/trait-pages.php:595
+#: includes/trait-pages.php:434
+#: includes/trait-pages.php:585
 msgid "Filename"
 msgstr ""
 
-#: includes/trait-pages.php:445
-#: includes/trait-pages.php:613
+#: includes/trait-pages.php:435
+#: includes/trait-pages.php:603
 msgid "Inject In"
 msgstr ""
 
 #. translators: 1: number of rules, 2: logic operator (AND/OR)
-#: includes/trait-pages.php:469
+#: includes/trait-pages.php:459
 #, php-format
 msgid "%1$d rules (%2$s)"
 msgstr ""
 
-#: includes/trait-pages.php:485
-#: includes/trait-pages.php:621
+#: includes/trait-pages.php:475
+#: includes/trait-pages.php:611
 msgid "Footer"
 msgstr ""
 
-#: includes/trait-pages.php:485
-#: includes/trait-pages.php:617
+#: includes/trait-pages.php:475
+#: includes/trait-pages.php:607
 msgid "Head"
 msgstr ""
 
-#: includes/trait-pages.php:488
+#: includes/trait-pages.php:478
 msgid "Edit"
 msgstr ""
 
-#: includes/trait-pages.php:494
+#: includes/trait-pages.php:484
 msgid "Delete"
 msgstr ""
 
-#: includes/trait-pages.php:516
+#: includes/trait-pages.php:506
 msgid "Please enter a label."
 msgstr ""
 
-#: includes/trait-pages.php:517
+#: includes/trait-pages.php:507
 msgid "The filename is invalid. Use letters, numbers, dashes and underscores only."
 msgstr ""
 
-#: includes/trait-pages.php:518
+#: includes/trait-pages.php:508
 msgid "The file exceeds the maximum upload size allowed by this server."
 msgstr ""
 
-#: includes/trait-pages.php:519
+#: includes/trait-pages.php:509
 msgid "Could not write the file to disk. Please check directory permissions."
 msgstr ""
 
-#: includes/trait-pages.php:520
+#: includes/trait-pages.php:510
 msgid "File content cannot be empty. Add some JavaScript or discard the file."
 msgstr ""
 
-#: includes/trait-pages.php:559
+#: includes/trait-pages.php:549
 msgid "Add New JS File"
 msgstr ""
 
-#: includes/trait-pages.php:560
+#: includes/trait-pages.php:550
 msgid "Edit JS File"
 msgstr ""
 
-#: includes/trait-pages.php:591
+#: includes/trait-pages.php:581
 msgid "A human-readable name shown in the file list."
 msgstr ""
 
-#: includes/trait-pages.php:608
+#: includes/trait-pages.php:598
 msgid "Auto-filled from the label. Must end in .js. Letters, numbers, dashes and underscores only."
 msgstr ""
 
-#: includes/trait-pages.php:623
+#: includes/trait-pages.php:613
 msgid "Choose where in the page this file is enqueued."
 msgstr ""
 
-#: includes/trait-pages.php:627
+#: includes/trait-pages.php:617
 #: includes/trait-settings.php:54
 #: includes/trait-settings.php:86
 msgid "Load Conditions"
 msgstr ""
 
-#: includes/trait-pages.php:631
+#: includes/trait-pages.php:621
 msgid "JavaScript"
 msgstr ""
 
-#: includes/trait-pages.php:640
+#: includes/trait-pages.php:630
 #: includes/trait-renderer.php:150
 msgid "Enter your JavaScript code here (without <script> tags)"
 msgstr ""
 
 #. translators: 1: current size, 2: max upload size
-#: includes/trait-pages.php:648
+#: includes/trait-pages.php:638
 #, php-format
 msgid "Size: %1$s / %2$s"
 msgstr ""
 
-#: includes/trait-pages.php:655
+#: includes/trait-pages.php:645
 #: includes/trait-renderer.php:166
 msgid "Important:"
 msgstr ""
 
-#: includes/trait-pages.php:656
+#: includes/trait-pages.php:646
 msgid "Do not include <script> tags — they are added automatically on the front end."
 msgstr ""
 
-#: includes/trait-pages.php:664
+#: includes/trait-pages.php:654
 msgid "Save File"
 msgstr ""
 
-#: includes/trait-pages.php:667
+#: includes/trait-pages.php:657
 msgid "Cancel"
 msgstr ""
 
-#: includes/trait-pages.php:698
+#: includes/trait-pages.php:688
 msgid "Overview"
 msgstr ""
 
-#: includes/trait-pages.php:700
+#: includes/trait-pages.php:690
 msgid "Scriptomatic Overview"
 msgstr ""
 
-#: includes/trait-pages.php:701
+#: includes/trait-pages.php:691
 msgid "Scriptomatic safely injects custom JavaScript into the <strong>head</strong> (before &lt;/head&gt;) and the <strong>footer</strong> (before &lt;/body&gt;) of your WordPress site. Use the <strong>Load Conditions</strong> setting on each page to control exactly which pages, post types, or user states receive the script."
 msgstr ""
 
-#: includes/trait-pages.php:702
+#: includes/trait-pages.php:692
 msgid "Use the <strong>Head Scripts</strong> page for analytics tags, pixel codes, and scripts that must load early. Use the <strong>Footer Scripts</strong> page for scripts that should run after page content has loaded."
 msgstr ""
 
-#: includes/trait-pages.php:703
+#: includes/trait-pages.php:693
 msgid "Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and an <strong>Activity Log</strong> below showing all saves, rollbacks, and file events. Every save entry is a complete snapshot &mdash; <strong>Restore</strong> brings back the script, URL list, and conditions simultaneously."
 msgstr ""
 
-#: includes/trait-pages.php:704
+#: includes/trait-pages.php:694
 msgid "The <strong>JS Files</strong> page lets you create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file has its own Head/Footer selector and Load Conditions, and persists across plugin updates."
 msgstr ""
 
-#: includes/trait-pages.php:705
+#: includes/trait-pages.php:695
 msgid "The inline-script editor and JS Files editor both use <strong>CodeMirror</strong> — a full JavaScript code editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea when syntax highlighting is disabled in your WordPress profile."
 msgstr ""
 
-#: includes/trait-pages.php:706
+#: includes/trait-pages.php:696
 msgid "This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, an activity log with revision rollback, and conditional loading."
 msgstr ""
 
-#: includes/trait-pages.php:711
+#: includes/trait-pages.php:701
 msgid "Usage"
 msgstr ""
 
-#: includes/trait-pages.php:713
+#: includes/trait-pages.php:703
 msgid "How to Use"
 msgstr ""
 
-#: includes/trait-pages.php:715
+#: includes/trait-pages.php:705
 msgid "Choose a location:"
 msgstr ""
 
-#: includes/trait-pages.php:715
+#: includes/trait-pages.php:705
 msgid "Use <em>Head Scripts</em> for early-loading code (analytics, pixels) or <em>Footer Scripts</em> for deferred code."
 msgstr ""
 
-#: includes/trait-pages.php:716
+#: includes/trait-pages.php:706
 msgid "Add Your Code:"
 msgstr ""
 
-#: includes/trait-pages.php:716
+#: includes/trait-pages.php:706
 msgid "Write or paste your JavaScript into the <strong>CodeMirror editor</strong>. Do not include &lt;script&gt; tags — they are added automatically. Use Ctrl-Space for WordPress/jQuery autocomplete hints."
 msgstr ""
 
-#: includes/trait-pages.php:717
+#: includes/trait-pages.php:707
 msgid "Add external URLs (optional):"
 msgstr ""
 
-#: includes/trait-pages.php:717
+#: includes/trait-pages.php:707
 msgid "Enter remote script URLs in the External Script URLs section. They load before the inline block."
 msgstr ""
 
-#: includes/trait-pages.php:718
+#: includes/trait-pages.php:708
 msgid "Set Load Conditions (optional):"
 msgstr ""
 
-#: includes/trait-pages.php:718
+#: includes/trait-pages.php:708
 msgid "Use the Load Conditions drop-down to restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months. Defaults to all pages."
 msgstr ""
 
-#: includes/trait-pages.php:719
+#: includes/trait-pages.php:709
 msgid "Save Changes:"
 msgstr ""
 
-#: includes/trait-pages.php:719
+#: includes/trait-pages.php:709
 msgid "Click the Save button at the bottom of the page."
 msgstr ""
 
-#: includes/trait-pages.php:720
+#: includes/trait-pages.php:710
 msgid "Verify:"
 msgstr ""
 
-#: includes/trait-pages.php:720
+#: includes/trait-pages.php:710
 msgid "View your page source to confirm the script is injected in the correct location."
 msgstr ""
 
-#: includes/trait-pages.php:721
+#: includes/trait-pages.php:711
 msgid "Test:"
 msgstr ""
 
-#: includes/trait-pages.php:721
+#: includes/trait-pages.php:711
 msgid "Thoroughly test your site to ensure the script functions correctly."
 msgstr ""
 
-#: includes/trait-pages.php:723
+#: includes/trait-pages.php:713
 msgid "Managed JS Files:"
 msgstr ""
 
-#: includes/trait-pages.php:723
+#: includes/trait-pages.php:713
 msgid "Use <em>Scriptomatic &rarr; JS Files</em> to create and manage standalone <code>.js</code> files. Each file has its own label, filename, Head/Footer selector, Load Conditions, and CodeMirror editor. Files are stored in <code>wp-content/uploads/scriptomatic/</code> and survive plugin updates."
 msgstr ""
 
-#: includes/trait-pages.php:724
+#: includes/trait-pages.php:714
 msgid "Example:"
 msgstr ""
 
-#: includes/trait-pages.php:731
+#: includes/trait-pages.php:721
 msgid "Security"
 msgstr ""
 
-#: includes/trait-pages.php:733
+#: includes/trait-pages.php:723
 msgid "Security Features"
 msgstr ""
 
-#: includes/trait-pages.php:735
+#: includes/trait-pages.php:725
 msgid "Capability Check:"
 msgstr ""
 
-#: includes/trait-pages.php:735
+#: includes/trait-pages.php:725
 msgid "Only users with &ldquo;manage_options&rdquo; capability (Administrators) can access any Scriptomatic page or modify scripts."
 msgstr ""
 
-#: includes/trait-pages.php:736
+#: includes/trait-pages.php:726
 msgid "Dual Nonce Verification:"
 msgstr ""
 
-#: includes/trait-pages.php:736
+#: includes/trait-pages.php:726
 msgid "Each form carries both the WordPress Settings API nonce and a secondary location-specific nonce, verified on every save."
 msgstr ""
 
-#: includes/trait-pages.php:737
+#: includes/trait-pages.php:727
 msgid "Rate Limiting:"
 msgstr ""
 
-#: includes/trait-pages.php:737
+#: includes/trait-pages.php:727
 msgid "A transient-based 10-second cooldown per user per location prevents rapid repeated saves."
 msgstr ""
 
-#: includes/trait-pages.php:738
+#: includes/trait-pages.php:728
 msgid "Input Validation:"
 msgstr ""
 
-#: includes/trait-pages.php:738
+#: includes/trait-pages.php:728
 msgid "All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta)."
 msgstr ""
 
-#: includes/trait-pages.php:739
+#: includes/trait-pages.php:729
 msgid "Sanitization:"
 msgstr ""
 
-#: includes/trait-pages.php:739
+#: includes/trait-pages.php:729
 msgid "&lt;script&gt; tags are automatically stripped to prevent double-wrapping."
 msgstr ""
 
-#: includes/trait-pages.php:740
+#: includes/trait-pages.php:730
 msgid "Activity Log:"
 msgstr ""
 
-#: includes/trait-pages.php:740
+#: includes/trait-pages.php:730
 msgid "All saves, AJAX rollbacks, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Every save entry is a complete snapshot of the script, URL list, and load conditions &mdash; <strong>View</strong> shows the full saved state, <strong>Restore</strong> writes all three back simultaneously. Actions covered: <code>save</code>, <code>rollback</code>, <code>file_save</code>, <code>file_rollback</code>, <code>file_delete</code>, <code>file_restored</code>. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically."
 msgstr ""
 
-#: includes/trait-pages.php:741
+#: includes/trait-pages.php:731
 msgid "Output Escaping:"
 msgstr ""
 
-#: includes/trait-pages.php:741
+#: includes/trait-pages.php:731
 msgid "Content is properly escaped when displayed in the admin interface."
 msgstr ""
 
-#: includes/trait-pages.php:743
+#: includes/trait-pages.php:733
 msgid "Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data."
 msgstr ""
 
-#: includes/trait-pages.php:748
-#: includes/trait-pages.php:750
+#: includes/trait-pages.php:738
+#: includes/trait-pages.php:740
 msgid "Best Practices"
 msgstr ""
 
-#: includes/trait-pages.php:752
+#: includes/trait-pages.php:742
 msgid "Test First:"
 msgstr ""
 
-#: includes/trait-pages.php:752
+#: includes/trait-pages.php:742
 msgid "Always test scripts in a staging environment before deploying to production."
 msgstr ""
 
-#: includes/trait-pages.php:753
+#: includes/trait-pages.php:743
 msgid "Use Comments:"
 msgstr ""
 
-#: includes/trait-pages.php:753
+#: includes/trait-pages.php:743
 msgid "Add comments to your code to document what it does and where it came from."
 msgstr ""
 
-#: includes/trait-pages.php:754
+#: includes/trait-pages.php:744
 msgid "Keep It Clean:"
 msgstr ""
 
-#: includes/trait-pages.php:754
+#: includes/trait-pages.php:744
 msgid "Remove unused or outdated scripts regularly."
 msgstr ""
 
-#: includes/trait-pages.php:755
+#: includes/trait-pages.php:745
 msgid "Verify Sources:"
 msgstr ""
 
-#: includes/trait-pages.php:755
+#: includes/trait-pages.php:745
 msgid "Only use code from trusted sources. Review all third-party scripts."
 msgstr ""
 
-#: includes/trait-pages.php:756
+#: includes/trait-pages.php:746
 msgid "Monitor Performance:"
 msgstr ""
 
-#: includes/trait-pages.php:756
+#: includes/trait-pages.php:746
 msgid "Heavy scripts can slow down your site. Use browser dev tools to monitor impact."
 msgstr ""
 
-#: includes/trait-pages.php:757
+#: includes/trait-pages.php:747
 msgid "Backup:"
 msgstr ""
 
-#: includes/trait-pages.php:757
+#: includes/trait-pages.php:747
 msgid "Every save is recorded in the <strong>Activity Log</strong> as a complete snapshot. Click <strong>Restore</strong> next to any entry to roll back the script, URL list, and conditions simultaneously &mdash; no further Save needed."
 msgstr ""
 
-#: includes/trait-pages.php:758
+#: includes/trait-pages.php:748
 msgid "Async/Defer:"
 msgstr ""
 
-#: includes/trait-pages.php:758
+#: includes/trait-pages.php:748
 msgid "Consider using async or defer attributes for external scripts to improve page load times."
 msgstr ""
 
-#: includes/trait-pages.php:764
-#: includes/trait-pages.php:766
+#: includes/trait-pages.php:754
+#: includes/trait-pages.php:756
 msgid "Troubleshooting"
 msgstr ""
 
-#: includes/trait-pages.php:767
+#: includes/trait-pages.php:757
 msgid "Script not appearing:"
 msgstr ""
 
-#: includes/trait-pages.php:769
+#: includes/trait-pages.php:759
 msgid "Check that you clicked the Save button after entering your code."
 msgstr ""
 
-#: includes/trait-pages.php:770
+#: includes/trait-pages.php:760
 msgid "Clear your site cache and browser cache."
 msgstr ""
 
-#: includes/trait-pages.php:771
+#: includes/trait-pages.php:761
 msgid "View page source to verify the script tag is present in the expected location (head or footer)."
 msgstr ""
 
-#: includes/trait-pages.php:772
+#: includes/trait-pages.php:762
 msgid "Check the <strong>Load Conditions</strong> setting — if it is set to anything other than &ldquo;All pages&rdquo;, the script is intentionally suppressed on pages that do not match the condition."
 msgstr ""
 
-#: includes/trait-pages.php:773
+#: includes/trait-pages.php:763
 msgid "Check if another plugin or theme is preventing wp_head() or wp_footer() from running."
 msgstr ""
 
-#: includes/trait-pages.php:775
+#: includes/trait-pages.php:765
 msgid "Script causing errors:"
 msgstr ""
 
-#: includes/trait-pages.php:777
+#: includes/trait-pages.php:767
 msgid "Check the browser console for JavaScript errors."
 msgstr ""
 
-#: includes/trait-pages.php:778
+#: includes/trait-pages.php:768
 msgid "Verify syntax errors in your JavaScript code."
 msgstr ""
 
-#: includes/trait-pages.php:779
+#: includes/trait-pages.php:769
 msgid "Ensure external resources are loading properly (check network tab)."
 msgstr ""
 
-#: includes/trait-pages.php:780
+#: includes/trait-pages.php:770
 msgid "Test with a simple console.log() first to verify injection is working."
 msgstr ""
 
-#: includes/trait-pages.php:782
+#: includes/trait-pages.php:772
 msgid "Cannot save / changes ignored:"
 msgstr ""
 
-#: includes/trait-pages.php:784
+#: includes/trait-pages.php:774
 msgid "Verify you have administrator privileges."
 msgstr ""
 
-#: includes/trait-pages.php:785
+#: includes/trait-pages.php:775
 msgid "Check if script exceeds the 100 KB maximum length."
 msgstr ""
 
-#: includes/trait-pages.php:786
+#: includes/trait-pages.php:776
 msgid "Remove any HTML tags (only JavaScript is allowed)."
 msgstr ""
 
-#: includes/trait-pages.php:787
+#: includes/trait-pages.php:777
 msgid "The <strong>rate limiter</strong> enforces a 10-second cooldown per user per location. If you saved very recently, wait a moment and try again."
 msgstr ""
 
-#: includes/trait-pages.php:789
+#: includes/trait-pages.php:779
 msgid "Restore a previous version:"
 msgstr ""
 
-#: includes/trait-pages.php:791
+#: includes/trait-pages.php:781
 msgid "Scroll to the <strong>Activity Log</strong> panel at the bottom of the page."
 msgstr ""
 
-#: includes/trait-pages.php:792
+#: includes/trait-pages.php:782
 msgid "Click <strong>Restore</strong> next to the desired entry &mdash; the script, URL list, and conditions are all restored simultaneously. No further Save is needed."
 msgstr ""
 
-#: includes/trait-pages.php:793
+#: includes/trait-pages.php:783
 msgid "For JS files, the restore writes the snapshot directly to disk."
 msgstr ""
 
-#: includes/trait-pages.php:798
+#: includes/trait-pages.php:788
 msgid "For more information:"
 msgstr ""
 
-#: includes/trait-pages.php:799
+#: includes/trait-pages.php:789
 msgid "Plugin Documentation"
 msgstr ""
 
-#: includes/trait-pages.php:800
+#: includes/trait-pages.php:790
 msgid "Report Issues"
 msgstr ""
 
-#: includes/trait-pages.php:801
+#: includes/trait-pages.php:791
 msgid "Developer Profile"
 msgstr ""
 
-#: includes/trait-pages.php:802
+#: includes/trait-pages.php:792
 msgid "WordPress wp_head Documentation"
 msgstr ""
 
@@ -958,14 +965,17 @@ msgid "URL contains (any match)"
 msgstr ""
 
 #: includes/trait-renderer.php:460
+#: includes/trait-sanitizer.php:564
 msgid "Logged-in users only"
 msgstr ""
 
 #: includes/trait-renderer.php:461
+#: includes/trait-sanitizer.php:565
 msgid "Logged-out visitors only"
 msgstr ""
 
 #: includes/trait-renderer.php:464
+#: includes/trait-sanitizer.php:568
 msgid "Specific week numbers"
 msgstr ""
 
@@ -1114,6 +1124,10 @@ msgstr ""
 #: includes/trait-sanitizer.php:188
 #: includes/trait-settings.php:184
 msgid "Settings saved."
+msgstr ""
+
+#: includes/trait-sanitizer.php:560
+msgid "Any singular post/page"
 msgstr ""
 
 #. translators: %s: character count

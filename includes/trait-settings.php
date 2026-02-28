@@ -128,7 +128,7 @@ trait Scriptomatic_Settings {
     /**
      * Sanitise and validate the plugin settings array submitted from the form.
      *
-     * If `max_history` is being reduced the stored history is immediately
+     * If `max_log_entries` is being reduced the activity log is immediately
      * trimmed so it never exceeds the new limit.
      *
      * @since  1.1.0

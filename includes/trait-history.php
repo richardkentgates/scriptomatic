@@ -19,18 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 trait Scriptomatic_History {
 
     /**
-     * Push a script snapshot onto the revision history for a location.
-     *
-     * Deduplicates sequential identical entries and caps the history to the
-     * configured maximum via {@see get_max_history()}.
-     *
-     * @since  1.2.0
-     * @access private
-     * @param  string $content  Script content to record.
-     * @param  string $location `'head'` or `'footer'`.
-     * @return void
-     */
-    /**
      * Retrieve content-bearing revision entries for the given location.
      *
      * Filters the unified activity log to entries that carry a content snapshot
