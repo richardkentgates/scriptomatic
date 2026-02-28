@@ -410,13 +410,13 @@ trait Scriptomatic_History {
                 . $this->format_url_list_display( $entry['urls_snapshot'] );
         }
 
-        // === Load Conditions ===
+        // === Inline Script / File Load Conditions ===
         if ( array_key_exists( 'conditions_snapshot', $entry ) && null !== $entry['conditions_snapshot'] ) {
-            $parts[] = '=== Load Conditions ===' . "
+            $parts[] = '=== Inline Script Load Conditions ===' . "
 "
                 . $this->format_conditions_display( $entry['conditions_snapshot'] );
         } elseif ( array_key_exists( 'conditions', $entry ) && is_array( $entry['conditions'] ) ) {
-            $parts[] = '=== Load Conditions ===' . "
+            $parts[] = '=== File Load Conditions ===' . "
 "
                 . $this->format_conditions_display( $entry['conditions'] );
         }

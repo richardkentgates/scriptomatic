@@ -13,6 +13,25 @@ _Nothing yet._
 
 ---
 
+## [2.2.0] – 2026-03-01
+
+### Fixed
+- **Inline script load conditions UI.** The condition type select on the Head
+  Scripts and Footer Scripts pages no longer rendered sub-panels when a type
+  was chosen. `render_conditions_field_for()` was still using the legacy
+  single-select UI while `initConditions()` in admin.js expected the new
+  stacked rules UI. The function now delegates to `render_conditions_stack_ui()`
+  with automatic migration of any saved legacy `{type, values}` data to the
+  `{logic, rules}` stacked format.
+- **Ambiguous activity-log condition labels.** The Activity Log previously
+  displayed both per-URL conditions and inline-script conditions under the
+  identical heading `=== Load Conditions ===`, making the log appear
+  contradictory. Inline-script condition snapshots now appear as
+  `=== Inline Script Load Conditions ===` and file load conditions appear as
+  `=== File Load Conditions ===`.
+
+---
+
 ## [2.1.0] – 2026-02-28
 
 ### Added

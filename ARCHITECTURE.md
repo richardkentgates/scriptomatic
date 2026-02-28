@@ -107,7 +107,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'2.1.0'` |
+| `SCRIPTOMATIC_VERSION` | `'2.2.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
@@ -393,7 +393,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
 
 Output format:
 ```html
-<!-- Scriptomatic v2.1.0 (head) -->
+<!-- Scriptomatic v2.2.0 (head) -->
 <script src="https://example.com/script.js"></script>
 <script src="/wp-content/uploads/scriptomatic/my-tracker.js"></script>
 <script>
@@ -787,4 +787,4 @@ update_option( 'scriptomatic_activity_log', array_slice( $log, 0, 200 ) );
 
 ---
 
-*Document version: 2.1.0 — reflects the codebase as of February 2026.*
+*Document version: 2.2.0 — reflects the codebase as of February 2026.*

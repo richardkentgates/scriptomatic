@@ -299,7 +299,7 @@
 <!-- HERO -->
 <section class="hero">
   <img src="scriptomatic-logo.png" alt="Scriptomatic" class="hero-logo" />
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.1.0</div>
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.2.0</div>
   <h1>Inject custom JavaScript<br/><span>the right way.</span></h1>
   <p>Scriptomatic gives WordPress administrators full control over custom scripts — inline JavaScript with a built-in code editor, managed JS files, and external script URLs — injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer with conditional loading, revision history, one-click rollback, and a complete activity log.</p>
   <div class="hero-actions">
@@ -691,6 +691,14 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
 
     <div class="changelog-item">
+      <div class="clog-version">v2.2.0</div>
+      <div class="clog-body">
+        <h4>Inline-script conditions UI fixed; activity-log label clarity</h4>
+        <p>The condition type selector on the Head Scripts and Footer Scripts pages now correctly renders sub-panels when a rule type is chosen. The underlying <code>render_conditions_field_for()</code> was rewritten to use the shared stacked-UI renderer, with automatic migration of any legacy <code>{type,values}</code> saved data. Activity Log entries now label inline-script condition snapshots as <strong>Inline Script Load Conditions</strong> and file conditions as <strong>File Load Conditions</strong>, eliminating the previously contradictory <em>Load Conditions</em> heading.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
       <div class="clog-version">v2.1.0</div>
       <div class="clog-body">
         <h4>Save confirmation notices; empty-file auto-delete</h4>
@@ -873,7 +881,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <a href="https://github.com/richardkentgates/scriptomatic/issues">Issues</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v2.1.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v2.2.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>
