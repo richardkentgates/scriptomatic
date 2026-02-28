@@ -13,6 +13,32 @@ _Nothing yet._
 
 ---
 
+## [2.5.3] – 2026-02-28
+
+### Fixed
+- **Restore button now greyed out for entries with an empty external-URL
+  snapshot.** A "URL removed" (or "all URLs cleared") log entry carried
+  `urls_snapshot = '[]'`; the Restore button was enabled, but clicking it
+  would simply wipe the current URL list — no meaningful restore. The button is
+  now disabled with the tooltip "No external URLs in this snapshot — nothing to
+  restore." (Complements the existing index-0 / current-state disable added in
+  v2.5.2.)
+- **User-facing "URL list" language replaced with "external URLs" throughout.**
+  All Activity Log labels, tooltips, success messages, and help tab copy now
+  say "external URLs" instead of "URL list", consistent with the
+  "External Script URLs" section heading and the rest of the admin UI.
+  Includes two `ajax_rollback_urls()` response strings ("External URLs restored
+  from snapshot" / "External URLs restored successfully.") that were missed in
+  the initial pass.
+- **Stale docblocks corrected.**  `write_activity_entry()` action list now
+  includes `url_save`, `url_rollback`, and `file_restored`.  `ajax_rollback()`
+  docblock no longer describes the removed v2.5.0 combined-restore behaviour
+  (URLs were separated into their own independent restore path in v2.5.2).
+  `Scriptomatic_Files` trait added to the class-level trait list in
+  `class-scriptomatic.php`.
+
+---
+
 ## [2.5.2] – 2026-02-28
 
 ### Fixed

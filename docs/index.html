@@ -299,7 +299,7 @@
 <!-- HERO -->
 <section class="hero">
   <img src="scriptomatic-logo.png" alt="Scriptomatic" class="hero-logo" />
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.4.0</div>
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.5.3</div>
   <h1>Inject custom JavaScript<br/><span>the right way.</span></h1>
   <p>Scriptomatic gives WordPress administrators full control over custom scripts — inline JavaScript with a built-in code editor, managed JS files, and external script URLs — injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer with conditional loading, revision history, one-click rollback, and a complete activity log.</p>
   <div class="hero-actions">
@@ -691,6 +691,30 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
 
     <div class="changelog-item">
+      <div class="clog-version">v2.5.3</div>
+      <div class="clog-body">
+        <h4>External URL Restore polish; docblock audit; language consistency</h4>
+        <p>The Restore button on external-URL log entries is now also disabled when the snapshot contains no URLs (e.g. a &ldquo;URL removed&rdquo; entry that cleared the entire list) &mdash; restoring it would simply wipe the current list for no benefit. User-facing &ldquo;URL list&rdquo; language replaced with &ldquo;external URLs&rdquo; throughout all tooltips, log detail strings, and success messages. Stale internal docblocks corrected: <code>write_activity_entry()</code> action list now includes <code>url_save</code>, <code>url_rollback</code>, and <code>file_restored</code>; <code>ajax_rollback()</code> no longer references the removed v2.5.0 combined-restore behaviour.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v2.5.2</div>
+      <div class="clog-body">
+        <h4>Independent inline-script and external-URL Activity Log entries</h4>
+        <p>Inline script + load-conditions changes and external URL changes are now written as fully <strong>independent</strong> Activity Log entries with separate index counters, View buttons, and Restore buttons &mdash; restoring one dataset never touches the other. The Restore button on the most recent entry of each dataset is disabled with a tooltip (&ldquo;This is the current version &mdash; nothing to restore&rdquo;). Conditions-only saves always produce a complete, restorable entry: when only conditions changed, the entry writer snapshots the current script from the database so every inline entry carries a full content + conditions snapshot.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v2.5.1</div>
+      <div class="clog-body">
+        <h4>Ellipsis display fix; comprehensive code audit</h4>
+        <p>Restore, Load, and Delete buttons were rendering the literal string <code>Restoring\u2026</code> instead of <code>Restoring&hellip;</code>. Fixed by using the actual UTF-8 ellipsis character in the <code>wp_localize_script</code> i18n payload. Full audit of all PHP traits and admin JS; six additional issues corrected (escaping, nonce handling, rate-limit logic, AJAX error paths).</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
       <div class="clog-version">v2.5.0</div>
       <div class="clog-body">
         <h4>Combined snapshot save; single-click full restore</h4>
@@ -903,7 +927,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <a href="https://github.com/richardkentgates/scriptomatic/issues">Issues</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v2.4.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v2.5.3 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>

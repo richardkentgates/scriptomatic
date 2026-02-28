@@ -213,7 +213,7 @@ trait Scriptomatic_Settings {
      * the stored array, and trims to the configured maximum.
      *
      * Accepted $data keys:
-     *   action               (string) — 'save'|'rollback'|'file_save'|'file_rollback'|'file_delete'
+     *   action               (string) — 'save'|'rollback'|'url_save'|'url_rollback'|'file_save'|'file_rollback'|'file_delete'|'file_restored'
      *   location             (string) — 'head'|'footer'|'file'
      *   content              (string) — snapshot; for save/rollback types (enables View+Restore)
      *   chars                (int)    — byte length of content

@@ -39,6 +39,7 @@ require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-files.php';
  * - Scriptomatic_Pages     — page renderers (Head/Footer/General pages, embedded Activity Log, help tabs, and action links).
  * - Scriptomatic_Enqueue   — admin asset enqueueing.
  * - Scriptomatic_Injector  — front-end script injection.
+ * - Scriptomatic_Files     — managed JS file CRUD, AJAX handlers, and disk I/O.
  *
  * @package Scriptomatic
  * @author  Richard Kent Gates <mail@richardkentgates.com>

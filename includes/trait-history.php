@@ -43,18 +43,16 @@ trait Scriptomatic_History {
     }
 
     /**
-     * Handle the AJAX rollback request for either head or footer scripts.
+     * Handle the AJAX rollback request for the inline script dataset.
      *
-     * In v2.5.0 the restore scope was expanded: when the activity-log entry
-     * carries `urls_snapshot` and/or `conditions_snapshot` (all combined save
-     * entries do), those fields are also restored atomically in the same
-     * request. Pre-v2.5.0 entries that carry only `content` are restored as
-     * before, script-content only.
+     * Restores script content and its load conditions for the given location.
+     * External URLs are a separate dataset and are never touched here —
+     * use {@see ajax_rollback_urls()} to restore the URL list independently.
      *
      * Expects POST fields: `nonce`, `index` (int), `location` ('head'|'footer').
      *
      * @since  1.2.0
-     * @since  2.5.0 Restores URLs and conditions snapshots when present.
+     * @since  2.5.1 Inline script and external URLs are restored independently.
      * @return void  Sends a JSON response and exits.
      */
     public function ajax_rollback() {
@@ -351,12 +349,12 @@ trait Scriptomatic_History {
             'action'        => 'url_rollback',
             'location'      => $location,
             'urls_snapshot' => $entry['urls_snapshot'],
-            'detail'        => __( 'URL list restored from snapshot', 'scriptomatic' ),
+            'detail'        => __( 'External URLs restored from snapshot', 'scriptomatic' ),
         ) );
 
         wp_send_json_success( array(
             'location' => $location,
-            'message'  => __( 'URL list restored successfully.', 'scriptomatic' ),
+            'message'  => __( 'External URLs restored successfully.', 'scriptomatic' ),
         ) );
     }
 
