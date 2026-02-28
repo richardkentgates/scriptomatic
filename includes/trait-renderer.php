@@ -715,7 +715,7 @@ trait Scriptomatic_Renderer {
             <?php
             printf(
                 /* translators: %d: default max activity log entries */
-                esc_html__( 'Maximum number of activity log entries to retain (3\u20131000). Applies to all saves, rollbacks, and URL events across all locations. Default: %d. Reducing this value immediately trims the existing log.', 'scriptomatic' ),
+                esc_html__( 'How many activity log entries to keep per location (3–1000). Covers script saves, rollbacks, URL additions/removals, and JS file changes. Older entries are discarded automatically once the limit is reached. Default: %d.', 'scriptomatic' ),
                 SCRIPTOMATIC_MAX_LOG_ENTRIES
             );
             ?>

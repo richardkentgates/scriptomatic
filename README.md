@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-green)](LICENSE)
 [![Maintained](https://img.shields.io/badge/Maintained-Yes-brightgreen)]()
 
-A secure and production-ready WordPress plugin for injecting custom JavaScript code into the `<head>` and footer of your WordPress site, with conditional per-page loading, external script URL management, revision history with rollback, multisite support, and a modular trait-based architecture.
+A secure and production-ready WordPress plugin for injecting custom JavaScript into the `<head>` and footer of your WordPress site, with conditional per-page loading, external script URL management, managed JS files, a persistent activity log with revision rollback, and a modular trait-based architecture.
 
 ## 🚀 Features
 
@@ -22,7 +22,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript c
 - **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, or user login state — or leave it on all pages (8 condition types)
 - **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
-- **Audit Logging**: All saves, rollbacks, and external URL additions/removals recorded in the persistent **Audit Log**, embedded at the bottom of the Head Scripts and Footer Scripts pages; each page shows only its own location's entries; entries capture timestamp, user, action (`save`, `rollback`, `url_added`, `url_removed`), and either character count (save/rollback) or the URL (url_added/url_removed); configurable limit (3–1000, default 200) with oldest entries discarded automatically
+- **📋 Activity Log**: All script saves, rollbacks, external URL changes, and JS file events are recorded in a persistent **Activity Log** embedded at the bottom of each admin page. Entries that carry a content snapshot expose **View** and **Restore** buttons for instant AJAX rollback; informational entries (URL changes, file deletions) are shown without action buttons. Log limit is configurable in Preferences (3–1000, default 200); oldest entries are discarded automatically once the cap is reached.
 - **⚡ Performance Optimized**: Minimal overhead; front-end injection only on pages matching load conditions
 - **🌐 Multisite Compatible**: Works in multisite networks; all script management is per-site. Install, activate, and deactivate can be performed network-wide. Uninstall iterates every sub-site.
 - **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
@@ -101,10 +101,10 @@ Then activate via WordPress admin.
 
 | Page | Path | Purpose |
 |------|------|---------|
-| Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>`; includes Audit Log |
-| Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>`; includes Audit Log |
-| JS Files | Scriptomatic → JS Files | Create, edit, and delete managed `.js` files; each file has its own Head/Footer toggle, load conditions, and CodeMirror editor |
-| Preferences | Scriptomatic → Preferences | History limit, audit log limit (3–1000), uninstall data retention |
+| Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>`; includes Activity Log |
+| Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>`; includes Activity Log |
+| JS Files | Scriptomatic → JS Files | Create, edit, and delete managed `.js` files; each file has its own Head/Footer toggle, load conditions, and CodeMirror editor; list view and edit view each include an Activity Log panel |
+| Preferences | Scriptomatic → Preferences | Activity log limit (3–1000), uninstall data retention |
 
 ### Important Notes
 
@@ -181,8 +181,9 @@ Scriptomatic is built with security as a top priority:
 - Saves submitted within the cooldown window are rejected with an admin notice
 
 ### Audit Logging
-- All saves, AJAX rollbacks, and external URL additions/removals are recorded in the persistent **Audit Log**, embedded at the bottom of the Head Scripts and Footer Scripts pages; each page shows only its own location's entries
-- Each entry captures: timestamp, username, user ID, action (`save`, `rollback`, `url_added`, or `url_removed`), and either character count (for save/rollback) or the URL string (for url_added/url_removed)
+- All saves, AJAX rollbacks, external URL additions/removals, and JS file events are recorded in the persistent **Activity Log** embedded on each admin page; each page shows only its own location's entries
+- Each entry captures: timestamp, username, user ID, action (`save`, `rollback`, `url_added`, `url_removed`, `file_save`, `file_rollback`, or `file_delete`), and either a character count (for content-bearing events) or the URL/file label (for informational events)
+- Entries with content snapshots (saves, rollbacks, file saves, file rollbacks) expose **View** and **Restore** buttons directly in the table
 - No IP addresses collected (intentional privacy decision)
 - Log limit is configurable (3–1000, default 200 entries); oldest entries are discarded automatically once the cap is reached
 - Helps track changes and detect unauthorised modification
@@ -274,9 +275,10 @@ eval(someUntrustedString); // Never use eval!
 **Problem**: A script change introduced an error and you need to roll back
 
 **Solutions**:
-- Scroll to the **Revision History** panel at the bottom of the Head Scripts or Footer Scripts page
-- Click **Restore** next to any prior revision to instantly roll back via AJAX
-- The current script is pushed to history before being overwritten, so you can always recover it
+- Scroll to the **Activity Log** panel at the bottom of the Head Scripts, Footer Scripts, or JS Files edit page
+- Click **Restore** next to any saved revision to instantly roll back via AJAX
+- For inline scripts, the editor updates in place — click the Save button to persist the restored content
+- For JS files, the restore writes the snapshot directly to disk
 
 ### Performance Issues
 

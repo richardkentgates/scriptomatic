@@ -629,20 +629,6 @@ trait Scriptomatic_Pages {
 
 
     /**
-     * Output the audit log table — removed in 1.9.0
-     *
-     * Filters entries to those matching $location so each scripts page only
-     * shows its own saves, rollbacks, and URL changes.
-     *
-     * @since  1.5.0
-     * @since  1.7.0 Accepts a page-slug string instead of a network boolean.
-     * @since  1.7.1 Accepts $location to filter and hide the Location column.
-     * @access private
-     * @param  string $page_slug The admin page slug used to build the clear-log URL.
-     * @param  string $location  `'head'` or `'footer'` — filters log entries.
-     * @return void
-     */
-    /**
      * Output the audit log table — removed in 1.9.0, superseded by render_activity_log().
      *
      * This stub is intentionally blank; callers have been updated to use
@@ -734,10 +720,10 @@ trait Scriptomatic_Pages {
                 '<h3>' . __( 'Scriptomatic Overview', 'scriptomatic' ) . '</h3>' .
                 '<p>' . __( 'Scriptomatic safely injects custom JavaScript into the <strong>head</strong> (before &lt;/head&gt;) and the <strong>footer</strong> (before &lt;/body&gt;) of your WordPress site. Use the <strong>Load Conditions</strong> setting on each page to control exactly which pages, post types, or user states receive the script.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'Use the <strong>Head Scripts</strong> page for analytics tags, pixel codes, and scripts that must load early. Use the <strong>Footer Scripts</strong> page for scripts that should run after page content has loaded.', 'scriptomatic' ) . '</p>' .
-                '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and a <strong>Revision History</strong> panel so you can restore any previous version in one click.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and an <strong>Activity Log</strong> at the bottom of the page showing all saves, rollbacks, and URL changes. Entries with a content snapshot have <strong>View</strong> and <strong>Restore</strong> buttons so you can roll back to any prior version in a single click.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The <strong>JS Files</strong> page lets you create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file has its own Head/Footer selector and Load Conditions, and persists across plugin updates.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The inline-script editor and JS Files editor both use <strong>CodeMirror</strong> — a full JavaScript code editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea when syntax highlighting is disabled in your WordPress profile.', 'scriptomatic' ) . '</p>' .
-                '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, revision history, conditional loading, and audit logging.', 'scriptomatic' ) . '</p>',
+                '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, an activity log with revision rollback, and conditional loading.', 'scriptomatic' ) . '</p>',
         ) );
 
         $screen->add_help_tab( array(
@@ -771,7 +757,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( '&lt;script&gt; tags are automatically stripped to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Audit Logging:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, and external URL additions/removals are recorded in the persistent in-admin <strong>Audit Log</strong> embedded on the Head Scripts and Footer Scripts pages (Scriptomatic &rarr; Preferences for limits). Each entry captures the timestamp, acting user, action (save, rollback, url_added, or url_removed), and either a character count (save/rollback) or the URL (url_added/url_removed). The log limit is configurable in Preferences (3&ndash;1000 entries); the oldest entries are discarded automatically once the limit is reached.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Activity Log:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, external URL changes, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Entries with a content snapshot expose <strong>View</strong> and <strong>Restore</strong> buttons for instant rollback. Actions covered: <code>save</code>, <code>rollback</code>, <code>url_added</code>, <code>url_removed</code>, <code>file_save</code>, <code>file_rollback</code>, <code>file_delete</code>. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Output Escaping:', 'scriptomatic' ) . '</strong> ' . __( 'Content is properly escaped when displayed in the admin interface.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __( 'Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic' ) . '</p>',
@@ -788,7 +774,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Keep It Clean:', 'scriptomatic' ) . '</strong> ' . __( 'Remove unused or outdated scripts regularly.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Verify Sources:', 'scriptomatic' ) . '</strong> ' . __( 'Only use code from trusted sources. Review all third-party scripts.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Monitor Performance:', 'scriptomatic' ) . '</strong> ' . __( 'Heavy scripts can slow down your site. Use browser dev tools to monitor impact.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Backup:', 'scriptomatic' ) . '</strong> ' . __( 'Use the built-in <em>Revision History</em> panel to restore previous versions. Click <em>Restore</em> next to any entry to roll back instantly without losing subsequent revisions.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Backup:', 'scriptomatic' ) . '</strong> ' . __( 'Every save is recorded in the <strong>Activity Log</strong> at the bottom of the page. Click <strong>Restore</strong> next to any entry to roll back to that version instantly via AJAX.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Async/Defer:', 'scriptomatic' ) . '</strong> ' . __( 'Consider using async or defer attributes for external scripts to improve page load times.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );
@@ -822,9 +808,10 @@ trait Scriptomatic_Pages {
                 '</ul>' .
                 '<h4>' . __( 'Restore a previous version:', 'scriptomatic' ) . '</h4>' .
                 '<ul>' .
-                '<li>' . __( 'Scroll to the <strong>Revision History</strong> panel at the bottom of the page.', 'scriptomatic' ) . '</li>' .
-                '<li>' . __( 'Click <strong>Restore</strong> next to the desired revision \u2014 the textarea updates instantly via AJAX.', 'scriptomatic' ) . '</li>' .
-                '<li>' . __( 'Click the Save button to persist the restored content.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'Scroll to the <strong>Activity Log</strong> panel at the bottom of the page.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'Click <strong>Restore</strong> next to the desired entry \u2014 the editor updates instantly via AJAX.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'For inline scripts, click the Save button to persist the restored content.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'For JS files, the restore writes the snapshot directly to disk.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );
 

@@ -13,6 +13,30 @@ _Nothing yet._
 
 ---
 
+## [1.9.0] – 2026-02-27
+
+### Added
+- **Unified Activity Log.** The separate Revision History panel and Audit Log table on the Head Scripts and Footer Scripts pages have been merged into a single **Activity Log** panel per location. Every event type — script saves, rollbacks, external URL additions/removals, JS file saves, JS file rollbacks, and JS file deletions — appears in one table. Rows that carry a content snapshot (saves and rollbacks) expose **View** and **Restore** buttons; informational rows (URL events, file deletions) are shown without action buttons. The Activity Log panel is also added to the JS Files list view (all file events) and the JS Files edit view (filtered to the current file only).
+- **JS Files activity log entries.** `file_save` and `file_rollback` entries carry a full content snapshot, enabling View and Restore on managed JS files. `file_delete` entries are informational only.
+- **Per-location Clear Log.** The **Clear Log** button (previously present only on head/footer pages) now appears on all activity log panels and clears only the entries for that location, leaving other locations untouched.
+- **`ajax_rollback_js_file()` AJAX handler.** Restores a managed JS file from a content snapshot stored in the activity log; writes a `file_rollback` entry on success.
+- **`ajax_get_file_activity_content()` AJAX handler.** Returns the raw content of a JS-file activity log entry for the View lightbox.
+- **One-time migration.** On first load after upgrade, `get_activity_log()` automatically migrates existing head/footer revision history (with content snapshots) and legacy URL-event audit log entries into the new unified option (`scriptomatic_activity_log`), then deletes nothing — old options remain until uninstall.
+
+### Changed
+- **`SCRIPTOMATIC_ACTIVITY_LOG_OPTION`** (`scriptomatic_activity_log`) replaces the per-location `SCRIPTOMATIC_HEAD_HISTORY`, `SCRIPTOMATIC_FOOTER_HISTORY`, and `SCRIPTOMATIC_AUDIT_LOG_OPTION` options as the live data store. Legacy constants and options are retained for migration reads and uninstall cleanup.
+- **`write_activity_entry()`** replaces both `push_history()` and `write_audit_log_entry()`. The old `write_audit_log_entry()` is kept as a pass-through alias so existing callers continue to compile during the transition.
+- **`get_history($location)`** now filters the unified activity log instead of reading a per-location option; AJAX handlers `ajax_rollback()` and `ajax_get_history_content()` are unchanged.
+- **`max_history` setting removed.** The separate History Limit field on the Preferences page has been removed. A single **Activity Log Limit** (3–1000, default 200) now governs retention across all locations.
+- **`maybe_clear_audit_log()` is now fully wired.** The method was defined but never registered on `admin_init`; it is now properly hooked. The `scriptomatic-files` page slug is also accepted, and clearing now targets `SCRIPTOMATIC_ACTIVITY_LOG_OPTION` by location.
+- **`SCRIPTOMATIC_CLEAR_LOG_NONCE`** constant was referenced but never defined; it is now declared in `scriptomatic.php`.
+- `uninstall.php` updated to delete `scriptomatic_activity_log`; legacy keys (`scriptomatic_script_history`, `scriptomatic_footer_history`, `scriptomatic_audit_log`) are also deleted to clean up migrated data.
+
+### Fixed
+- **Broken `log_change()` calls in `trait-files.php`.** Both the save and delete handlers called `$this->log_change('js_file', $label, '', $content)` — four arguments — but `log_change()` only accepts three. JS file events were therefore logged with `action='save'`, `location=''`, and `chars=7` (the byte-count of the literal string `'js_file'`). Both callers now use `write_activity_entry()` with the correct `file_save` / `file_delete` action, proper `file_id`, and — for saves — a full content snapshot.
+
+---
+
 ## [1.8.0] – 2026-02-27
 
 ### Added
@@ -298,6 +322,7 @@ _Nothing yet._
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 1.9.0   | 2026-02-27 | Unified Activity Log, JS file history, bug fixes |
 | 1.8.0   | 2026-02-27 | Managed JS Files, CodeMirror editor, security hardening |
 | 1.7.0   | 2026-02-27 | Configurable audit log limit, addUrl fix, network UI removed |
 | 1.6.0   | 2026-02-27 | Per-URL load conditions                        |
@@ -316,7 +341,8 @@ _Nothing yet._
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.5.0...v1.6.0
