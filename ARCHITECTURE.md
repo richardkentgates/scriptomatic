@@ -21,6 +21,8 @@ This document describes the internal structure of Scriptomatic for developers wh
    - [trait-enqueue.php](#trait-enqueuephp)
    - [trait-injector.php](#trait-injectorphp)
    - [trait-files.php](#trait-filesphp)
+   - [trait-api.php](#trait-apiphp)
+   - [class-scriptomatic-cli.php](#class-scriptomatic-cliphp)
 7. [WordPress Hook Map](#7-wordpress-hook-map)
 8. [Settings API Groups](#8-settings-api-groups)
 9. [Option Keys & Data Structures](#9-option-keys--data-structures)
@@ -67,6 +69,7 @@ scriptomatic/
 └── includes/
     ├── index.php                 # Returns HTTP 403 — blocks direct directory access
     ├── class-scriptomatic.php    # Singleton; requires all traits; registers hooks
+    ├── class-scriptomatic-cli.php# WP-CLI command class (`wp scriptomatic`); loaded only when `WP_CLI` is defined
     ├── trait-menus.php           # Admin menu and sub-menu registration
     ├── trait-sanitizer.php       # Input validation, sanitisation, rate limiter
     ├── trait-history.php         # Revision history storage and AJAX rollback
@@ -75,7 +78,8 @@ scriptomatic/
     ├── trait-pages.php           # Page renderers, Activity Log, JS Files pages, help tabs, action links
     ├── trait-enqueue.php         # Admin asset enqueueing
     ├── trait-injector.php        # Front-end HTML output
-    └── trait-files.php           # Managed JS files: disk I/O, save/delete handlers
+    ├── trait-files.php           # Managed JS files: disk I/O, save/delete handlers
+    └── trait-api.php             # REST API route registration, permission callbacks, service layer
 ```
 
 ---
@@ -107,7 +111,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'2.5.0'` |
+| `SCRIPTOMATIC_VERSION` | `'2.7.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
@@ -290,8 +294,9 @@ array(
 
 ```php
 array(
-    'max_log_entries'        => int,   // 3–1000, default 200
-    'keep_data_on_uninstall' => bool,  // default false
+    'max_log_entries'        => int,    // 3–1000, default 200
+    'keep_data_on_uninstall' => bool,   // default false
+    'api_allowed_ips'        => string, // newline-separated IPv4/IPv6/CIDR; empty = allow all
 )
 ```
 
@@ -314,7 +319,7 @@ All Settings API field and section callback methods. Also owns `check_load_condi
 
 **Public field callbacks:**
 
-`render_head_script_field()`, `render_head_linked_field()`, `render_head_conditions_field()`, `render_footer_script_field()`, `render_footer_linked_field()`, `render_footer_conditions_field()`, `render_max_log_field()`, `render_keep_data_field()`
+`render_head_script_field()`, `render_head_linked_field()`, `render_head_conditions_field()`, `render_footer_script_field()`, `render_footer_linked_field()`, `render_footer_conditions_field()`, `render_max_log_field()`, `render_keep_data_field()`, `render_api_allowed_ips_field()`
 
 **Private shared implementations:**
 
@@ -348,7 +353,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
 
 **Private view helpers:**
 
-- `render_js_file_list_view()` — outputs the managed JS files table (label, filename, location, conditions summary) with Add New and Edit links; includes an all-files activity log panel at the bottom.
+- `render_js_file_list_view()` — outputs the managed JS files table (label, filename, location, conditions summary) with Add New and Edit links. Also renders an **Upload a JS File** card at the top of the page with a file picker and an **Upload &amp; Edit** button (POST to `admin_post_scriptomatic_save_js_file` with `_sm_upload_source=list`). Includes an all-files activity log panel at the bottom.
 - `render_js_file_edit_view()` — outputs the JS file edit form (label, filename, Head/Footer selector, CodeMirror editor, conditions widget) and a per-file activity log panel.
 - `render_activity_log( $location, $file_id )` — queries the unified activity log, filters by location/file_id, and renders the table with View and Restore buttons where applicable.
 
@@ -411,11 +416,103 @@ Output format:
 - `get_js_files_meta()` — reads the `SCRIPTOMATIC_JS_FILES_OPTION` option and returns a decoded array. Each element: `{ id, label, filename, location, conditions }`.
 - `save_js_files_meta( $files )` — JSON-encodes and persists the array.
 
+**Upload validation:**
+- `validate_js_upload( array $file )` — central validation pipeline for all upload paths (admin UI list page, REST API, WP-CLI). Checks PHP upload error code, enforces `.js`-only extension, validates MIME type via `finfo_open`/`mime_content_type` fallback, and enforces `wp_max_upload_size()`. CLI callers signal synthetic file arrays with `_cli => true` to skip `is_uploaded_file()`. Returns the validated file contents as a string, or `WP_Error`.
+
 **`admin_post` save handler:**
-- `handle_save_js_file()` — registered on `admin_post_scriptomatic_save_js_file`. Validates capability (Gate 0) + nonce `SCRIPTOMATIC_FILES_NONCE` (Gate 1). Auto-slugs filename from label if blank; enforces `.js` extension and safe character set; enforces `wp_max_upload_size()`. Writes file bytes with `file_put_contents()`. On rename, removes the old file. Updates metadata array; writes activity log entry.
+- `handle_save_js_file()` — registered on `admin_post_scriptomatic_save_js_file`. Validates capability (Gate 0) + nonce `SCRIPTOMATIC_FILES_NONCE` (Gate 1). Handles two paths:
+  - **Text save** (no uploaded file): auto-slugs filename from label if blank; enforces `.js` extension and safe character set; enforces `wp_max_upload_size()`. Writes file bytes with `file_put_contents()`. On rename, removes the old file. Updates metadata array; writes activity log entry.
+  - **File upload** (`$_FILES['sm_js_upload']` present): delegates to `validate_js_upload()` for server-side validation, then saves the content. When `_sm_upload_source=list` is in `$_POST`, redirects to the edit page on success (so the user can review before saving).
 
 **AJAX delete handler:**
 - `ajax_delete_js_file()` — registered on `wp_ajax_scriptomatic_delete_js_file`. Same two security gates. Removes file from disk and from the metadata array. Writes activity log entry. Returns JSON success/error.
+
+---
+
+### `trait-api.php`
+
+**Trait name:** `Scriptomatic_API`
+
+Houses all REST API concerns: route registration, the permission callback (including IP allowlist enforcement), argument schemas, REST callback methods, the shared service layer, and the `api_validate_script_content()` private helper.
+
+**Route registration:**
+
+`register_rest_routes()` — hooked to `rest_api_init`. Registers 13 routes, all in the `scriptomatic/v1` namespace, all using `POST`:
+
+| Route | Callback |
+|---|---|
+| `/script` | `rest_get_script()` |
+| `/script/set` | `rest_set_script()` |
+| `/script/rollback` | `rest_rollback_script()` |
+| `/history` | `rest_get_history()` |
+| `/urls` | `rest_get_urls()` |
+| `/urls/set` | `rest_set_urls()` |
+| `/urls/rollback` | `rest_rollback_urls()` |
+| `/urls/history` | `rest_get_url_history()` |
+| `/files` | `rest_list_files()` |
+| `/files/get` | `rest_get_file()` |
+| `/files/set` | `rest_set_file()` |
+| `/files/delete` | `rest_delete_file()` |
+| `/files/upload` | `rest_upload_file()` — `multipart/form-data`; file under key `file` |
+
+**Permission callback:**
+
+`api_permission_callback()` — runs before every REST callback:
+
+1. **IP allowlist check** (`api_check_ip_allowlist()`): reads `api_allowed_ips` from plugin settings. If non-empty, parses each newline-separated entry (IPv4, IPv6, or IPv4 CIDR) and checks the request IP. Returns `WP_Error( 'rest_ip_forbidden', ..., 403 )` immediately on mismatch. The `api_ip_in_cidr()` helper handles CIDR prefix matching.
+2. **Capability check**: verifies `current_user_can( 'manage_options' )`. Returns `WP_Error( 'rest_forbidden', ..., 403 )` on failure.
+
+**Authentication**: WordPress Application Passwords only — `Authorization: Basic base64(username:app-password)`. No custom API key storage; no credentials in URLs.
+
+**Service layer (public methods shared with WP-CLI):**
+
+All write commands — whether from the REST API or WP-CLI — call these public service methods, so validation, rate-limiting, and activity logging are identical regardless of the entry point:
+
+| Method | Description |
+|---|---|
+| `service_get_script( $location )` | Returns `{location, content, chars}` |
+| `service_set_script( $location, $content, $conditions )` | Validates + saves inline script; returns `{location, chars, message}` or `WP_Error` |
+| `service_rollback_script( $location, $index )` | Restores inline script + conditions from snapshot; writes rollback log entry; returns `{location, content, chars, message}` or `WP_Error` |
+| `service_get_history( $location )` | Returns `{location, entries[]}` (index, action, timestamp, user, chars, detail, has_conditions) |
+| `service_set_urls( $location, $urls_json )` | Validates + saves URL list; returns `{location, count, urls, message}` or `WP_Error` |
+| `service_rollback_urls( $location, $index )` | Restores URL list from snapshot; returns `{location, urls, message}` or `WP_Error` |
+| `service_get_url_history( $location )` | Returns `{location, entries[]}` (index, action, timestamp, user, url_count, detail) |
+| `service_get_file( $file_id )` | Returns `{file_id, label, filename, location, conditions, content, chars}` or `WP_Error` |
+| `service_set_file( array $params )` | Creates or updates a managed JS file; returns `{file_id, filename, label, location, chars, message}` or `WP_Error` |
+| `service_delete_file( $file_id )` | Deletes file from disk + metadata; returns `{file_id, message}` or `WP_Error` |
+| `service_upload_file( array $file_data, array $params )` | Validates upload via `validate_js_upload()` then delegates to `service_set_file()`; returns same shape or `WP_Error`. Used by `rest_upload_file()` and the CLI `files upload` command. |
+
+**Private helper:**
+
+`api_validate_script_content( $content )` — mirrors the `sanitize_script_for()` pipeline but returns structured `WP_Error` instead of calling `add_settings_error()`. Checks string type, strips null bytes, validates UTF-8, rejects control characters and PHP tags, strips `<script>` tags, enforces `SCRIPTOMATIC_MAX_SCRIPT_LENGTH`.
+
+---
+
+### `class-scriptomatic-cli.php`
+
+**Class name:** `Scriptomatic_CLI` (extends `WP_CLI_Command`)
+
+Loaded only when `WP_CLI` is defined (bootstrapped in `scriptomatic.php`). Registered as `wp scriptomatic`. All write subcommands call the same `service_*()` methods on the `Scriptomatic` singleton as the REST API.
+
+**Subcommand summary:**
+
+| Command | Synopsis | Description |
+|---|---|---|
+| `script get` | `--location=<head\|footer>` | Print current inline script |
+| `script set` | `--location=<head\|footer> [--content=<js>] [--file=<path>] [--conditions=<json>]` | Save inline script |
+| `script rollback` | `--location=<head\|footer> --index=<n>` | Restore script snapshot (1-based) |
+| `history` | `--location=<head\|footer> [--format=<format>]` | List inline script history |
+| `urls get` | `--location=<head\|footer> [--format=<format>]` | Print external URL list |
+| `urls set` | `--location=<head\|footer> (--urls=<json> \| --file=<path>)` | Replace URL list |
+| `urls rollback` | `--location=<head\|footer> --index=<n>` | Restore URL snapshot |
+| `urls history` | `--location=<head\|footer> [--format=<format>]` | List URL history |
+| `files list` | `[--format=<format>]` | List all managed JS files |
+| `files get` | `--id=<file-id> [--format=<table\|json>]` | Print file content + metadata |
+| `files set` | `--label=<label> (--content=<js> \| --file=<path>) [--id=<id>] [--filename=<fn>] [--location=<head\|footer>] [--conditions=<json>]` | Create or update a file |
+| `files upload` | `--path=<local-path> [--label=<label>] [--id=<id>] [--location=<head\|footer>] [--conditions=<json>]` | Upload a `.js` file through the shared service layer |
+| `files delete` | `--id=<file-id> [--yes]` | Delete a managed JS file |
+
+`--format` defaults to `table`; accepts `table`, `json`, `csv`, `yaml`, `count`. `--index` is 1-based (index 0 = current live state, cannot restore). `--conditions` accepts a JSON `{logic, rules}` object.
 
 ---
 
@@ -438,6 +535,7 @@ Output format:
 | `wp_ajax_scriptomatic_restore_deleted_file` | default | `ajax_restore_deleted_file()` | history |
 | `wp_ajax_scriptomatic_delete_js_file` | default | `ajax_delete_js_file()` | files |
 | `admin_post_scriptomatic_save_js_file` | default | `handle_save_js_file()` | files |
+| `rest_api_init` | default | `register_rest_routes()` | api |
 | `load-{head_hook}` | default | `add_help_tab()` | pages |
 | `load-{footer_hook}` | default | `add_help_tab()` | pages |
 | `load-{files_hook}` | default | `add_help_tab()` | pages |
@@ -592,6 +690,8 @@ The activity log is a single `wp_options` row (`scriptomatic_activity_log`, cons
 |---|---|---|
 | `save` | Script save (Settings API flush) | `content`, `chars`, `urls_snapshot`, `conditions_snapshot`, `detail` (human-readable summary) |
 | `rollback` | AJAX inline rollback | `content`, `chars`, `urls_snapshot`, `conditions_snapshot` |
+| `url_save` | External URL list saved (admin UI or API) | `urls_snapshot`, `detail` |
+| `url_rollback` | External URL list restored (admin UI or API) | `urls_snapshot`, `detail` |
 | `file_save` | Managed JS file saved | `content`, `chars`, `meta`, `conditions` |
 | `file_rollback` | Managed JS file rolled back via AJAX | `content`, `chars`, `meta` |
 | `file_delete` | Managed JS file deleted | `content`, `meta`, `conditions`; when triggered by saving empty content, `meta.reason = 'empty_save'` |
@@ -768,4 +868,4 @@ update_option( 'scriptomatic_activity_log', array_slice( $log, 0, 200 ) );
 
 ---
 
-*Document version: 2.5.0 — reflects the codebase as of March 2026.*
+*Document version: 2.7.0 — reflects the codebase as of March 2026.*

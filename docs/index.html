@@ -291,6 +291,8 @@
     <li><a href="#security">Security</a></li>
     <li><a href="#install">Install</a></li>
     <li><a href="#usage">Usage</a></li>
+    <li><a href="#api">API</a></li>
+    <li><a href="#cli">CLI</a></li>
     <li><a href="#changelog">Changelog</a></li>
   </ul>
   <a class="btn nav-cta" href="https://github.com/richardkentgates/scriptomatic/releases/latest">Download</a>
@@ -299,7 +301,7 @@
 <!-- HERO -->
 <section class="hero">
   <img src="scriptomatic-logo.png" alt="Scriptomatic" class="hero-logo" />
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.6.0</div>
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.7.0</div>
   <h1>Inject custom JavaScript<br/><span>the right way.</span></h1>
   <p>Scriptomatic gives WordPress administrators full control over custom scripts — inline JavaScript with a built-in code editor, managed JS files, and external script URLs — injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer with conditional loading, revision history, one-click rollback, and a complete activity log.</p>
   <div class="hero-actions">
@@ -391,6 +393,18 @@
         <div class="feature-icon icon-purple">🏗️</div>
         <h3>Modular Architecture</h3>
         <p>Nine focused PHP traits — including dedicated traits for file management, injection, sanitization, and enqueuing — in separate files for clean separation of concerns.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-blue">🔌</div>
+        <h3>REST API</h3>
+        <p>Full <code>scriptomatic/v1</code> REST API (13 POST endpoints) covering inline scripts, external URLs, and managed JS files — including a multipart file upload endpoint. Authenticated via WordPress Application Passwords. Optional IP allowlist in Preferences.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-green">💻</div>
+        <h3>WP-CLI</h3>
+        <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), and history. All commands share the same service layer as the REST API — identical validation, rate-limiting, and activity logging.</p>
       </div>
 
     </div>
@@ -586,6 +600,14 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
         </div>
       </div>
 
+      <div class="security-item">
+        <div class="security-icon">🌐</div>
+        <div>
+          <h4>REST API Security</h4>
+          <p>All 13 REST endpoints are POST-only. Authentication exclusively via WordPress Application Passwords (<code>Authorization: Basic</code> header — credentials never in the URL). An optional <strong>IP Allowlist</strong> in Preferences blocks requests from outside a set of IPv4/IPv6 addresses or CIDR ranges before the capability gate is even reached (<code>403 rest_ip_forbidden</code>). Rate limiting and activity logging apply equally to REST and admin UI operations through the shared service layer.</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -620,16 +642,134 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
           <tr>
             <td>JS Files</td>
             <td>Scriptomatic → JS Files</td>
-            <td>Create, edit, and delete managed <code>.js</code> files; each file has its own label, slug filename, Head/Footer toggle, load conditions, and CodeMirror editor</td>
+            <td>Upload a <code>.js</code> file via the <strong>Upload a JS File</strong> card; create, edit, and delete managed <code>.js</code> files; each file has its own label, slug filename, Head/Footer toggle, load conditions, and CodeMirror editor</td>
           </tr>
           <tr>
             <td>Preferences</td>
             <td>Scriptomatic → Preferences</td>
-            <td>Activity log limit (3–1000), uninstall data-retention toggle</td>
+            <td>Activity log limit (3–1000), uninstall data-retention toggle, API Allowed IPs (IPv4/IPv6/CIDR allowlist for REST API access)</td>
           </tr>
         </tbody>
       </table>
     </div>
+  </div>
+</section>
+
+<!-- REST API -->
+<section id="api">
+  <div class="container">
+    <span class="section-label">REST API</span>
+    <h2>Automate everything over HTTP</h2>
+    <p class="section-intro">All 13 endpoints are <code>POST</code>-only. Authentication uses <strong>WordPress Application Passwords</strong> — credentials always travel in the <code>Authorization: Basic</code> header, never in the URL.</p>
+
+    <div class="highlight-box" style="margin-bottom:2rem;">
+      <h4>Authentication</h4>
+      <p>Generate an Application Password under <strong>Users → Profile → Application Passwords</strong>. Then pass <code>Authorization: Basic base64(username:app-password)</code> with every request.</p>
+    </div>
+
+    <div class="highlight-box" style="margin-bottom:2rem;">
+      <h4>IP Allowlist</h4>
+      <p>Optionally restrict REST API access to specific IP addresses or CIDR ranges in <strong>Preferences → API Allowed IPs</strong>. Leave empty to allow all IPs. Blocked requests receive <code>403 rest_ip_forbidden</code>. Does not affect the WordPress admin interface.</p>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Required params</th>
+            <th>Optional params</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>POST /script</code></td><td><code>location</code></td><td>—</td><td>Get current inline script</td></tr>
+          <tr><td><code>POST /script/set</code></td><td><code>location</code>, <code>content</code></td><td><code>conditions</code></td><td>Save inline script</td></tr>
+          <tr><td><code>POST /script/rollback</code></td><td><code>location</code>, <code>index</code> (≥ 1)</td><td>—</td><td>Restore inline script snapshot</td></tr>
+          <tr><td><code>POST /history</code></td><td><code>location</code></td><td>—</td><td>List inline script history</td></tr>
+          <tr><td><code>POST /urls</code></td><td><code>location</code></td><td>—</td><td>Get external URL list</td></tr>
+          <tr><td><code>POST /urls/set</code></td><td><code>location</code>, <code>urls</code> (JSON array)</td><td>—</td><td>Replace external URL list</td></tr>
+          <tr><td><code>POST /urls/rollback</code></td><td><code>location</code>, <code>index</code> (≥ 1)</td><td>—</td><td>Restore URL snapshot</td></tr>
+          <tr><td><code>POST /urls/history</code></td><td><code>location</code></td><td>—</td><td>List URL history</td></tr>
+          <tr><td><code>POST /files</code></td><td>—</td><td>—</td><td>List all managed JS files</td></tr>
+          <tr><td><code>POST /files/get</code></td><td><code>file_id</code></td><td>—</td><td>Get file content + metadata</td></tr>
+          <tr><td><code>POST /files/set</code></td><td><code>label</code>, <code>content</code></td><td><code>file_id</code>, <code>filename</code>, <code>location</code>, <code>conditions</code></td><td>Create or update a file</td></tr>
+          <tr><td><code>POST /files/delete</code></td><td><code>file_id</code></td><td>—</td><td>Delete a managed JS file</td></tr>
+          <tr><td><code>POST /files/upload</code></td><td>multipart <code>file</code> field</td><td><code>label</code>, <code>file_id</code>, <code>location</code>, <code>conditions</code></td><td>Upload a <code>.js</code> file</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:1rem;font-size:.875rem;color:var(--muted);">
+      Base URL: <code>/wp-json/scriptomatic/v1/</code> &nbsp;·&nbsp;
+      <code>location</code> = <code>"head"</code> or <code>"footer"</code> &nbsp;·&nbsp;
+      <code>index</code> is 1-based (0 = current state, cannot restore)
+    </p>
+
+    <div class="code-bg" style="background:var(--code-bg);border-radius:var(--radius);padding:1.5rem;margin-top:1.75rem;">
+      <div class="code-block" style="padding:0;background:none;">TOKEN=<span class="s">"$(echo -n 'admin:xxxx xxxx xxxx xxxx xxxx xxxx' | base64)"</span>
+BASE=<span class="s">"https://example.com/wp-json/scriptomatic/v1"</span>
+
+<span class="c"># Get current head script</span>
+curl -X POST <span class="s">"$BASE/script"</span> \
+  -H <span class="s">"Authorization: Basic $TOKEN"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"location":"head"}'</span>
+
+<span class="c"># Upload a .js file</span>
+curl -X POST <span class="s">"$BASE/files/upload"</span> \
+  -H <span class="s">"Authorization: Basic $TOKEN"</span> \
+  -F <span class="s">"file=@/path/to/tracker.js"</span> \
+  -F <span class="s">"label=My Tracker"</span> \
+  -F <span class="s">"location=head"</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- WP-CLI -->
+<section class="features-bg" id="cli">
+  <div class="container">
+    <span class="section-label">WP-CLI</span>
+    <h2>Manage scripts from the command line</h2>
+    <p class="section-intro">The <code>wp scriptomatic</code> command group mirrors the full REST API. All write commands share the same service layer — identical validation, rate-limiting, and activity logging apply.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:1.5rem;margin-top:1.25rem;">
+
+      <div class="install-card">
+        <h3>Inline Script</h3>
+        <div class="shell">
+<span class="prompt">$ </span>wp scriptomatic script get --location=head
+<span class="prompt">$ </span>wp scriptomatic script set --location=head --file=script.js
+<span class="prompt">$ </span>wp scriptomatic script rollback --location=head --index=2
+<span class="prompt">$ </span>wp scriptomatic history --location=head --format=table</div>
+      </div>
+
+      <div class="install-card">
+        <h3>External URLs</h3>
+        <div class="shell">
+<span class="prompt">$ </span>wp scriptomatic urls get --location=footer
+<span class="prompt">$ </span>wp scriptomatic urls set --location=footer --urls='[{"url":"https://cdn.example.com/lib.js","conditions":{"logic":"and","rules":[]}}]'
+<span class="prompt">$ </span>wp scriptomatic urls rollback --location=footer --index=1
+<span class="prompt">$ </span>wp scriptomatic urls history --location=footer</div>
+      </div>
+
+      <div class="install-card">
+        <h3>Managed JS Files</h3>
+        <div class="shell">
+<span class="prompt">$ </span>wp scriptomatic files list
+<span class="prompt">$ </span>wp scriptomatic files get --id=my-tracker
+<span class="prompt">$ </span>wp scriptomatic files set --label="My Tracker" --file=tracker.js
+<span class="prompt">$ </span>wp scriptomatic files upload --path=tracker.js --label="Tracker"
+<span class="prompt">$ </span>wp scriptomatic files delete --id=my-tracker --yes</div>
+      </div>
+
+    </div>
+
+    <p style="margin-top:1.25rem;font-size:.875rem;color:var(--muted);">
+      <code>--format</code> defaults to <code>table</code>; accepts <code>table</code>, <code>json</code>, <code>csv</code>, <code>yaml</code>, <code>count</code>. &nbsp;
+      <code>--index</code> is 1-based. &nbsp;
+      <code>--conditions</code> accepts a JSON <code>{logic, rules}</code> object.
+    </p>
   </div>
 </section>
 
@@ -693,8 +833,8 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <div class="changelog-item">
       <div class="clog-version">v2.7.0</div>
       <div class="clog-body">
-        <h4>JS file upload, REST API IP allowlist, and upload CLI/API endpoints</h4>
-        <p>The Add/Edit File page gains a drag-and-drop <strong>Upload .js File</strong> field: selecting a local file reads it into the CodeMirror editor via <code>FileReader</code> so you can review and edit the code before saving. A new <strong>API Allowed IPs</strong> field in Preferences lets you restrict REST API access to a whitelist of IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges &mdash; leave it empty to allow all IPs (the default). Two new upload entry points round out the release: <code>POST /wp-json/scriptomatic/v1/files/upload</code> accepts a <code>multipart/form-data</code> request, and <code>wp scriptomatic files upload --path=&lt;file&gt;</code> reads a local file and saves it through the shared service layer.</p>
+        <h4>JS Files list-page upload, REST API IP allowlist, and upload CLI/API endpoints</h4>
+        <p>The <strong>JS Files list page</strong> gains a dedicated <strong>Upload a JS File</strong> card with a file picker and an <strong>Upload &amp; Edit</strong> button. Submitting the form performs a real server-side upload and redirects to the edit page for review &mdash; no browser <code>FileReader</code> involved. A new <strong>API Allowed IPs</strong> field in Preferences lets you restrict REST API access to specific IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges &mdash; leave it empty to allow all IPs (the default). Two new upload entry points round out the release: <code>POST /wp-json/scriptomatic/v1/files/upload</code> accepts a <code>multipart/form-data</code> request, and <code>wp scriptomatic files upload --path=&lt;file&gt;</code> reads a local file and saves it through the shared service layer.</p>
       </div>
     </div>
 
@@ -702,7 +842,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
       <div class="clog-version">v2.6.0</div>
       <div class="clog-body">
         <h4>REST API &amp; WP-CLI command group</h4>
-        <p>Every Scriptomatic operation is now available over a first-party REST API (<code>scriptomatic/v1</code>) and through a <code>wp scriptomatic</code> WP-CLI command group. All REST endpoints are POST-only &mdash; credentials always travel in the <code>Authorization: Basic</code> header via WordPress Application Passwords, never in the URL. The two interfaces share a public service layer (<code>service_*</code> methods) so validation, rate-limiting, and activity logging are identical regardless of how a change is made. Twelve REST routes cover inline scripts, external URL lists, and managed JS files, including read, write, rollback, and history. Eight CLI subcommands mirror the same operations with table, JSON, CSV, and YAML output formats.</p>
+        <p>Every Scriptomatic operation is now available over a first-party REST API (<code>scriptomatic/v1</code>) and through a <code>wp scriptomatic</code> WP-CLI command group. All REST endpoints are POST-only &mdash; credentials always travel in the <code>Authorization: Basic</code> header via WordPress Application Passwords, never in the URL. The two interfaces share a public service layer (<code>service_*</code> methods) so validation, rate-limiting, and activity logging are identical regardless of how a change is made. Twelve REST routes cover inline scripts, external URL lists, and managed JS files, including read, write, rollback, and history. Twelve CLI commands mirror the same operations with table, JSON, CSV, and YAML output formats.</p>
       </div>
     </div>
 
@@ -943,7 +1083,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <a href="https://github.com/richardkentgates/scriptomatic/issues">Issues</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v2.6.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v2.7.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>

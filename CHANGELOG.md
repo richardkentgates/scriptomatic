@@ -17,13 +17,16 @@ _Nothing yet._
 
 ### Added
 - **JS file upload in the admin UI.**
-  The Add/Edit File form now includes an **Upload .js File** field. Selecting a
-  local file reads it directly into the CodeMirror editor via `FileReader` so
-  you can review and edit the content before clicking Save. The browser
-  (section&nbsp;5c in `admin.js`) auto-fills the label and filename from the
-  chosen file name. Server-side validation covers PHP upload errors,
+  The **JS Files list page** gains a dedicated **Upload a JS File** card with
+  a file picker and an **Upload &amp; Edit** button. Submitting the form
+  performs a real server-side POST (`admin_post_scriptomatic_save_js_file`
+  with `_sm_upload_source=list`). After a successful upload the handler
+  redirects directly to the edit page so you can review the content, set
+  load conditions, and save. The file is never read in the browser — there
+  is no `FileReader` path. Server-side validation covers PHP upload errors,
   `.js`-only extension, file size against `wp_max_upload_size()`, and MIME
-  type via `finfo_open` with a `mime_content_type` fallback.
+  type via `finfo_open` with a `mime_content_type` fallback (implemented
+  in `validate_js_upload()` in `trait-files.php`).
 - **REST API IP allowlist.**
   Preferences → Advanced Settings gains an **API Allowed IPs** textarea
   (`api_allowed_ips` setting key, sanitised on save). Accepts one IPv4
@@ -642,6 +645,11 @@ _Nothing yet._
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 2.7.0   | 2026-03-07 | JS file list-page upload; REST API IP allowlist; upload CLI/API endpoints |
+| 2.6.0   | 2026-03-07 | REST API (`scriptomatic/v1`) and WP-CLI command group |
+| 2.5.3   | 2026-02-28 | External URL Restore polish; docblock audit; language consistency |
+| 2.5.2   | 2026-02-28 | Independent inline-script and external-URL Activity Log entries |
+| 2.5.1   | 2026-02-28 | Ellipsis display fix; comprehensive code audit |
 | 2.5.0   | 2026-03-01 | Combined snapshot save; single-click full restore |
 | 2.4.0   | 2026-02-28 | File conditions UI fixed; duplicate log entries fixed |
 | 2.3.0   | 2026-02-28 | Single-concern log entries; greyed-out Restore for removals |

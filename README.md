@@ -31,7 +31,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **🏗️ Modular Architecture**: Nine PHP traits in separate files; static `assets/admin.css` and `assets/admin.js` enqueued via `wp_enqueue_style` / `wp_enqueue_script`
 - **🔌 REST API**: Full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Thirteen endpoints cover inline scripts, external URL lists, and managed JS files — including a multipart file upload endpoint. An optional IP allowlist in Preferences restricts API access to specific IPv4/IPv6 addresses or CIDR ranges.
 - **💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), and history. All commands share the same service layer as the REST API.
-- **📤 JS File Upload**: Upload a local `.js` file from the Add/Edit File page, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`. The file is validated for extension, MIME type, and size before being accepted.
+- **📤 JS File Upload**: Upload a local `.js` file from the **JS Files list page**, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`. The file is validated for extension, MIME type, and size before being accepted.
 
 ## 📋 Requirements
 
@@ -109,7 +109,7 @@ Then activate via WordPress admin.
 | Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>`; includes Activity Log |
 | Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>`; includes Activity Log |
 | JS Files | Scriptomatic → JS Files | Create, edit, and delete managed `.js` files; each file has its own Head/Footer toggle, load conditions, and CodeMirror editor; list view and edit view each include an Activity Log panel |
-| Preferences | Scriptomatic → Preferences | Activity log limit (3–1000), uninstall data retention |
+| Preferences | Scriptomatic → Preferences | Activity log limit (3–1000), uninstall data retention, API Allowed IPs (IPv4/IPv6/CIDR allowlist for REST API) |
 
 ### Important Notes
 
@@ -164,7 +164,113 @@ jQuery(document).ready(function($) {
 });
 ```
 
-## 🔒 Security Features
+## � REST API Reference
+
+All endpoints are `POST`. Authentication uses **WordPress Application Passwords**:
+`Authorization: Basic base64(username:application-password)`
+
+**Base URL:** `/wp-json/scriptomatic/v1/`
+
+An optional **API Allowed IPs** allowlist in **Preferences** restricts REST access to specific IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges (one per line). Leave empty to allow all IPs. Blocked requests receive `403 rest_ip_forbidden`.
+
+| Endpoint | Required params | Optional params | Description |
+|---|---|---|---|
+| `/script` | `location` | — | Get current inline script |
+| `/script/set` | `location`, `content` | `conditions` (JSON) | Save inline script |
+| `/script/rollback` | `location`, `index` (≥ 1) | — | Restore script snapshot |
+| `/history` | `location` | — | List inline script history |
+| `/urls` | `location` | — | Get external URL list |
+| `/urls/set` | `location`, `urls` (JSON array) | — | Replace external URL list |
+| `/urls/rollback` | `location`, `index` (≥ 1) | — | Restore URL snapshot |
+| `/urls/history` | `location` | — | List URL history |
+| `/files` | — | — | List all managed JS files |
+| `/files/get` | `file_id` | — | Get file content + metadata |
+| `/files/set` | `label`, `content` | `file_id`, `filename`, `location`, `conditions` | Create or update a file |
+| `/files/delete` | `file_id` | — | Delete a managed JS file |
+| `/files/upload` | multipart `file` field | `label`, `file_id`, `location`, `conditions` | Upload a `.js` file |
+
+`location` is `"head"` or `"footer"`. `index` is 1-based (0 = current state, cannot restore). All write operations share the same service layer as the admin UI — identical validation, rate-limiting, and activity logging apply.
+
+```bash
+# Example: get current head script
+curl -X POST https://example.com/wp-json/scriptomatic/v1/script \
+  -H "Authorization: Basic $(echo -n 'admin:xxxx xxxx xxxx xxxx xxxx xxxx' | base64)" \
+  -H "Content-Type: application/json" \
+  -d '{"location":"head"}'
+
+# Example: upload a .js file
+curl -X POST https://example.com/wp-json/scriptomatic/v1/files/upload \
+  -H "Authorization: Basic $(echo -n 'admin:xxxx xxxx xxxx xxxx xxxx xxxx' | base64)" \
+  -F "file=@/path/to/tracker.js" \
+  -F "label=My Tracker" \
+  -F "location=head"
+```
+
+---
+
+## 💻 WP-CLI Reference
+
+All commands are in the `wp scriptomatic` group. Write commands share the same service layer as the REST API and admin UI.
+
+### Inline Script
+
+```bash
+# Get current inline script
+wp scriptomatic script get --location=<head|footer>
+
+# Set inline script (from string or file)
+wp scriptomatic script set --location=<head|footer> [--content=<js>] [--file=<path>] [--conditions=<json>]
+
+# Rollback to a snapshot (index 1-based)
+wp scriptomatic script rollback --location=<head|footer> --index=<n>
+
+# List inline script history
+wp scriptomatic history --location=<head|footer> [--format=<table|json|csv|yaml|count>]
+```
+
+### External URLs
+
+```bash
+# Get current external URL list
+wp scriptomatic urls get --location=<head|footer> [--format=<format>]
+
+# Replace external URL list (JSON array of {url, conditions} objects)
+wp scriptomatic urls set --location=<head|footer> (--urls=<json> | --file=<path>)
+
+# Rollback URL list to a snapshot
+wp scriptomatic urls rollback --location=<head|footer> --index=<n>
+
+# List URL history
+wp scriptomatic urls history --location=<head|footer> [--format=<format>]
+```
+
+### Managed JS Files
+
+```bash
+# List all managed JS files
+wp scriptomatic files list [--format=<table|json|csv|yaml|count>]
+
+# Get file content + metadata
+wp scriptomatic files get --id=<file-id> [--format=<table|json>]
+
+# Create or update a file
+wp scriptomatic files set --label=<label> (--content=<js> | --file=<path>) \
+  [--id=<file-id>] [--filename=<fn>] [--location=<head|footer>] [--conditions=<json>]
+
+# Upload a local .js file
+wp scriptomatic files upload --path=<local-path> \
+  [--label=<label>] [--id=<file-id>] [--location=<head|footer>] [--conditions=<json>]
+
+# Delete a managed JS file
+wp scriptomatic files delete --id=<file-id> [--yes]
+```
+
+`--conditions` accepts a JSON string: `'{"logic":"and","rules":[{"type":"front_page","values":[]}]}'`
+`--format` defaults to `table`. `--index` is 1-based.
+
+---
+
+## �🔒 Security Features
 
 Scriptomatic is built with security as a top priority:
 

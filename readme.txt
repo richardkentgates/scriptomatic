@@ -94,7 +94,7 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 == Changelog ==
 
 = 2.7.0 =
-* **Added**: JS file upload on the Add/Edit File page — select a local `.js` file to read it directly into the CodeMirror editor so you can review and edit it before saving. The upload is validated server-side for extension, MIME type, and file size.
+* **Added**: JS file upload from the **JS Files list page** — a new "Upload a JS File" card with a file picker and an "Upload & Edit" button. Submitting the form performs a real server-side upload and redirects to the edit page so you can review and configure before saving. No browser FileReader involved. Validated server-side for `.js` extension, MIME type, and file size.
 * **Added**: REST API IP allowlist — the Preferences page has a new "API Allowed IPs" field accepting one IPv4 address, IPv6 address, or IPv4 CIDR range per line. Leave empty to allow all IPs (default). The restriction applies only to the REST API; it does not affect the admin interface.
 * **Added**: `POST /wp-json/scriptomatic/v1/files/upload` REST endpoint — upload a `.js` file as `multipart/form-data` under the `file` key. Supports `label`, `file_id`, `location`, and `conditions` parameters.
 * **Added**: `wp scriptomatic files upload --path=<file>` WP-CLI command — reads a local `.js` file and saves it through the same service layer as the REST API and admin UI.
