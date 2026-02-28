@@ -29,6 +29,9 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **🎨 WordPress Standards**: WP CS formatting, `esc_*()`, `sanitize_*()`, `wp_*()` throughout
 - **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion; fully multisite-aware
 - **🏗️ Modular Architecture**: Nine PHP traits in separate files; static `assets/admin.css` and `assets/admin.js` enqueued via `wp_enqueue_style` / `wp_enqueue_script`
+- **🔌 REST API**: Full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Thirteen endpoints cover inline scripts, external URL lists, and managed JS files — including a multipart file upload endpoint. An optional IP allowlist in Preferences restricts API access to specific IPv4/IPv6 addresses or CIDR ranges.
+- **💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), and history. All commands share the same service layer as the REST API.
+- **📤 JS File Upload**: Upload a local `.js` file from the Add/Edit File page, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`. The file is validated for extension, MIME type, and size before being accepted.
 
 ## 📋 Requirements
 
@@ -49,6 +52,7 @@ scriptomatic/
 │   └── admin.js                  # Admin JS (enqueued via wp_enqueue_script + wp_localize_script)
 └── includes/
     ├── class-scriptomatic.php    # Singleton class — uses all nine traits, registers hooks
+    ├── class-scriptomatic-cli.php# WP-CLI command class (loaded only when WP_CLI is defined)
     ├── trait-menus.php           # Admin menu & submenu registration; help-tab hooks
     ├── trait-sanitizer.php       # Input validation and sanitisation
     ├── trait-history.php         # Revision history storage and AJAX rollback
@@ -57,7 +61,8 @@ scriptomatic/
     ├── trait-pages.php           # Page renderers, Activity Log, JS Files pages, help tabs, action links
     ├── trait-enqueue.php         # Admin-asset enqueuing
     ├── trait-injector.php        # Front-end HTML injection
-    └── trait-files.php           # Managed JS files: CRUD, disk I/O, save + delete handlers
+    ├── trait-files.php           # Managed JS files: CRUD, disk I/O, save + delete handlers
+    └── trait-api.php             # REST API route registration, permission callbacks, service layer
 ```
 
 All traits are `use`d by `class Scriptomatic`, so cross-trait `$this->method()` calls work correctly.

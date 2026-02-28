@@ -691,6 +691,14 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
 
     <div class="changelog-item">
+      <div class="clog-version">v2.7.0</div>
+      <div class="clog-body">
+        <h4>JS file upload, REST API IP allowlist, and upload CLI/API endpoints</h4>
+        <p>The Add/Edit File page gains a drag-and-drop <strong>Upload .js File</strong> field: selecting a local file reads it into the CodeMirror editor via <code>FileReader</code> so you can review and edit the code before saving. A new <strong>API Allowed IPs</strong> field in Preferences lets you restrict REST API access to a whitelist of IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges &mdash; leave it empty to allow all IPs (the default). Two new upload entry points round out the release: <code>POST /wp-json/scriptomatic/v1/files/upload</code> accepts a <code>multipart/form-data</code> request, and <code>wp scriptomatic files upload --path=&lt;file&gt;</code> reads a local file and saves it through the shared service layer.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
       <div class="clog-version">v2.6.0</div>
       <div class="clog-body">
         <h4>REST API &amp; WP-CLI command group</h4>

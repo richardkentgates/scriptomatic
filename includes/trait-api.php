@@ -30,6 +30,7 @@
  *   POST /wp-json/scriptomatic/v1/files/get       → get one file's content + metadata
  *   POST /wp-json/scriptomatic/v1/files/set       → create or update a managed JS file
  *   POST /wp-json/scriptomatic/v1/files/delete    → delete a managed JS file
+ *   POST /wp-json/scriptomatic/v1/files/upload    → upload a .js file from multipart form-data
  *
  * Index scheme used by rollback endpoints:
  *   0 = current live state (read-only; rollback returns 400)
@@ -145,6 +146,12 @@ trait Scriptomatic_API {
             'permission_callback' => $pc,
             'args'                => $this->api_file_id_args(),
         ) );
+        register_rest_route( $ns, '/files/upload', array(
+            'methods'             => 'POST',
+            'callback'            => array( $this, 'rest_upload_file' ),
+            'permission_callback' => $pc,
+            'args'                => $this->api_upload_file_args(),
+        ) );
     }
 
     // =========================================================================
@@ -161,6 +168,11 @@ trait Scriptomatic_API {
      * @return true|WP_Error
      */
     public function api_permission_check() {
+        $ip_check = $this->api_check_ip_allowlist();
+        if ( is_wp_error( $ip_check ) ) {
+            return $ip_check;
+        }
+
         if ( ! current_user_can( $this->get_required_cap() ) ) {
             return new WP_Error(
                 'rest_forbidden',
@@ -174,6 +186,98 @@ trait Scriptomatic_API {
     // =========================================================================
     // ARG SCHEMAS
     // =========================================================================
+
+    /**
+     * Check the REST request IP against the configured allowlist.
+     *
+     * Returns true immediately when the list is empty (allow all).
+     * Uses $_SERVER['REMOTE_ADDR'] to avoid X-Forwarded-For spoofing.
+     *
+     * @since  2.7.0
+     * @access private
+     * @return true|WP_Error
+     */
+    private function api_check_ip_allowlist() {
+        $settings    = $this->get_plugin_settings();
+        $allowed_raw = isset( $settings['api_allowed_ips'] ) ? trim( (string) $settings['api_allowed_ips'] ) : '';
+
+        if ( '' === $allowed_raw ) {
+            return true; // Empty list = allow all.
+        }
+
+        $client_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+        if ( '' === $client_ip ) {
+            return new WP_Error(
+                'rest_ip_forbidden',
+                __( 'REST API access is restricted by IP address.', 'scriptomatic' ),
+                array( 'status' => 403 )
+            );
+        }
+
+        foreach ( preg_split( '/[\r\n]+/', $allowed_raw ) as $entry ) {
+            $entry = trim( $entry );
+            if ( '' === $entry ) { continue; }
+            if ( false !== strpos( $entry, '/' ) ) {
+                if ( $this->api_ip_in_cidr( $client_ip, $entry ) ) { return true; }
+            } elseif ( $client_ip === $entry ) {
+                return true;
+            }
+        }
+
+        return new WP_Error(
+            'rest_ip_forbidden',
+            __( 'REST API access is restricted by IP address.', 'scriptomatic' ),
+            array( 'status' => 403 )
+        );
+    }
+
+    /**
+     * Determine whether $ip falls within the $cidr range.
+     *
+     * Supports IPv4 dotted-decimal CIDR (e.g. 198.51.100.0/24).
+     * IPv6 addresses are compared byte-by-byte after inet_pton().
+     *
+     * @since  2.7.0
+     * @access private
+     * @param  string $ip   Client IP address.
+     * @param  string $cidr Network in CIDR notation.
+     * @return bool
+     */
+    private function api_ip_in_cidr( $ip, $cidr ) {
+        list( $subnet, $prefix ) = explode( '/', $cidr, 2 );
+        $prefix = (int) $prefix;
+
+        // IPv4.
+        if ( false !== strpos( $subnet, '.' ) ) {
+            $ip_long     = ip2long( $ip );
+            $subnet_long = ip2long( $subnet );
+            if ( false === $ip_long || false === $subnet_long ) { return false; }
+            if ( $prefix < 0 || $prefix > 32 ) { return false; }
+            $mask = ( 0 === $prefix ) ? 0 : ( ~0 << ( 32 - $prefix ) );
+            return ( $ip_long & $mask ) === ( $subnet_long & $mask );
+        }
+
+        // IPv6.
+        $ip_bin     = @inet_pton( $ip );     // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        $subnet_bin = @inet_pton( $subnet ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        if ( false === $ip_bin || false === $subnet_bin || strlen( $ip_bin ) !== strlen( $subnet_bin ) ) {
+            return false;
+        }
+        $bits   = strlen( $ip_bin ) * 8;
+        if ( $prefix < 0 || $prefix > $bits ) { return false; }
+        $full_bytes  = (int) floor( $prefix / 8 );
+        $extra_bits  = $prefix % 8;
+        for ( $i = 0; $i < $full_bytes; $i++ ) {
+            if ( ord( $ip_bin[ $i ] ) !== ord( $subnet_bin[ $i ] ) ) { return false; }
+        }
+        if ( $extra_bits > 0 && $full_bytes < strlen( $ip_bin ) ) {
+            $mask = 0xFF & ( 0xFF << ( 8 - $extra_bits ) );
+            if ( ( ord( $ip_bin[ $full_bytes ] ) & $mask ) !== ( ord( $subnet_bin[ $full_bytes ] ) & $mask ) ) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * Shared `location` argument definition.
@@ -323,6 +427,49 @@ trait Scriptomatic_API {
                 'type'              => 'string',
                 'sanitize_callback' => 'sanitize_key',
                 'description'       => __( 'The managed file ID (from the files list).', 'scriptomatic' ),
+            ),
+        );
+    }
+
+    /**
+     * Argument definitions for the files/upload endpoint.
+     *
+     * The actual file data arrives as multipart/form-data under the key `file`.
+     *
+     * @since  2.7.0
+     * @access private
+     * @return array[]
+     */
+    private function api_upload_file_args() {
+        return array(
+            'label' => array(
+                'required'          => false,
+                'type'              => 'string',
+                'default'           => '',
+                'sanitize_callback' => 'sanitize_text_field',
+                'description'       => __( 'Human-readable label. Auto-derived from filename if omitted.', 'scriptomatic' ),
+            ),
+            'file_id' => array(
+                'required'          => false,
+                'type'              => 'string',
+                'default'           => '',
+                'sanitize_callback' => 'sanitize_key',
+                'description'       => __( 'Existing file ID to overwrite. Omit to create a new file.', 'scriptomatic' ),
+            ),
+            'location' => array(
+                'required'          => false,
+                'type'              => 'string',
+                'enum'              => array( 'head', 'footer' ),
+                'default'           => 'head',
+                'sanitize_callback' => 'sanitize_key',
+                'description'       => __( 'Injection location: "head" or "footer". Default: "head".', 'scriptomatic' ),
+            ),
+            'conditions' => array(
+                'required'          => false,
+                'type'              => 'string',
+                'default'           => '',
+                'sanitize_callback' => 'strval',
+                'description'       => __( 'JSON-encoded load conditions {logic, rules}. Omit for all pages.', 'scriptomatic' ),
             ),
         );
     }
@@ -498,6 +645,35 @@ trait Scriptomatic_API {
      */
     public function rest_delete_file( WP_REST_Request $request ) {
         $result = $this->service_delete_file( (string) $request['file_id'] );
+        if ( is_wp_error( $result ) ) { return $result; }
+        return rest_ensure_response( $result );
+    }
+
+    /**
+     * POST /wp-json/scriptomatic/v1/files/upload
+     *
+     * Accepts a multipart/form-data request with a `file` field containing a
+     * .js file. The file is validated and stored via service_upload_file().
+     *
+     * @since  2.7.0
+     * @param  WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function rest_upload_file( WP_REST_Request $request ) {
+        $files = $request->get_file_params();
+        if ( empty( $files['file'] ) ) {
+            return new WP_Error(
+                'missing_file',
+                __( 'No file was uploaded. Send the file as multipart/form-data under the key "file".', 'scriptomatic' ),
+                array( 'status' => 400 )
+            );
+        }
+        $result = $this->service_upload_file( $files['file'], array(
+            'file_id'    => (string) $request['file_id'],
+            'label'      => (string) $request['label'],
+            'location'   => (string) $request['location'],
+            'conditions' => (string) $request['conditions'],
+        ) );
         if ( is_wp_error( $result ) ) { return $result; }
         return rest_ensure_response( $result );
     }
@@ -1066,6 +1242,43 @@ trait Scriptomatic_API {
             'file_id' => $file_id,
             'message' => __( 'File deleted.', 'scriptomatic' ),
         );
+    }
+
+    /**
+     * Validate and store an uploaded .js file.
+     *
+     * Used by rest_upload_file() and the CLI `files upload` command.
+     * Delegates content validation to validate_js_upload() (trait-files.php)
+     * and persistence to service_set_file().
+     *
+     * @since  2.7.0
+     * @param  array $file_data  PHP $_FILES-style entry: {name, tmp_name, error, size, type}.
+     *                           CLI callers may pass a synthetic array with tmp_name already set.
+     * @param  array $params     { file_id?, label?, location?, conditions? }
+     * @return array|WP_Error    On success: same shape as service_set_file().
+     */
+    public function service_upload_file( array $file_data, array $params ) {
+        // validate_js_upload() lives in Scriptomatic_Files trait.
+        $content = $this->validate_js_upload( $file_data );
+        if ( is_wp_error( $content ) ) {
+            return $content;
+        }
+
+        // Derive label and filename from the original filename when not supplied.
+        $original_name = isset( $file_data['name'] ) ? basename( (string) $file_data['name'] ) : 'upload.js';
+        $label   = ( isset( $params['label'] ) && '' !== trim( (string) $params['label'] ) )
+                   ? trim( (string) $params['label'] )
+                   : preg_replace( '/\.js$/i', '', $original_name );
+        $file_id = isset( $params['file_id'] ) ? (string) $params['file_id'] : '';
+
+        return $this->service_set_file( array(
+            'file_id'    => $file_id,
+            'label'      => $label,
+            'content'    => $content,
+            'filename'   => $original_name,
+            'location'   => isset( $params['location'] )   ? (string) $params['location']   : 'head',
+            'conditions' => isset( $params['conditions'] ) ? (string) $params['conditions'] : '',
+        ) );
     }
 
     // =========================================================================

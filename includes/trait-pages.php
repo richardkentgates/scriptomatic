@@ -555,6 +555,11 @@ trait Scriptomatic_Pages {
             'too_large'        => __( 'The file exceeds the maximum upload size allowed by this server.', 'scriptomatic' ),
             'write_failed'     => __( 'Could not write the file to disk. Please check directory permissions.', 'scriptomatic' ),
             'empty_content'    => __( 'File content cannot be empty. Add some JavaScript or discard the file.', 'scriptomatic' ),
+            // Upload-specific codes.
+            'upload_error'     => __( 'File upload failed. Please try again.', 'scriptomatic' ),
+            'invalid_type'     => __( 'Only .js files may be uploaded. Please select a valid JavaScript file.', 'scriptomatic' ),
+            'upload_too_large' => __( 'The uploaded file exceeds the maximum size allowed by this server.', 'scriptomatic' ),
+            'upload_no_file'   => __( 'No file was received. Please choose a .js file to upload.', 'scriptomatic' ),
         );
 
         $error_code = isset( $_GET['error'] ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : '';
@@ -607,9 +612,10 @@ trait Scriptomatic_Pages {
             <div class="notice notice-error"><p><?php echo esc_html( $error_msg ); ?></p></div>
             <?php endif; ?>
 
-            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="scriptomatic_save_js_file">
                 <?php wp_nonce_field( SCRIPTOMATIC_FILES_NONCE, '_sm_files_nonce' ); ?>
+                <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo esc_attr( (int) wp_max_upload_size() ); ?>">
                 <input type="hidden" name="_sm_file_original_id" value="<?php echo esc_attr( $file_id ); ?>">
 
                 <table class="form-table" role="presentation">
@@ -644,6 +650,29 @@ trait Scriptomatic_Pages {
                             <p id="sm-file-name-desc" class="description">
                                 <?php esc_html_e( 'Auto-filled from the label. Must end in .js. Letters, numbers, dashes and underscores only.', 'scriptomatic' ); ?>
                             </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sm-file-upload-input"><?php esc_html_e( 'Upload .js File', 'scriptomatic' ); ?></label></th>
+                        <td>
+                            <input
+                                type="file"
+                                id="sm-file-upload-input"
+                                name="sm_file_upload"
+                                accept=".js,text/javascript,application/javascript"
+                                aria-describedby="sm-upload-desc"
+                            >
+                            <span id="sm-file-upload-preview" class="description" style="display:none;margin-left:8px;"></span>
+                            <p id="sm-upload-desc" class="description">
+                                <?php
+                                printf(
+                                    /* translators: %s: human-readable maximum upload size (e.g. "8 MB") */
+                                    esc_html__( 'Optional. Select a local .js file to populate the JavaScript editor below. Max: %s.', 'scriptomatic' ),
+                                    esc_html( $max_bytes_fmt )
+                                );
+                                ?>
+                            </p>
+                            <p class="description"><?php esc_html_e( 'Tip: review the imported code in the editor before saving.', 'scriptomatic' ); ?></p>
                         </td>
                     </tr>
                     <tr>
@@ -758,6 +787,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Test:', 'scriptomatic' ) . '</strong> ' . __( 'Thoroughly test your site to ensure the script functions correctly.', 'scriptomatic' ) . '</li>' .
                 '</ol>' .
                 '<p><strong>' . __( 'Managed JS Files:', 'scriptomatic' ) . '</strong> ' . __( 'Use <em>Scriptomatic &rarr; JS Files</em> to create and manage standalone <code>.js</code> files. Each file has its own label, filename, Head/Footer selector, Load Conditions, and CodeMirror editor. Files are stored in <code>wp-content/uploads/scriptomatic/</code> and survive plugin updates.', 'scriptomatic' ) . '</p>' .
+                '<p><strong>' . __( 'File Upload:', 'scriptomatic' ) . '</strong> ' . __( 'On the JS File edit page, use the <strong>Upload .js File</strong> field to import a local file. The browser reads the file into the editor so you can review and edit it before saving. Falls back to a server-side upload when JavaScript is unavailable. The REST API (<code>POST /wp-json/scriptomatic/v1/files/upload</code>) and WP-CLI (<code>wp scriptomatic files upload --path=&lt;file&gt;</code>) also support file uploads.', 'scriptomatic' ) . '</p>' .
                 '<p><strong>' . __( 'Example:', 'scriptomatic' ) . '</strong></p>' .
                 '<pre>console.log("Hello from Scriptomatic!");\n' .
                 'var myCustomVar = "Hello World";</pre>',
@@ -770,6 +800,8 @@ trait Scriptomatic_Pages {
                 '<h3>' . __( 'Security Features', 'scriptomatic' ) . '</h3>' .
                 '<ul>' .
                 '<li><strong>' . __( 'Capability Check:', 'scriptomatic' ) . '</strong> ' . __( 'Only users with &ldquo;manage_options&rdquo; capability (Administrators) can access any Scriptomatic page or modify scripts.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'REST API IP Allowlist:', 'scriptomatic' ) . '</strong> ' . __( 'The <em>Preferences</em> page lets you restrict REST API access to a specific list of IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges (one per line). Leave the list empty to allow access from any IP (the default). The restriction applies only to the REST API; it does not affect admin UI access.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'JS File Upload Validation:', 'scriptomatic' ) . '</strong> ' . __( 'Uploaded files are validated for extension (<code>.js</code> only), file size (server upload limit), and MIME type before the content is accepted. PHP tags are rejected; control characters and invalid UTF-8 are stripped. All uploads are logged in the Activity Log.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Dual Nonce Verification:', 'scriptomatic' ) . '</strong> ' . __( 'Each form carries both the WordPress Settings API nonce and a secondary location-specific nonce, verified on every save.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, length cap (100&nbsp;KB for inline scripts; JS files are limited by the server&rsquo;s upload setting, not this plugin), PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .

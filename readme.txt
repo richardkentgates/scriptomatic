@@ -4,7 +4,7 @@ Tags: javascript, script injection, code manager, head scripts, footer scripts, 
 Requires at least: 5.3
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 2.6.0
+Stable tag: 2.7.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,7 +22,7 @@ Scriptomatic is a secure, production-ready WordPress plugin for injecting custom
 * **Conditional Loading** — 11 condition types per location: Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, ISO Week Number, and Month. AND/OR stacked rules with short-circuit evaluation.
 * **Revision History &amp; Rollback** — every save writes a complete snapshot (inline script + URL list + load conditions). Click Restore to bring all three back simultaneously via AJAX — no further Save needed.
 * **Activity Log** — all saves, rollbacks, and JS file events are recorded in a persistent log embedded at the bottom of each admin page. Configurable limit of 3–1,000 entries (default 200).
-* **Security First** — dual nonce verification, `manage_options` capability gate, transient-based rate limiting (10-second cooldown per user per location), UTF-8 and control-character rejection, 100 KB content cap for inline scripts (JS files are limited by the server's upload setting), PHP-tag detection, and dangerous-HTML-tag warning.
+* **Security First** — dual nonce verification, `manage_options` capability gate, transient-based rate limiting (10-second cooldown per user per location), UTF-8 and control-character rejection, 100 KB content cap for inline scripts (JS files are limited by the server's upload setting), PHP-tag detection, dangerous-HTML-tag warning, REST API IP allowlist (restrict to specific IPs/CIDRs), and uploaded-file validation (extension, MIME type, size).
 
 = Architecture =
 
@@ -93,6 +93,13 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 
 == Changelog ==
 
+= 2.7.0 =
+* **Added**: JS file upload on the Add/Edit File page — select a local `.js` file to read it directly into the CodeMirror editor so you can review and edit it before saving. The upload is validated server-side for extension, MIME type, and file size.
+* **Added**: REST API IP allowlist — the Preferences page has a new "API Allowed IPs" field accepting one IPv4 address, IPv6 address, or IPv4 CIDR range per line. Leave empty to allow all IPs (default). The restriction applies only to the REST API; it does not affect the admin interface.
+* **Added**: `POST /wp-json/scriptomatic/v1/files/upload` REST endpoint — upload a `.js` file as `multipart/form-data` under the `file` key. Supports `label`, `file_id`, `location`, and `conditions` parameters.
+* **Added**: `wp scriptomatic files upload --path=<file>` WP-CLI command — reads a local `.js` file and saves it through the same service layer as the REST API and admin UI.
+* **Added**: `service_upload_file()` public service-layer method shared by the REST API and WP-CLI command.
+
 = 2.6.0 =
 * **Added**: REST API under namespace `scriptomatic/v1`. All twelve endpoints use POST; credentials travel in the `Authorization: Basic` header via WordPress Application Passwords.
 * **Added**: WP-CLI command group `wp scriptomatic` — subcommands for inline scripts, external URLs, managed JS files, and history, with table/JSON/CSV/YAML output formats.
@@ -126,6 +133,9 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 * All internal development backward-compatibility code removed.
 
 == Upgrade Notice ==
+
+= 2.7.0 =
+Adds JS file upload in the admin UI, REST API file upload endpoint (`POST /files/upload`), `wp scriptomatic files upload` WP-CLI command, and a REST API IP allowlist in Preferences. No breaking changes; existing data and settings are unaffected.
 
 = 2.6.0 =
 Adds a REST API (`scriptomatic/v1`, all POST endpoints) and `wp scriptomatic` WP-CLI commands. No breaking changes; existing data and settings are unaffected.

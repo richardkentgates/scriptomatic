@@ -13,6 +13,44 @@ _Nothing yet._
 
 ---
 
+## [2.7.0] – 2026-03-07
+
+### Added
+- **JS file upload in the admin UI.**
+  The Add/Edit File form now includes an **Upload .js File** field. Selecting a
+  local file reads it directly into the CodeMirror editor via `FileReader` so
+  you can review and edit the content before clicking Save. The browser
+  (section&nbsp;5c in `admin.js`) auto-fills the label and filename from the
+  chosen file name. Server-side validation covers PHP upload errors,
+  `.js`-only extension, file size against `wp_max_upload_size()`, and MIME
+  type via `finfo_open` with a `mime_content_type` fallback.
+- **REST API IP allowlist.**
+  Preferences → Advanced Settings gains an **API Allowed IPs** textarea
+  (`api_allowed_ips` setting key, sanitised on save). Accepts one IPv4
+  address, IPv6 address, or IPv4 CIDR range per line; empty means allow all.
+  Every REST API request is checked against the list before the capability
+  gate. Returns a `403 rest_ip_forbidden` error when denied. Does not affect
+  the WordPress admin interface. Implemented in `api_check_ip_allowlist()` and
+  `api_ip_in_cidr()` private methods in `trait-api.php`.
+- **`POST /wp-json/scriptomatic/v1/files/upload` REST endpoint.**
+  Upload a `.js` file as `multipart/form-data` (key `file`). Optional
+  parameters: `label`, `file_id` (overwrite), `location`, `conditions`.
+  Validated through `validate_js_upload()` and persisted through
+  `service_set_file()` — identical to the admin UI pipeline.
+- **`wp scriptomatic files upload --path=<file>` WP-CLI command.**
+  Reads a local `.js` file and saves it through the same service layer as the
+  REST API and admin UI. Optional flags: `--label`, `--id`, `--location`,
+  `--conditions`.
+- **`service_upload_file(array $file_data, array $params)` service-layer method.**
+  Public method on the main class shared by both the REST callback and the CLI
+  command. Calls `validate_js_upload()` then `service_set_file()`.
+- **`validate_js_upload(array $file)` private method in `trait-files.php`.**
+  Central validation pipeline for all upload paths. Skips
+  `is_uploaded_file()` for CLI callers (signalled by `_cli => true` in the
+  file array).
+
+---
+
 ## [2.6.0] – 2026-03-07
 
 ### Added
@@ -630,7 +668,12 @@ _Nothing yet._
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v2.7.0...HEAD
+[2.7.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.6.0...v2.7.0
+[2.6.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.5.3...v2.6.0
+[2.5.3]: https://github.com/richardkentgates/scriptomatic/compare/v2.5.2...v2.5.3
+[2.5.2]: https://github.com/richardkentgates/scriptomatic/compare/v2.5.1...v2.5.2
+[2.5.1]: https://github.com/richardkentgates/scriptomatic/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.2.0...v2.3.0

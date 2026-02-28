@@ -27,6 +27,7 @@
  *   wp scriptomatic files list
  *   wp scriptomatic files get --id=<file-id>
  *   wp scriptomatic files set --label=<label> (--content=<js> | --file=<path>) [--id=<id>] [--filename=<fn>] [--location=<head|footer>] [--conditions=<json>]
+ *   wp scriptomatic files upload --path=<path> [--label=<label>] [--id=<id>] [--location=<head|footer>] [--conditions=<json>]
  *   wp scriptomatic files delete --id=<file-id> [--yes]
  *
  * All write operations delegate to the service_*() methods on the
@@ -625,18 +626,79 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
         $this->handle_result( $result );
     }
 
+    /**
+     * Upload a local .js file to the managed JS files library.
+     *
+     * Reads the file from disk, validates the extension and content via the
+     * same pipeline used by the REST API and admin UI, then saves it through
+     * service_upload_file(). The file name is derived from --path unless
+     * --id is supplied (in which case the existing entry is overwritten).
+     *
+     * ## OPTIONS
+     *
+     * --path=<path>
+     * : Absolute or relative path to the local .js file to upload.
+     *
+     * [--label=<label>]
+     * : Human-readable label for the file. Defaults to the filename (without
+     * : the .js extension).
+     *
+     * [--id=<id>]
+     * : Existing file ID to overwrite. Omit to create a new entry.
+     *
+     * [--location=<location>]
+     * : Where to inject the file: head or footer. Default: head.
+     *
+     * [--conditions=<json>]
+     * : JSON-encoded load conditions object {logic, rules}. Omit for all pages.
+     *
+     * ## EXAMPLES
+     *
+     *   wp scriptomatic files upload --path=/tmp/analytics.js
+     *   wp scriptomatic files upload --path=./my-script.js --label="My Script" --location=footer
+     *   wp scriptomatic files upload --path=/tmp/updated.js --id=my-script
+     *
+     * @since  2.7.0
+     * @param  array $args
+     * @param  array $assoc_args
+     */
+    public function files_upload( $args, $assoc_args ) {
+        if ( ! isset( $assoc_args['path'] ) || '' === trim( (string) $assoc_args['path'] ) ) {
+            WP_CLI::error( '--path is required.' );
+        }
+
+        $path = (string) $assoc_args['path'];
+        if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+            WP_CLI::error( sprintf( 'Cannot read file: %s', $path ) );
+        }
+        if ( ! preg_match( '/\.js$/i', basename( $path ) ) ) {
+            WP_CLI::error( 'Only .js files are accepted.' );
+        }
+
+        // Build a synthetic $_FILES-style array for validate_js_upload() / service_upload_file().
+        $file_data = array(
+            'name'     => basename( $path ),
+            'tmp_name' => $path,
+            'error'    => UPLOAD_ERR_OK,
+            'size'     => filesize( $path ),
+            'type'     => 'text/javascript',
+            '_cli'     => true, // signal to validate_js_upload() to skip is_uploaded_file().
+        );
+
+        $location = isset( $assoc_args['location'] ) ? $this->validate_location( $assoc_args['location'] ) : 'head';
+
+        $result = $this->plugin->service_upload_file( $file_data, array(
+            'file_id'    => isset( $assoc_args['id'] )         ? (string) $assoc_args['id']         : '',
+            'label'      => isset( $assoc_args['label'] )      ? (string) $assoc_args['label']      : '',
+            'location'   => $location,
+            'conditions' => isset( $assoc_args['conditions'] ) ? (string) $assoc_args['conditions'] : '',
+        ) );
+        $this->handle_result( $result );
+    }
+
     // =========================================================================
     // PRIVATE HELPERS
     // =========================================================================
-
-    /**
-     * Validate and normalise a location argument.
-     *
-     * @since  2.6.0
-     * @access private
-     * @param  string $location
-     * @return string  'head' or 'footer'.
-     */
     private function validate_location( $location ) {
         $location = sanitize_key( (string) $location );
         if ( ! in_array( $location, array( 'head', 'footer' ), true ) ) {

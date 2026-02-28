@@ -821,6 +821,33 @@ trait Scriptomatic_Renderer {
         <?php
     }
 
+    /**
+     * Render the "API Allowed IPs" textarea field for the Advanced Settings section.
+     *
+     * Accepts one IPv4 address, IPv6 address, or IPv4 CIDR range per line.
+     * Leave empty to allow REST API requests from any IP address.
+     *
+     * @since  2.7.0
+     */
+    public function render_api_allowed_ips_field() {
+        $settings = $this->get_plugin_settings();
+        $ips      = isset( $settings['api_allowed_ips'] ) ? $settings['api_allowed_ips'] : '';
+        ?>
+        <textarea
+            id="scriptomatic_api_allowed_ips"
+            name="<?php echo esc_attr( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ); ?>[api_allowed_ips]"
+            rows="5"
+            cols="35"
+            class="code"
+            aria-describedby="api-ips-description"
+            placeholder="203.0.113.1&#10;198.51.100.0/24&#10;2001:db8::1"
+        ><?php echo esc_textarea( $ips ); ?></textarea>
+        <p id="api-ips-description" class="description">
+            <?php esc_html_e( 'One IPv4 address, IPv6 address, or IPv4 CIDR range per line. Leave empty to allow REST API requests from any IP address. Does not affect the WordPress admin interface.', 'scriptomatic' ); ?>
+        </p>
+        <?php
+    }
+
     // =========================================================================
     // FILE CONDITIONS WIDGET
     // =========================================================================

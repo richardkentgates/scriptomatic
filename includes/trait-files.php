@@ -102,6 +102,129 @@ trait Scriptomatic_Files {
     }
 
     // =========================================================================
+    // UPLOAD VALIDATION
+    // =========================================================================
+
+    /**
+     * Validate a .js file submitted via an HTTP file-upload field (from
+     * $_FILES or the REST API multipart body).
+     *
+     * Checks the upload error code, file extension, file size, and MIME type,
+     * then returns the raw file contents on success.
+     *
+     * @since  2.7.0
+     * @access private
+     * @param  array $file  A single entry from $_FILES.
+     * @return string|WP_Error  File contents on success; WP_Error on failure.
+     */
+    private function validate_js_upload( array $file ) {
+        $error = isset( $file['error'] ) ? (int) $file['error'] : UPLOAD_ERR_NO_FILE;
+
+        if ( UPLOAD_ERR_NO_FILE === $error ) {
+            return new WP_Error( 'upload_no_file', __( 'No file was received.', 'scriptomatic' ), array( 'status' => 400 ) );
+        }
+
+        if ( UPLOAD_ERR_OK !== $error ) {
+            return new WP_Error(
+                'upload_error',
+                sprintf(
+                    /* translators: %d: PHP upload error code */
+                    __( 'Upload failed (PHP error %d). Please try again.', 'scriptomatic' ),
+                    $error
+                ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $original_name = isset( $file['name'] )     ? trim( (string) $file['name'] )     : '';
+        $tmp_name      = isset( $file['tmp_name'] ) ? trim( (string) $file['tmp_name'] ) : '';
+        $file_size     = isset( $file['size'] )     ? (int) $file['size']                : 0;
+
+        // Must originate from a real HTTP upload (prevents path-traversal attacks).
+        // CLI callers pass _cli => true and supply a fully-qualified local path,
+        // so the is_uploaded_file() check is intentionally skipped for that path.
+        $is_cli = ! empty( $file['_cli'] );
+        if ( '' === $tmp_name || ( ! $is_cli && ! @is_uploaded_file( $tmp_name ) ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            return new WP_Error(
+                'upload_error',
+                __( 'Invalid upload — did not originate from an HTTP form upload.', 'scriptomatic' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Must end in .js.
+        if ( ! preg_match( '/\.js$/i', $original_name ) ) {
+            return new WP_Error(
+                'invalid_type',
+                __( 'Only .js files may be uploaded.', 'scriptomatic' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Must not exceed the server upload limit.
+        $max_bytes = wp_max_upload_size();
+        if ( $file_size > $max_bytes || @filesize( $tmp_name ) > $max_bytes ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            return new WP_Error(
+                'upload_too_large',
+                sprintf(
+                    /* translators: %s: human-readable maximum upload size (e.g. "8 MB") */
+                    __( 'File exceeds the maximum upload size of %s.', 'scriptomatic' ),
+                    size_format( $max_bytes )
+                ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // MIME-type check: only JavaScript (and plain text, which some systems
+        // report for .js files) is permitted.
+        $allowed_types = array(
+            'text/javascript',
+            'application/javascript',
+            'text/x-javascript',
+            'application/x-javascript',
+            'text/plain', // Reported by some servers for .js files.
+        );
+
+        // Prefer finfo for real MIME detection; fall back to browser-supplied type.
+        $real_type = '';
+        if ( function_exists( 'finfo_open' ) ) {
+            $finfo     = finfo_open( FILEINFO_MIME_TYPE );
+            $real_type = $finfo ? strtolower( (string) finfo_file( $finfo, $tmp_name ) ) : '';
+            if ( $finfo ) { finfo_close( $finfo ); }
+        } elseif ( function_exists( 'mime_content_type' ) ) {
+            $real_type = strtolower( (string) mime_content_type( $tmp_name ) );
+        }
+
+        $browser_type  = isset( $file['type'] ) ? strtolower( trim( preg_replace( '/;.*$/', '', (string) $file['type'] ) ) ) : '';
+        $type_to_check = '' !== $real_type ? $real_type : $browser_type;
+
+        if ( '' !== $type_to_check && ! in_array( $type_to_check, $allowed_types, true ) ) {
+            return new WP_Error(
+                'invalid_type',
+                sprintf(
+                    /* translators: %s: detected MIME type string */
+                    __( 'File type not permitted (%s). Only JavaScript (.js) files are accepted.', 'scriptomatic' ),
+                    esc_html( $type_to_check )
+                ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Read and return the file contents.
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+        $content = file_get_contents( $tmp_name );
+        if ( false === $content ) {
+            return new WP_Error(
+                'upload_error',
+                __( 'Could not read the uploaded file.', 'scriptomatic' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        return $content;
+    }
+
+    // =========================================================================
     // ADMIN-POST SAVE HANDLER
     // =========================================================================
 
@@ -148,6 +271,29 @@ trait Scriptomatic_Files {
         $cond_raw    = isset( $_POST['sm_file_conditions'] )
             ? wp_unslash( $_POST['sm_file_conditions'] )
             : '{"logic":"and","rules":[]}';
+
+        // If a .js file was uploaded, validate it and use its content.
+        // This path serves both as a no-JS fallback and as a pure file-import
+        // operation. Network upload validation is enforced by validate_js_upload().
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        if ( ! empty( $_FILES['sm_file_upload'] ) && UPLOAD_ERR_NO_FILE !== (int) $_FILES['sm_file_upload']['error'] ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            $upload_result = $this->validate_js_upload( $_FILES['sm_file_upload'] );
+            if ( is_wp_error( $upload_result ) ) {
+                $this->redirect_file_edit( $original_id, $upload_result->get_error_code() );
+                return;
+            }
+            $content = $upload_result;
+            // Auto-fill filename from the uploaded file's name if not manually supplied.
+            if ( '' === $filename ) {
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                $filename = sanitize_file_name( (string) $_FILES['sm_file_upload']['name'] );
+            }
+            // Auto-fill label from the filename (without extension) if not supplied.
+            if ( '' === $label ) {
+                $label = sanitize_text_field( preg_replace( '/\.js$/i', '', basename( $filename ) ) );
+            }
+        }
 
         // Empty content: delete an existing file or reject a new-file attempt.
         if ( '' === trim( $content ) ) {
