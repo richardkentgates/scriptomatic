@@ -191,6 +191,12 @@ trait Scriptomatic_Pages {
                     $restore_title = '';
                 }
 
+                // Re-create is greyed only when the delete snapshot has no content
+                // to recover. In practice every file_delete entry stores the full
+                // pre-deletion content, so this flag is almost always false.
+                $reanimate_greyed = $has_delete_snap
+                    && '' === (string) ( isset( $entry['content'] ) ? $entry['content'] : '' );
+
                 // URL Restore is greyed out when this entry IS the current state
                 // (index 0) or when the snapshot contains no URLs — restoring
                 // an empty snapshot would just wipe the list, same logic as
@@ -286,7 +292,7 @@ trait Scriptomatic_Pages {
                             <button type="button" class="button button-small sm-file-reanimate"
                                 data-index="<?php echo esc_attr( $this_delete_index ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Re-create', 'scriptomatic' ); ?>"
-                                <?php if ( $restore_greyed ) : ?>disabled title="<?php echo esc_attr( $restore_title ); ?>"<?php endif; ?>
+                                <?php if ( $reanimate_greyed ) : ?>disabled title="<?php esc_attr_e( 'No content snapshot — nothing to restore.', 'scriptomatic' ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Re-create', 'scriptomatic' ); ?></button>
                         <?php endif; ?>
                         <?php if ( $has_url_entry ) : ?>
