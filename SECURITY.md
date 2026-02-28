@@ -38,7 +38,7 @@ We provide security updates for the following versions:
   - Action performed
 
   Note: IP addresses are intentionally not logged to protect user privacy.
-- **Activity Log**: All saves, rollbacks, and JS file events are recorded in the persistent Activity Log, embedded at the bottom of each admin page. Every save entry is a complete snapshot of the script, URL list, and load conditions. Entries capture timestamp, user, action (`save`, `rollback`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), and a human-readable summary of what changed. Restore brings back all three fields simultaneously — no further Save needed.
+- **Activity Log**: All saves, rollbacks, and JS file events are recorded in the persistent Activity Log, embedded at the bottom of each admin page. Inline script + conditions changes and external URL changes are recorded as separate independent entries — each with its own View and Restore buttons. Entries capture timestamp, user, action (`save`, `url_save`, `rollback`, `url_rollback`, `file_save`, `file_rollback`, `file_delete`), and a human-readable summary of what changed. Restore is disabled on the most recent entry of each dataset and on empty snapshots.
 - **Settings Errors**: User-facing error messages for validation failures
 
 ### Output Escaping

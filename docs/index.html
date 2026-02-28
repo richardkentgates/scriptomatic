@@ -348,7 +348,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-green">🔁</div>
         <h3>Revision History &amp; Rollback</h3>
-        <p>Every save captures a complete snapshot — inline script, external URL list, and load conditions. Restore any prior version in one AJAX click and all three fields come back simultaneously. View any snapshot’s content in a lightbox.</p>
+        <p>Inline script + conditions changes and external URL changes are recorded as separate independent Activity Log entries, each with its own View and Restore buttons. Restoring an inline entry writes back the script and load conditions; restoring a URL entry writes back the external URLs as they were — the two never interfere with each other. View any snapshot in a lightbox.</p>
       </div>
 
       <div class="feature-card">
@@ -558,7 +558,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
         <div class="security-icon">📋</div>
         <div>
           <h4>Activity Logging</h4>
-          <p>All saves, rollbacks, <code>file_save</code>, <code>file_delete</code>, and restore events are logged with timestamp and user identity. Every save entry is a complete snapshot of the script, URL list, and load conditions. Configurable retention limit (3&ndash;1000). Oldest entries are discarded automatically once the cap is reached.</p>
+          <p>All saves, rollbacks, <code>file_save</code>, <code>file_delete</code>, and restore events are logged with timestamp and user identity. Inline script and external URL changes produce separate independent entries, each restorable on its own. Configurable retention limit (3&ndash;1000). Oldest entries are discarded automatically once the cap is reached.</p>
         </div>
       </div>
 

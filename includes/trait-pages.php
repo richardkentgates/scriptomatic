@@ -118,7 +118,7 @@ trait Scriptomatic_Pages {
             <?php
             printf(
                 /* translators: %d: maximum number of retained log entries */
-                esc_html__( 'All script saves, rollbacks, and file events for this location. The most recent %d entries are retained. Inline script, URL list, and file entries are recorded separately and restored independently.', 'scriptomatic' ),
+                esc_html__( 'All script saves, rollbacks, and file events for this location. The most recent %d entries are retained. Inline script, external URL, and file entries are recorded separately and restored independently.', 'scriptomatic' ),
                 $this->get_max_log_entries()
             );
             ?>
@@ -191,8 +191,8 @@ trait Scriptomatic_Pages {
                     $restore_title = '';
                 }
 
-                // URL Restore is greyed out when this entry IS the current URL list
-                // (index 0) or when the snapshot is an empty URL list — restoring
+                // URL Restore is greyed out when this entry IS the current state
+                // (index 0) or when the snapshot contains no URLs — restoring
                 // an empty snapshot would just wipe the list, same logic as
                 // greying inline Restore when content is ''.
                 $url_snap_empty     = $has_url_entry
@@ -200,9 +200,9 @@ trait Scriptomatic_Pages {
                 $url_restore_greyed = $has_url_entry && ( 0 === $this_url_index || $url_snap_empty );
 
                 if ( $has_url_entry && 0 === $this_url_index ) {
-                    $url_restore_title = __( 'This is the current URL list — nothing to restore.', 'scriptomatic' );
+                    $url_restore_title = __( 'Already the current state — nothing to restore.', 'scriptomatic' );
                 } elseif ( $url_snap_empty ) {
-                    $url_restore_title = __( 'URL list is empty — nothing to restore.', 'scriptomatic' );
+                    $url_restore_title = __( 'No external URLs in this snapshot — nothing to restore.', 'scriptomatic' );
                 } else {
                     $url_restore_title = '';
                 }
@@ -737,7 +737,7 @@ trait Scriptomatic_Pages {
                 '<h3>' . __( 'Scriptomatic Overview', 'scriptomatic' ) . '</h3>' .
                 '<p>' . __( 'Scriptomatic safely injects custom JavaScript into the <strong>head</strong> (before &lt;/head&gt;) and the <strong>footer</strong> (before &lt;/body&gt;) of your WordPress site. Use the <strong>Load Conditions</strong> setting on each page to control exactly which pages, post types, or user states receive the script.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'Use the <strong>Head Scripts</strong> page for analytics tags, pixel codes, and scripts that must load early. Use the <strong>Footer Scripts</strong> page for scripts that should run after page content has loaded.', 'scriptomatic' ) . '</p>' .
-                '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and an <strong>Activity Log</strong> below showing all saves, rollbacks, and file events. Inline script changes and URL list changes are recorded as <strong>separate entries</strong>, each with its own View and Restore buttons &mdash; restoring one dataset never affects the other.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and an <strong>Activity Log</strong> below showing all saves, rollbacks, and file events. Inline script changes and external URL changes are recorded as <strong>separate entries</strong>, each with its own View and Restore buttons &mdash; restoring one never affects the other.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The <strong>JS Files</strong> page lets you create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file has its own Head/Footer selector and Load Conditions, and persists across plugin updates.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The inline-script editor and JS Files editor both use <strong>CodeMirror</strong> — a full JavaScript code editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea when syntax highlighting is disabled in your WordPress profile.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, an activity log with revision rollback, and conditional loading.', 'scriptomatic' ) . '</p>',
@@ -774,7 +774,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( '&lt;script&gt; tags are automatically stripped to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Activity Log:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Inline script + conditions changes and URL list changes are written as <strong>separate independent entries</strong>, each with its own View and Restore buttons &mdash; restoring one dataset never touches the other. <strong>View</strong> shows the full saved state; <strong>Restore</strong> writes the dataset back with no further Save needed. The Restore button is disabled on the most recent entry of each dataset. Actions covered: <code>save</code>, <code>url_save</code>, <code>rollback</code>, <code>url_rollback</code>, <code>file_save</code>, <code>file_rollback</code>, <code>file_delete</code>. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Activity Log:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Inline script + conditions changes and external URL changes are written as <strong>separate independent entries</strong>, each with its own View and Restore buttons &mdash; restoring one never touches the other. <strong>View</strong> shows the full saved state; <strong>Restore</strong> writes the dataset back with no further Save needed. The Restore button is disabled on the most recent entry of each dataset. Actions covered: <code>save</code>, <code>url_save</code>, <code>rollback</code>, <code>url_rollback</code>, <code>file_save</code>, <code>file_rollback</code>, <code>file_delete</code>. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Output Escaping:', 'scriptomatic' ) . '</strong> ' . __( 'Content is properly escaped when displayed in the admin interface.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __( 'Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic' ) . '</p>',
@@ -791,7 +791,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Keep It Clean:', 'scriptomatic' ) . '</strong> ' . __( 'Remove unused or outdated scripts regularly.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Verify Sources:', 'scriptomatic' ) . '</strong> ' . __( 'Only use code from trusted sources. Review all third-party scripts.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Monitor Performance:', 'scriptomatic' ) . '</strong> ' . __( 'Heavy scripts can slow down your site. Use browser dev tools to monitor impact.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Backup:', 'scriptomatic' ) . '</strong> ' . __( 'Every save is recorded in the <strong>Activity Log</strong>. Inline script and URL list changes have separate entries with independent Restore buttons &mdash; click <strong>Restore</strong> on any entry to roll back that dataset instantly. No further Save needed.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Backup:', 'scriptomatic' ) . '</strong> ' . __( 'Every save is recorded in the <strong>Activity Log</strong>. Inline script and external URL changes have separate entries with independent Restore buttons &mdash; click <strong>Restore</strong> on any entry to roll back that dataset instantly. No further Save needed.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Async/Defer:', 'scriptomatic' ) . '</strong> ' . __( 'Consider using async or defer attributes for external scripts to improve page load times.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );
@@ -826,7 +826,7 @@ trait Scriptomatic_Pages {
                 '<h4>' . __( 'Restore a previous version:', 'scriptomatic' ) . '</h4>' .
                 '<ul>' .
                 '<li>' . __( 'Scroll to the <strong>Activity Log</strong> panel at the bottom of the page.', 'scriptomatic' ) . '</li>' .
-                '<li>' . __( 'Click <strong>Restore</strong> next to the desired entry &mdash; inline script entries restore the script and load conditions; URL list entries restore the URL list. Each dataset is restored independently, no further Save needed.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'Click <strong>Restore</strong> next to the desired entry &mdash; inline script entries restore the script and load conditions; URL entries restore the external URLs. Each is restored independently, no further Save needed.', 'scriptomatic' ) . '</li>' .
                 '<li>' . __( 'For JS files, the restore writes the snapshot directly to disk.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );
