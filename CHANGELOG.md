@@ -13,6 +13,28 @@ _Nothing yet._
 
 ---
 
+## [2.1.0] – 2026-02-28
+
+### Added
+- **Save confirmation notices.** Head Scripts, Footer Scripts, and Preferences
+  pages now display a green "Settings saved." notice after a successful save.
+  Previously a successful save gave no visual feedback — only errors/warnings
+  were surfaced.
+- **Empty-file auto-delete.** Saving a JS file with empty content now deleted
+  the file rather than writing a blank `.js` to disk:
+  - *Existing file* — removed from disk and metadata; a `file_delete` Activity
+    Log entry is written with `meta.reason = 'empty_save'` (full content
+    snapshot retained for restore); redirects to the JS Files list with a
+    warning notice.
+  - *New file* — redirects back to the edit form with an "empty content" error.
+
+### Fixed
+- Plugin header `Version` tag corrected (`1.12.0` → `2.1.0`); the constant
+  `SCRIPTOMATIC_VERSION` has been updated to `'2.1.0'` to match.
+- Plugin description corrected: "audit logging" → "activity logging".
+
+---
+
 ## [2.0.0] – 2026-02-28
 
 ### Changed

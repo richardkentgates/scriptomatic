@@ -107,7 +107,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'2.0.0'` |
+| `SCRIPTOMATIC_VERSION` | `'2.1.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
@@ -393,7 +393,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
 
 Output format:
 ```html
-<!-- Scriptomatic v2.0.0 (head) -->
+<!-- Scriptomatic v2.1.0 (head) -->
 <script src="https://example.com/script.js"></script>
 <script src="/wp-content/uploads/scriptomatic/my-tracker.js"></script>
 <script>
@@ -612,7 +612,7 @@ The activity log is a single `wp_options` row (`scriptomatic_activity_log`, cons
 | `conditions_restored` | Load conditions restored via AJAX | `conditions_snapshot` |
 | `file_save` | Managed JS file saved | `content`, `chars`, `meta`, `conditions` |
 | `file_rollback` | Managed JS file rolled back via AJAX | `content`, `chars`, `meta` |
-| `file_delete` | Managed JS file deleted | `content`, `meta`, `conditions` |
+| `file_delete` | Managed JS file deleted | `content`, `meta`, `conditions`; when triggered by saving empty content, `meta.reason = 'empty_save'` |
 | `file_restored` | Deleted JS file re-created via AJAX | `meta` |
 
 The log is per-site (always uses `get_option` / `update_option`). On multisite, each site has its own log.
@@ -787,4 +787,4 @@ update_option( 'scriptomatic_activity_log', array_slice( $log, 0, 200 ) );
 
 ---
 
-*Document version: 2.0.0 — reflects the codebase as of February 2026.*
+*Document version: 2.1.0 — reflects the codebase as of February 2026.*

@@ -170,6 +170,12 @@ trait Scriptomatic_Sanitizer {
             $this->log_change( $input, $option_key, $location );
             $this->record_save_timestamp( $location );
             $processed_this_request[ $location ] = true;
+            add_settings_error(
+                $error_slug,
+                'settings_saved',
+                __( 'Settings saved.', 'scriptomatic' ),
+                'updated'
+            );
         }
 
         return $input;

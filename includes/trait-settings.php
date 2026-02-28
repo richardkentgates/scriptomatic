@@ -178,6 +178,13 @@ trait Scriptomatic_Settings {
         // keep_data_on_uninstall: boolean.
         $clean['keep_data_on_uninstall'] = ! empty( $input['keep_data_on_uninstall'] );
 
+        add_settings_error(
+            SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION,
+            'settings_saved',
+            __( 'Settings saved.', 'scriptomatic' ),
+            'updated'
+        );
+
         return $clean;
     }
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Scriptomatic — Inject custom JavaScript into the head and footer of your WordPress site with revision history, rollback, and fine-grained admin controls." />
   <meta property="og:title" content="Scriptomatic — WordPress JavaScript Injection Plugin" />
-  <meta property="og:description" content="Inject custom JavaScript into the head and footer of your WordPress site with revision history, rollback, audit logging, and fine-grained admin controls." />
+  <meta property="og:description" content="Inject custom JavaScript into the head and footer of your WordPress site with revision history, rollback, activity logging, and fine-grained admin controls." />
   <meta property="og:url" content="https://scriptomatic.richardkentgates.com" />
   <meta property="og:image" content="https://scriptomatic.richardkentgates.com/scriptomatic-logo.png" />
   <meta property="og:type" content="website" />
@@ -299,9 +299,9 @@
 <!-- HERO -->
 <section class="hero">
   <img src="scriptomatic-logo.png" alt="Scriptomatic" class="hero-logo" />
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v1.8.0</div>
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.1.0</div>
   <h1>Inject custom JavaScript<br/><span>the right way.</span></h1>
-  <p>Scriptomatic gives WordPress administrators full control over custom scripts — inline JavaScript with a built-in code editor, managed JS files, and external script URLs — injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer with conditional loading, revision history, one-click rollback, and a complete audit trail.</p>
+  <p>Scriptomatic gives WordPress administrators full control over custom scripts — inline JavaScript with a built-in code editor, managed JS files, and external script URLs — injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer with conditional loading, revision history, one-click rollback, and a complete activity log.</p>
   <div class="hero-actions">
     <a class="btn btn-primary" href="https://github.com/richardkentgates/scriptomatic/releases/latest">
       ⬇ Download Latest
@@ -342,7 +342,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-green">🎯</div>
         <h3>Conditional Loading</h3>
-        <p>Twelve condition types — All Pages, Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, Week Number, Month — per location, independently configured.</p>
+        <p>Eleven condition types — Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, Week Number, Month — per location, independently configured.</p>
       </div>
 
       <div class="feature-card">
@@ -353,7 +353,7 @@
 
       <div class="feature-card">
         <div class="feature-icon icon-amber">📋</div>
-        <h3>Audit Log</h3>
+        <h3>Activity Log</h3>
         <p>All saves, rollbacks, and URL changes are recorded with timestamp, username, action type, and character count or URL. Configurable limit of 3–1000 entries (default 200), with oldest entries discarded automatically.</p>
       </div>
 
@@ -432,8 +432,8 @@
     </div>
 
     <div class="highlight-box">
-      <h4>Revision History &amp; Audit Log are always there</h4>
-      <p>The revision history panel and location-filtered audit log are embedded at the bottom of every Head Scripts and Footer Scripts page. You can view any revision's content in a lightbox, restore it in one click, and see a full record of who changed what and when — all without leaving the settings page.</p>
+      <h4>Activity Log is always there</h4>
+      <p>The activity log panel is embedded at the bottom of every Head Scripts, Footer Scripts, and JS Files page, filtered by location. You can view any revision's content in a lightbox, restore it in one click, and see a full record of who changed what and when — all without leaving the settings page.</p>
     </div>
   </div>
 </section>
@@ -557,8 +557,8 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
       <div class="security-item">
         <div class="security-icon">📋</div>
         <div>
-          <h4>Audit Logging</h4>
-          <p>All saves, rollbacks, url_added, and url_removed events are all logged with timestamp and user identity. Configurable retention limit (3–1000). Oldest entries are discarded automatically once the cap is reached.</p>
+          <h4>Activity Logging</h4>
+          <p>All saves, rollbacks, url_added, url_removed, conditions_save, file_save, file_delete, and restore events are logged with timestamp and user identity. Configurable retention limit (3–1000). Oldest entries are discarded automatically once the cap is reached.</p>
         </div>
       </div>
 
@@ -691,10 +691,42 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
 
     <div class="changelog-item">
+      <div class="clog-version">v2.1.0</div>
+      <div class="clog-body">
+        <h4>Save confirmation notices; empty-file auto-delete</h4>
+        <p>Head Scripts, Footer Scripts, and Preferences pages now display a green <strong>Settings saved.</strong> notice on every successful save &mdash; no more silent saves. Saving a JS file with empty content now auto-deletes the file: an existing file is removed from disk, its <code>file_delete</code> Activity Log entry records <code>meta.reason = &apos;empty_save&apos;</code> for restore, and a warning is shown on the list; a new file with empty content returns an error. Plugin header <code>Version</code> tag fixed to match <code>SCRIPTOMATIC_VERSION</code>.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v2.0.0</div>
+      <div class="clog-body">
+        <h4>First public release &mdash; backward-compat code removed</h4>
+        <p>All internal backward-compatibility migration paths removed. Conditions storage is exclusively the <code>{logic, rules}</code> stacked format. External script URL lists are exclusively the <code>[{url, conditions}]</code> array format. Removed constants: <code>SCRIPTOMATIC_HEAD_HISTORY</code>, <code>SCRIPTOMATIC_FOOTER_HISTORY</code>, <code>SCRIPTOMATIC_DEFAULT_MAX_HISTORY</code>, <code>SCRIPTOMATIC_AUDIT_LOG_OPTION</code>. <code>write_activity_entry()</code> is now the sole logging method.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.12.0</div>
+      <div class="clog-body">
+        <h4>Full Activity Log snapshots and universal restore</h4>
+        <p>Every Activity Log entry now bundles a full <code>urls_snapshot</code> and <code>conditions_snapshot</code>. New Restore buttons for every log row type: URL changes restore the complete URL list, conditions changes re-apply saved conditions, and <code>file_delete</code> entries re-create the deleted JS file from its content snapshot. Five new AJAX endpoints. CodeMirror-powered rich View lightbox for all entry types.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v1.11.0</div>
+      <div class="clog-body">
+        <h4>Stacked load conditions (AND / OR multi-rule)</h4>
+        <p>Every conditions picker now supports building a stack of rules rather than a single condition. <strong>AND mode</strong> loads the script only when every rule matches; <strong>OR mode</strong> loads when at least one matches. An empty stack means &ldquo;load on all pages.&rdquo; Legacy single-condition format is auto-migrated transparently on read.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
       <div class="clog-version">v1.10.0</div>
       <div class="clog-body">
         <h4>Four new date/time load condition types</h4>
-        <p>Added <strong>by_date</strong> (date range), <strong>by_datetime</strong> (date &amp; time window), <strong>week_number</strong> (ISO week numbers 1&ndash;53), and <strong>by_month</strong> (month checkboxes) condition types. All twelve condition types are available on every conditions picker: inline scripts, per-URL entries, and managed JS files. Evaluation uses <code>current_time()</code> for site-timezone correctness.</p>
+        <p>Added <strong>by_date</strong> (date range), <strong>by_datetime</strong> (date &amp; time window), <strong>week_number</strong> (ISO week numbers 1&ndash;53), and <strong>by_month</strong> (month checkboxes) condition types. All eleven condition types are available on every conditions picker: inline scripts, per-URL entries, and managed JS files. Evaluation uses <code>current_time()</code> for site-timezone correctness.</p>
       </div>
     </div>
 
@@ -841,7 +873,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <a href="https://github.com/richardkentgates/scriptomatic/issues">Issues</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v1.8.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v2.1.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>
