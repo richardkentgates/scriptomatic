@@ -22,7 +22,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months — or leave it on all pages (11 condition types)
 - **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
-- **📋 Activity Log**: All script saves, rollbacks, and JS file events are recorded in a persistent **Activity Log** embedded at the bottom of each admin page. Every save entry is a complete snapshot of the inline script, external URL list, and load conditions — **View** shows the full saved state; **Restore** writes all three back simultaneously with no further Save needed. File deletion events are informational only. Log limit is configurable in Preferences (3–1000, default 200); oldest entries are discarded automatically once the cap is reached.
+- **📋 Activity Log**: All script saves, rollbacks, and JS file events are recorded in a persistent **Activity Log** embedded at the bottom of each admin page. Inline script + conditions changes and external URL list changes are recorded as **separate independent entries**, each with its own **View** and **Restore** buttons. Restoring an inline entry writes the script content and load conditions back; restoring a URL entry writes only the URL list back — the two datasets never interfere with each other. The Restore button is disabled on the most recent entry of each dataset (already the live state). File deletion events are informational only. Log limit is configurable in Preferences (3–1000, default 200); oldest entries are discarded automatically once the cap is reached.
 - **⚡ Performance Optimized**: Minimal overhead; front-end injection only on pages matching load conditions
 - **🌐 Multisite Compatible**: Works in multisite networks; all script management is per-site. Install, activate, and deactivate can be performed network-wide. Uninstall iterates every sub-site.
 - **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
@@ -182,9 +182,10 @@ Scriptomatic is built with security as a top priority:
 
 ### Activity Logging
 - All saves, AJAX rollbacks, and JS file events are recorded in the persistent **Activity Log** embedded on each admin page; each page shows only its own location's entries
-- Every save entry is a complete snapshot — it captures the inline script content, external URL list, and load conditions at that moment
-- Each entry captures: timestamp, username, user ID, action (`save`, `rollback`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), and a human-readable summary of what changed
-- Entries with content snapshots expose **View** and **Restore** buttons directly in the table; **Restore** writes the script, URL list, and conditions back simultaneously
+- Inline script + conditions changes and external URL list changes are written as **separate entries** — each with its own View/Restore buttons and rollback path; restoring one dataset never touches the other
+- Each entry captures: timestamp, username, user ID, action (`save`, `url_save`, `rollback`, `url_rollback`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), and a human-readable summary of what changed
+- The Restore button is disabled on the most recent entry of each dataset (it already reflects the live state)
+- Entries with content snapshots expose **View** and **Restore** buttons directly in the table
 - No IP addresses collected (intentional privacy decision)
 - Log limit is configurable (3–1000, default 200 entries); oldest entries are discarded automatically once the cap is reached
 - Helps track changes and detect unauthorised modification
@@ -277,9 +278,10 @@ eval(someUntrustedString); // Never use eval!
 
 **Solutions**:
 - Scroll to the **Activity Log** panel at the bottom of the Head Scripts, Footer Scripts, or JS Files edit page
-- Click **Restore** next to any saved revision to instantly roll back via AJAX
-- For inline scripts, Restore writes the script content, URL list, and conditions back simultaneously — no further Save needed
-- For JS files, the restore writes the snapshot directly to disk
+- Click **Restore** next to any saved revision to instantly roll back via AJAX — no further Save needed
+- For inline script entries, Restore writes the script content and load conditions back; for URL list entries, Restore writes the URL list back — each dataset is restored independently
+- For JS files, Restore writes the snapshot directly to disk
+- The Restore button is disabled on the most recent entry of each dataset (already the current state)
 
 ### Performance Issues
 

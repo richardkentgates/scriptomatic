@@ -3,7 +3,7 @@
  * Plugin Name: Scriptomatic
  * Plugin URI: https://github.com/richardkentgates/scriptomatic
  * Description: Inject custom JavaScript into the head and footer of your WordPress site. Manage standalone JS files with a built-in code editor, conditional per-page loading, external script URLs, revision history, rollback, activity logging, and fine-grained admin controls.
- * Version: 2.5.1
+ * Version: 2.5.2
  * Requires at least: 5.3
  * Tested up to: 6.7
  * Requires PHP: 7.2
@@ -38,7 +38,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ---- Core ----
-define( 'SCRIPTOMATIC_VERSION',     '2.5.1' );
+define( 'SCRIPTOMATIC_VERSION',     '2.5.2' );
 define( 'SCRIPTOMATIC_PLUGIN_FILE', __FILE__ );
 define( 'SCRIPTOMATIC_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'SCRIPTOMATIC_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );

@@ -13,6 +13,27 @@ _Nothing yet._
 
 ---
 
+## [2.5.2] – 2026-02-28
+
+### Fixed
+- **Activity Log now writes fully independent entries per dataset.** Inline
+  script + load-conditions changes produce a `save` entry; external URL list
+  changes produce a separate `url_save` entry. The two are never combined.
+  Each dataset has its own View and Restore buttons, its own index counter, and
+  its own rollback path — restoring one dataset never affects the other.
+- **Restore button is now disabled for the current-state (index 0) entry.**
+  The Restore button on the most recent inline-script entry and the most recent
+  URL-list entry is now greyed out with a tooltip, since those entries already
+  reflect the live state and restoring them would have no effect.
+- **Conditions-only saves now always produce a complete, restorable log entry.**
+  When only load conditions changed (no script edit), the log entry previously
+  lacked a `content` key and rendered no View or Restore buttons. The entry
+  writer now snapshots the current script from the database when the script
+  sanitizer did not contribute to the accumulator, so every inline entry always
+  carries a full content + conditions snapshot.
+
+---
+
 ## [2.5.1] – 2026-02-28
 
 ### Fixed
