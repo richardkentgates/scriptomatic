@@ -755,9 +755,7 @@ trait Scriptomatic_Renderer {
      * @return void
      */
     public function render_advanced_section() {
-        echo '<p>';
-        esc_html_e( 'Configure activity log retention and data lifecycle behaviour for this plugin.', 'scriptomatic' );
-        echo '</p>';
+        // Fields are self-describing; no section description needed.
     }
 
     /**

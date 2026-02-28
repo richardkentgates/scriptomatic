@@ -103,7 +103,7 @@ trait Scriptomatic_Settings {
             ),
         ) );
 
-        add_settings_section( 'sm_advanced', __( 'Advanced Settings', 'scriptomatic' ), array( $this, 'render_advanced_section' ), 'scriptomatic_general_page' );
+        add_settings_section( 'sm_advanced', '', array( $this, 'render_advanced_section' ), 'scriptomatic_general_page' );
 
         add_settings_field( 'scriptomatic_max_log_entries', __( 'Activity Log Limit', 'scriptomatic' ),
             array( $this, 'render_max_log_field' ), 'scriptomatic_general_page', 'sm_advanced' );

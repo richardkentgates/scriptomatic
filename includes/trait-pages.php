@@ -686,7 +686,7 @@ trait Scriptomatic_Pages {
                                 <input type="radio" name="sm_file_location" value="footer" <?php checked( $location, 'footer' ); ?>>
                                 <?php esc_html_e( 'Footer', 'scriptomatic' ); ?>
                             </label>
-                            <p class="description"><?php esc_html_e( 'Choose where in the page this file is enqueued.', 'scriptomatic' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Choose where in the page this file is injected.', 'scriptomatic' ); ?></p>
                         </td>
                     </tr>
                     <tr>
@@ -768,6 +768,7 @@ trait Scriptomatic_Pages {
                 '<p>' . __( 'Use the <strong>Head Scripts</strong> page for analytics tags, pixel codes, and scripts that must load early. Use the <strong>Footer Scripts</strong> page for scripts that should run after page content has loaded.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and an <strong>Activity Log</strong> below showing all saves, rollbacks, and file events. Inline script changes and external URL changes are recorded as <strong>separate entries</strong>, each with its own View and Restore buttons &mdash; restoring one never affects the other.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The <strong>JS Files</strong> page lets you create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file has its own Head/Footer selector and Load Conditions, and persists across plugin updates.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( 'Scriptomatic also exposes a <strong>REST API</strong> under <code>scriptomatic/v1</code> and a <strong>WP-CLI command group</strong> (<code>wp scriptomatic</code>) for managing all script types and files programmatically. Both interfaces share the same validation, rate limiting, and activity logging as the admin UI. REST API access can be restricted to specific IP addresses in <em>Preferences</em>.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The inline-script editor and JS Files editor both use <strong>CodeMirror</strong> — a full JavaScript code editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea when syntax highlighting is disabled in your WordPress profile.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, an activity log with revision rollback, and conditional loading.', 'scriptomatic' ) . '</p>',
         ) );
@@ -783,8 +784,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Add external URLs (optional):', 'scriptomatic' ) . '</strong> ' . __( 'Enter remote script URLs in the External Script URLs section. They load before the inline block.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Set Load Conditions (optional):', 'scriptomatic' ) . '</strong> ' . __( 'Use the Load Conditions drop-down to restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months. Defaults to all pages.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Save Changes:', 'scriptomatic' ) . '</strong> ' . __( 'Click the Save button at the bottom of the page.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Verify:', 'scriptomatic' ) . '</strong> ' . __( 'View your page source to confirm the script is injected in the correct location.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Test:', 'scriptomatic' ) . '</strong> ' . __( 'Thoroughly test your site to ensure the script functions correctly.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Verify &amp; Test:', 'scriptomatic' ) . '</strong> ' . __( 'View your page source to confirm the script is injected in the correct location, then test your site to ensure it behaves as expected.', 'scriptomatic' ) . '</li>' .
                 '</ol>' .
                 '<p><strong>' . __( 'Managed JS Files:', 'scriptomatic' ) . '</strong> ' . __( 'Use <em>Scriptomatic &rarr; JS Files</em> to create and manage standalone <code>.js</code> files. Each file has its own label, filename, Head/Footer selector, Load Conditions, and CodeMirror editor. Files are stored in <code>wp-content/uploads/scriptomatic/</code> and survive plugin updates.', 'scriptomatic' ) . '</p>' .
                 '<p><strong>' . __( 'File Upload:', 'scriptomatic' ) . '</strong> ' . __( 'On the JS File edit page, use the <strong>Upload .js File</strong> field to import a local file. The browser reads the file into the editor so you can review and edit it before saving. Falls back to a server-side upload when JavaScript is unavailable. The REST API (<code>POST /wp-json/scriptomatic/v1/files/upload</code>) and WP-CLI (<code>wp scriptomatic files upload --path=&lt;file&gt;</code>) also support file uploads.', 'scriptomatic' ) . '</p>' .
@@ -801,7 +801,7 @@ trait Scriptomatic_Pages {
                 '<ul>' .
                 '<li><strong>' . __( 'Capability Check:', 'scriptomatic' ) . '</strong> ' . __( 'Only users with &ldquo;manage_options&rdquo; capability (Administrators) can access any Scriptomatic page or modify scripts.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'REST API IP Allowlist:', 'scriptomatic' ) . '</strong> ' . __( 'The <em>Preferences</em> page lets you restrict REST API access to a specific list of IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges (one per line). Leave the list empty to allow access from any IP (the default). The restriction applies only to the REST API; it does not affect admin UI access.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'JS File Upload Validation:', 'scriptomatic' ) . '</strong> ' . __( 'Uploaded files are validated for extension (<code>.js</code> only), file size (server upload limit), and MIME type before the content is accepted. PHP tags are rejected; control characters and invalid UTF-8 are stripped. All uploads are logged in the Activity Log.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'JS File Upload Validation:', 'scriptomatic' ) . '</strong> ' . __( 'Uploaded files are validated for extension (<code>.js</code> only), MIME type, and file size against the server upload limit. The file must be transmitted as a genuine HTTP file upload; arbitrary binary content is rejected. All uploads are recorded in the Activity Log.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Dual Nonce Verification:', 'scriptomatic' ) . '</strong> ' . __( 'Each form carries both the WordPress Settings API nonce and a secondary location-specific nonce, verified on every save.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, length cap (100&nbsp;KB for inline scripts; JS files are limited by the server&rsquo;s upload setting, not this plugin), PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
@@ -860,6 +860,17 @@ trait Scriptomatic_Pages {
                 '<li>' . __( 'Scroll to the <strong>Activity Log</strong> panel at the bottom of the page.', 'scriptomatic' ) . '</li>' .
                 '<li>' . __( 'Click <strong>Restore</strong> next to the desired entry &mdash; inline script entries restore the script and load conditions; URL entries restore the external URLs. Each is restored independently, no further Save needed.', 'scriptomatic' ) . '</li>' .
                 '<li>' . __( 'For JS files, the restore writes the snapshot directly to disk.', 'scriptomatic' ) . '</li>' .
+                '</ul>' .
+                '<h4>' . __( 'File upload errors:', 'scriptomatic' ) . '</h4>' .
+                '<ul>' .
+                '<li><strong>' . __( 'Only .js files accepted', 'scriptomatic' ) . '</strong> &mdash; ' . __( 'The file must have a <code>.js</code> extension and a JavaScript MIME type. Rename the file or select the correct one.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'File too large', 'scriptomatic' ) . '</strong> &mdash; ' . __( 'The upload limit is set by your server\'s PHP configuration, not this plugin. The current limit is shown beneath the upload field.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Upload failed / write failed', 'scriptomatic' ) . '</strong> &mdash; ' . __( 'Check that <code>wp-content/uploads/scriptomatic/</code> exists and is writable by the web server.', 'scriptomatic' ) . '</li>' .
+                '</ul>' .
+                '<h4>' . __( 'REST API returns 403:', 'scriptomatic' ) . '</h4>' .
+                '<ul>' .
+                '<li>' . __( 'If the <strong>API Allowed IPs</strong> list in Preferences is populated, requests from unlisted IP addresses are blocked. Add your IP or clear the list to allow access from any address.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'Authenticate using a WordPress <strong>Application Password</strong> (Users &rarr; Profile) passed as <code>Authorization: Basic base64(username:app-password)</code>.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );
 
