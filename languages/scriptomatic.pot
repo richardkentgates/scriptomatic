@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-02-28T16:11:35+00:00\n"
+"POT-Creation-Date: 2026-02-28T16:17:13+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: scriptomatic\n"
@@ -339,12 +339,12 @@ msgstr ""
 
 #: includes/trait-pages.php:402
 #: includes/trait-pages.php:462
-#: includes/trait-sanitizer.php:579
+#: includes/trait-sanitizer.php:580
 msgid "All pages"
 msgstr ""
 
 #: includes/trait-pages.php:403
-#: includes/trait-renderer.php:454
+#: includes/trait-renderer.php:455
 msgid "Front page only"
 msgstr ""
 
@@ -353,7 +353,7 @@ msgid "Any singular"
 msgstr ""
 
 #: includes/trait-pages.php:405
-#: includes/trait-renderer.php:456
+#: includes/trait-renderer.php:457
 msgid "Specific post types"
 msgstr ""
 
@@ -374,12 +374,12 @@ msgid "Logged-out only"
 msgstr ""
 
 #: includes/trait-pages.php:410
-#: includes/trait-renderer.php:461
+#: includes/trait-renderer.php:462
 msgid "Date range"
 msgstr ""
 
 #: includes/trait-pages.php:411
-#: includes/trait-renderer.php:462
+#: includes/trait-renderer.php:463
 msgid "Date & time range"
 msgstr ""
 
@@ -388,7 +388,7 @@ msgid "Week numbers"
 msgstr ""
 
 #: includes/trait-pages.php:413
-#: includes/trait-renderer.php:464
+#: includes/trait-renderer.php:465
 msgid "Specific months"
 msgstr ""
 
@@ -517,7 +517,7 @@ msgid "Size: %1$s / %2$s"
 msgstr ""
 
 #: includes/trait-pages.php:655
-#: includes/trait-renderer.php:165
+#: includes/trait-renderer.php:166
 msgid "Important:"
 msgstr ""
 
@@ -891,181 +891,182 @@ msgstr ""
 msgid "Add external JavaScript URLs to inject as <script src=\"...\"> tags just before </body>, before the inline block. Each URL has its own independent load conditions."
 msgstr ""
 
-#: includes/trait-renderer.php:158
+#. translators: 1: current character count as a formatted number, 2: maximum character limit as a formatted number
+#: includes/trait-renderer.php:159
 #, php-format
-msgid "Character count: %s / %s"
+msgid "Character count: %1$s / %2$s"
 msgstr ""
 
-#: includes/trait-renderer.php:166
+#: includes/trait-renderer.php:167
 msgid "Enter only JavaScript code. Do not include <script> tags — they are added automatically."
 msgstr ""
 
-#: includes/trait-renderer.php:170
+#: includes/trait-renderer.php:171
 msgid "Security Notice"
 msgstr ""
 
-#: includes/trait-renderer.php:172
+#: includes/trait-renderer.php:173
 msgid "Only administrators can modify this content."
 msgstr ""
 
-#: includes/trait-renderer.php:173
+#: includes/trait-renderer.php:174
 msgid "All changes are logged for security auditing."
 msgstr ""
 
-#: includes/trait-renderer.php:174
+#: includes/trait-renderer.php:175
 msgid "Always verify code from trusted sources before adding it here."
 msgstr ""
 
-#: includes/trait-renderer.php:219
+#: includes/trait-renderer.php:220
 msgid "External script URL"
 msgstr ""
 
-#: includes/trait-renderer.php:221
+#: includes/trait-renderer.php:222
 msgid "Add URL"
 msgstr ""
 
-#: includes/trait-renderer.php:233
+#: includes/trait-renderer.php:234
 msgid "Only HTTP and HTTPS URLs are accepted. Scripts load in the order listed. Each URL has its own independent load conditions."
 msgstr ""
 
-#: includes/trait-renderer.php:283
+#: includes/trait-renderer.php:284
 msgid "Remove URL"
 msgstr ""
 
-#: includes/trait-renderer.php:283
-#: includes/trait-renderer.php:472
-#: includes/trait-renderer.php:509
-#: includes/trait-renderer.php:522
-#: includes/trait-renderer.php:567
+#: includes/trait-renderer.php:284
+#: includes/trait-renderer.php:473
+#: includes/trait-renderer.php:510
+#: includes/trait-renderer.php:523
+#: includes/trait-renderer.php:568
 msgid "Remove"
 msgstr ""
 
-#: includes/trait-renderer.php:286
+#: includes/trait-renderer.php:287
 msgid "Load conditions:"
 msgstr ""
 
-#: includes/trait-renderer.php:455
+#: includes/trait-renderer.php:456
 msgid "Any single post or page"
 msgstr ""
 
-#: includes/trait-renderer.php:457
+#: includes/trait-renderer.php:458
 msgid "Specific pages / posts by ID"
 msgstr ""
 
-#: includes/trait-renderer.php:458
+#: includes/trait-renderer.php:459
 msgid "URL contains (any match)"
 msgstr ""
 
-#: includes/trait-renderer.php:459
+#: includes/trait-renderer.php:460
 msgid "Logged-in users only"
 msgstr ""
 
-#: includes/trait-renderer.php:460
+#: includes/trait-renderer.php:461
 msgid "Logged-out visitors only"
 msgstr ""
 
-#: includes/trait-renderer.php:463
+#: includes/trait-renderer.php:464
 msgid "Specific week numbers"
 msgstr ""
 
-#: includes/trait-renderer.php:471
+#: includes/trait-renderer.php:472
 msgid "Rule"
 msgstr ""
 
-#: includes/trait-renderer.php:472
+#: includes/trait-renderer.php:473
 msgid "Remove rule"
 msgstr ""
 
-#: includes/trait-renderer.php:478
+#: includes/trait-renderer.php:479
 msgid "Condition type"
 msgstr ""
 
-#: includes/trait-renderer.php:479
+#: includes/trait-renderer.php:480
 msgid "— choose —"
 msgstr ""
 
-#: includes/trait-renderer.php:488
+#: includes/trait-renderer.php:489
 msgid "Load on these post types:"
 msgstr ""
 
-#: includes/trait-renderer.php:513
+#: includes/trait-renderer.php:514
 msgid "Page / post ID"
 msgstr ""
 
-#: includes/trait-renderer.php:514
+#: includes/trait-renderer.php:515
 msgid "+ Add ID"
 msgstr ""
 
-#: includes/trait-renderer.php:526
+#: includes/trait-renderer.php:527
 msgid "/path/fragment"
 msgstr ""
 
-#: includes/trait-renderer.php:527
+#: includes/trait-renderer.php:528
 msgid "+ Add pattern"
 msgstr ""
 
-#: includes/trait-renderer.php:535
-#: includes/trait-renderer.php:551
+#: includes/trait-renderer.php:536
+#: includes/trait-renderer.php:552
 msgid "From:"
 msgstr ""
 
-#: includes/trait-renderer.php:540
-#: includes/trait-renderer.php:556
+#: includes/trait-renderer.php:541
+#: includes/trait-renderer.php:557
 msgid "To:"
 msgstr ""
 
-#: includes/trait-renderer.php:571
+#: includes/trait-renderer.php:572
 msgid "Week number (1–53)"
 msgstr ""
 
-#: includes/trait-renderer.php:572
+#: includes/trait-renderer.php:573
 msgid "+ Add week"
 msgstr ""
 
-#: includes/trait-renderer.php:579
+#: includes/trait-renderer.php:580
 msgid "Load during these months:"
 msgstr ""
 
-#: includes/trait-renderer.php:621
+#: includes/trait-renderer.php:622
 msgid "Match:"
 msgstr ""
 
-#: includes/trait-renderer.php:625
+#: includes/trait-renderer.php:626
 msgid "All rules (AND)"
 msgstr ""
 
-#: includes/trait-renderer.php:630
+#: includes/trait-renderer.php:631
 msgid "Any rule (OR)"
 msgstr ""
 
-#: includes/trait-renderer.php:641
+#: includes/trait-renderer.php:642
 msgid "Load on all pages (no conditions set)."
 msgstr ""
 
-#: includes/trait-renderer.php:645
+#: includes/trait-renderer.php:646
 msgid "+ Add Condition"
 msgstr ""
 
-#: includes/trait-renderer.php:680
-#: includes/trait-renderer.php:692
+#: includes/trait-renderer.php:681
+#: includes/trait-renderer.php:693
 msgid "Control which pages the inline script textarea above is injected on. External script URL conditions are set per-URL in the External Script URLs section."
 msgstr ""
 
-#: includes/trait-renderer.php:758
+#: includes/trait-renderer.php:759
 msgid "Configure activity log retention and data lifecycle behaviour for this plugin."
 msgstr ""
 
 #. translators: %d: default max activity log entries
-#: includes/trait-renderer.php:788
+#: includes/trait-renderer.php:789
 #, php-format
 msgid "How many activity log entries to keep per location (3–1000). Covers script saves, rollbacks, URL additions/removals, and JS file changes. Older entries are discarded automatically once the limit is reached. Default: %d."
 msgstr ""
 
-#: includes/trait-renderer.php:815
+#: includes/trait-renderer.php:816
 msgid "Preserve all plugin data when Scriptomatic is uninstalled."
 msgstr ""
 
-#: includes/trait-renderer.php:818
+#: includes/trait-renderer.php:819
 msgid "When unchecked (default), all scripts, history, linked URLs, and settings are permanently deleted on uninstall."
 msgstr ""
 
@@ -1100,28 +1101,29 @@ msgstr ""
 msgid "Script tags were removed automatically. Enter JavaScript only."
 msgstr ""
 
-#: includes/trait-sanitizer.php:152
+#. translators: %s: maximum script length in characters
+#: includes/trait-sanitizer.php:153
 #, php-format
 msgid "Script content exceeds maximum length of %s characters."
 msgstr ""
 
-#: includes/trait-sanitizer.php:161
+#: includes/trait-sanitizer.php:162
 msgid "Script content contains potentially dangerous HTML tags. Please use JavaScript only."
 msgstr ""
 
-#: includes/trait-sanitizer.php:187
+#: includes/trait-sanitizer.php:188
 #: includes/trait-settings.php:184
 msgid "Settings saved."
 msgstr ""
 
 #. translators: %s: character count
-#: includes/trait-sanitizer.php:687
+#: includes/trait-sanitizer.php:688
 #, php-format
 msgid "Script: %s chars"
 msgstr ""
 
 #. translators: %d: number of URLs added
-#: includes/trait-sanitizer.php:696
+#: includes/trait-sanitizer.php:697
 #, php-format
 msgid "%d URL added"
 msgid_plural "%d URLs added"
@@ -1129,7 +1131,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of URLs removed
-#: includes/trait-sanitizer.php:705
+#: includes/trait-sanitizer.php:706
 #, php-format
 msgid "%d URL removed"
 msgid_plural "%d URLs removed"
@@ -1137,7 +1139,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: conditions summary label
-#: includes/trait-sanitizer.php:713
+#: includes/trait-sanitizer.php:714
 #, php-format
 msgid "Conditions: %s"
 msgstr ""

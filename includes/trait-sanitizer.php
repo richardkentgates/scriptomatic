@@ -149,6 +149,7 @@ trait Scriptomatic_Sanitizer {
         if ( strlen( $input ) > SCRIPTOMATIC_MAX_SCRIPT_LENGTH ) {
             add_settings_error( $error_slug, 'script_too_long',
                 sprintf(
+                    /* translators: %s: maximum script length in characters */
                     __( 'Script content exceeds maximum length of %s characters.', 'scriptomatic' ),
                     number_format( SCRIPTOMATIC_MAX_SCRIPT_LENGTH )
                 ), 'error' );

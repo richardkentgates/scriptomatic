@@ -155,7 +155,8 @@ trait Scriptomatic_Renderer {
         <p id="<?php echo esc_attr( $location ); ?>-char-count" class="description">
             <?php
             printf(
-                esc_html__( 'Character count: %s / %s', 'scriptomatic' ),
+                /* translators: 1: current character count as a formatted number, 2: maximum character limit as a formatted number */
+                esc_html__( 'Character count: %1$s / %2$s', 'scriptomatic' ),
                 '<span id="' . esc_attr( $counter_id ) . '">' . number_format( $char_count ) . '</span>',
                 number_format( $max_length )
             );
