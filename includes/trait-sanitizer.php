@@ -505,6 +505,9 @@ trait Scriptomatic_Sanitizer {
      * @return string JSON-encoded array: `{type: string, values: array}`.
      */
     private function sanitize_conditions_for( $input, $location ) {
+        // Guard against the Settings API double-call (same as sanitize_script_for / sanitize_linked_for).
+        static $logged_this_request = array();
+
         $option_key   = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
         $nonce_action = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_NONCE       : SCRIPTOMATIC_HEAD_NONCE;
         $nonce_field  = ( 'footer' === $location ) ? 'scriptomatic_footer_nonce'     : 'scriptomatic_save_nonce';
@@ -536,7 +539,8 @@ trait Scriptomatic_Sanitizer {
         $new_json       = wp_json_encode( $new_conditions );
         $old_json       = get_option( $option_key, $default );
 
-        if ( $old_json !== $new_json ) {
+        if ( $old_json !== $new_json && ! isset( $logged_this_request[ $location ] ) ) {
+            $logged_this_request[ $location ] = true;
             // Derive a short human-readable summary for the Detail column.
             $ctype_labels = array(
                 'front_page'   => 'Front page only',

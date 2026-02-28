@@ -13,6 +13,14 @@ _Nothing yet._
 
 ---
 
+## [2.4.0] – 2026-02-28
+
+### Fixed
+- **File conditions UI now uses the stacked-rule picker.** `render_file_conditions_widget()` was still rendering the legacy single-select UI. It now delegates to `render_conditions_stack_ui()`, matching the behaviour of inline-script conditions and URL-entry conditions. Legacy `{type,values}` saved data is auto-migrated to `{logic,rules}` on render.
+- **Duplicate `conditions_save` Activity Log entries.** `sanitize_conditions_for()` was missing the `static $logged_this_request` guard that protects the other sanitize callbacks from the WordPress Settings API double-call. This caused two identical `conditions_save` entries to be written on every save. The guard is now in place.
+
+---
+
 ## [2.3.0] – 2026-02-28
 
 ### Changed
