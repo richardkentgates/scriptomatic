@@ -5,6 +5,7 @@
  * Description: Inject custom JavaScript into the head and footer of your WordPress site. Manage standalone JS files with a built-in code editor, conditional per-page loading, external script URLs, revision history, rollback, activity logging, and fine-grained admin controls.
  * Version: 2.5.0
  * Requires at least: 5.3
+ * Tested up to: 6.7
  * Requires PHP: 7.2
  * Author: Richard Kent Gates
  * Author URI: https://richardkentgates.com

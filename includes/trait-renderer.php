@@ -733,18 +733,6 @@ trait Scriptomatic_Renderer {
         $raw        = get_option( $option_key, '' );
         $decoded    = ( is_string( $raw ) && '' !== $raw ) ? json_decode( $raw, true ) : null;
 
-        // Migrate legacy single-condition format {type, values} → stacked format {logic, rules}.
-        if ( is_array( $decoded ) && isset( $decoded['type'] ) && ! isset( $decoded['rules'] ) ) {
-            $old_type   = isset( $decoded['type'] ) ? $decoded['type'] : 'all';
-            $old_values = ( isset( $decoded['values'] ) && is_array( $decoded['values'] ) ) ? $decoded['values'] : array();
-            $decoded    = array(
-                'logic' => 'and',
-                'rules' => ( 'all' !== $old_type )
-                    ? array( array( 'type' => $old_type, 'values' => $old_values ) )
-                    : array(),
-            );
-        }
-
         if ( ! is_array( $decoded ) ) {
             $decoded = array( 'logic' => 'and', 'rules' => array() );
         }
@@ -846,22 +834,10 @@ trait Scriptomatic_Renderer {
      *
      * @since  1.8.0
      * @param  string $pfx         Unique HTML ID prefix (e.g. 'sm-file-cond').
-     * @param  array  $conditions  Decoded conditions array with 'type' and 'values' keys.
+     * @param  array  $conditions  Decoded conditions array: `{logic: string, rules: array}`.
      * @return void
      */
     public function render_file_conditions_widget( $pfx, array $conditions ) {
-        // Migrate legacy single-condition format {type, values} → stacked format {logic, rules}.
-        if ( isset( $conditions['type'] ) && ! isset( $conditions['rules'] ) ) {
-            $old_type   = isset( $conditions['type'] ) ? $conditions['type'] : 'all';
-            $old_values = ( isset( $conditions['values'] ) && is_array( $conditions['values'] ) ) ? $conditions['values'] : array();
-            $conditions = array(
-                'logic' => 'and',
-                'rules' => ( 'all' !== $old_type )
-                    ? array( array( 'type' => $old_type, 'values' => $old_values ) )
-                    : array(),
-            );
-        }
-
         if ( ! isset( $conditions['logic'] ) ) {
             $conditions = array( 'logic' => 'and', 'rules' => array() );
         }

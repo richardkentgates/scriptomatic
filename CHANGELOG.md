@@ -508,6 +508,12 @@ _Nothing yet._
 
 | Version | Date       | Summary                                        |
 |---------|------------|------------------------------------------------|
+| 2.5.0   | 2026-03-01 | Combined snapshot save; single-click full restore |
+| 2.4.0   | 2026-02-28 | File conditions UI fixed; duplicate log entries fixed |
+| 2.3.0   | 2026-02-28 | Single-concern log entries; greyed-out Restore for removals |
+| 2.2.0   | 2026-03-01 | Inline-script conditions UI fixed; log label clarity |
+| 2.1.0   | 2026-02-28 | Save confirmation notices; empty-file auto-delete |
+| 2.0.0   | 2026-02-28 | First public release; all back-compat code removed |
 | 1.10.0  | 2026-02-27 | Four new date/time condition types             |
 | 1.9.0   | 2026-02-27 | Unified Activity Log, JS file history, bug fixes |
 | 1.8.0   | 2026-02-27 | Managed JS Files, CodeMirror editor, security hardening |
@@ -528,7 +534,15 @@ _Nothing yet._
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.4.0...v2.5.0
+[2.4.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.12.0...v2.0.0
+[1.12.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.11.0...v1.12.0
+[1.11.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/richardkentgates/scriptomatic/compare/v1.7.0...v1.8.0

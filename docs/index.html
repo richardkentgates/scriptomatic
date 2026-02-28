@@ -348,13 +348,13 @@
       <div class="feature-card">
         <div class="feature-icon icon-green">🔁</div>
         <h3>Revision History &amp; Rollback</h3>
-        <p>Every save creates a timestamped revision. Restore any prior version in one AJAX click — no page reload, no data loss. View any revision's content in a lightbox.</p>
+        <p>Every save captures a complete snapshot — inline script, external URL list, and load conditions. Restore any prior version in one AJAX click and all three fields come back simultaneously. View any snapshot’s content in a lightbox.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon icon-amber">📋</div>
         <h3>Activity Log</h3>
-        <p>All saves, rollbacks, and URL changes are recorded with timestamp, username, action type, and character count or URL. Configurable limit of 3–1000 entries (default 200), with oldest entries discarded automatically.</p>
+        <p>All saves, rollbacks, and JS file events are recorded with timestamp, username, action type, and a human-readable summary of what changed. Every save entry is a complete snapshot; Restore brings everything back at once. Configurable limit of 3–1000 entries (default 200), with oldest entries discarded automatically.</p>
       </div>
 
       <div class="feature-card">
@@ -558,7 +558,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
         <div class="security-icon">📋</div>
         <div>
           <h4>Activity Logging</h4>
-          <p>All saves, rollbacks, url_added, url_removed, conditions_save, file_save, file_delete, and restore events are logged with timestamp and user identity. Configurable retention limit (3–1000). Oldest entries are discarded automatically once the cap is reached.</p>
+          <p>All saves, rollbacks, <code>file_save</code>, <code>file_delete</code>, and restore events are logged with timestamp and user identity. Every save entry is a complete snapshot of the script, URL list, and load conditions. Configurable retention limit (3&ndash;1000). Oldest entries are discarded automatically once the cap is reached.</p>
         </div>
       </div>
 
@@ -689,6 +689,14 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <span class="section-label">Release History</span>
     <h2>Changelog</h2>
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
+
+    <div class="changelog-item">
+      <div class="clog-version">v2.5.0</div>
+      <div class="clog-body">
+        <h4>Combined snapshot save; single-click full restore</h4>
+        <p>Each Save now writes one combined Activity Log entry containing the inline script, external URL list, and load conditions &mdash; a complete snapshot of the location’s state. Clicking <strong>Restore</strong> on any entry brings back all three fields simultaneously via direct <code>$wpdb</code> writes, with no further Save needed. The separate <code>url_added</code>, <code>url_removed</code>, <code>conditions_save</code>, <code>url_list_restored</code>, and <code>conditions_restored</code> event types and their individual AJAX restore endpoints have been removed. The Changes column now shows a human-readable summary (<em>Script: 245 chars &middot; 1 URL added &middot; Conditions: Front page only</em>).</p>
+      </div>
+    </div>
 
     <div class="changelog-item">
       <div class="clog-version">v2.4.0</div>

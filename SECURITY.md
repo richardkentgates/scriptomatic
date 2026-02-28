@@ -10,7 +10,7 @@ We provide security updates for the following versions:
 
 | Version | Supported          | Status        |
 | ------- | ------------------ | ------------- |
-| 2.0.x   | :white_check_mark: | Active Support |
+| 2.5.x   | :white_check_mark: | Active Support |
 
 ## Security Features
 
@@ -38,7 +38,7 @@ We provide security updates for the following versions:
   - Action performed
 
   Note: IP addresses are intentionally not logged to protect user privacy.
-- **Activity Log**: Script saves, rollbacks, URL changes, conditions changes, URL-list and conditions restores, and JS file events (including deleted-file re-creation) are recorded in the persistent Activity Log, embedded at the bottom of each admin page; entries capture timestamp, user, action (`save`, `rollback`, `url_added`, `url_removed`, `conditions_save`, `url_list_restored`, `conditions_restored`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), and a content summary
+- **Activity Log**: All saves, rollbacks, and JS file events are recorded in the persistent Activity Log, embedded at the bottom of each admin page. Every save entry is a complete snapshot of the script, URL list, and load conditions. Entries capture timestamp, user, action (`save`, `rollback`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), and a human-readable summary of what changed. Restore brings back all three fields simultaneously — no further Save needed.
 - **Settings Errors**: User-facing error messages for validation failures
 
 ### Output Escaping
@@ -211,7 +211,7 @@ We appreciate responsible security researchers who help keep Scriptomatic secure
 
 ---
 
-**Last Updated**: February 28, 2026
-**Version**: 2.0.0
+**Last Updated**: March 1, 2026
+**Version**: 2.5.0
 
 Thank you for helping keep Scriptomatic secure!

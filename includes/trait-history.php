@@ -57,9 +57,16 @@ trait Scriptomatic_History {
     /**
      * Handle the AJAX rollback request for either head or footer scripts.
      *
+     * In v2.5.0 the restore scope was expanded: when the activity-log entry
+     * carries `urls_snapshot` and/or `conditions_snapshot` (all combined save
+     * entries do), those fields are also restored atomically in the same
+     * request. Pre-v2.5.0 entries that carry only `content` are restored as
+     * before, script-content only.
+     *
      * Expects POST fields: `nonce`, `index` (int), `location` ('head'|'footer').
      *
      * @since  1.2.0
+     * @since  2.5.0 Restores URLs and conditions snapshots when present.
      * @return void  Sends a JSON response and exits.
      */
     public function ajax_rollback() {
@@ -439,47 +446,9 @@ trait Scriptomatic_History {
                 . $this->format_conditions_display( $entry['conditions'] );
         }
 
-        // Fallback for url_added/url_removed with no additional sections
-        if ( empty( $parts ) && in_array( $action, array( 'url_added', 'url_removed' ), true ) ) {
-            $url     = isset( $entry['detail'] ) ? $entry['detail'] : '';
-            $parts[] = ( 'url_added' === $action ? 'URL Added' : 'URL Removed' ) . ': ' . $url;
-        }
-
         return implode( "
 
 ", $parts );
-    }
-
-    /**
-     * Filter activity log to url_added/url_removed entries with a urls_snapshot.
-     *
-     * @since  1.12.0
-     * @access private
-     * @param  string $location 'head'|'footer'.
-     * @return array
-     */
-    private function get_url_snap_entries( $location ) {
-        return array_values( array_filter( $this->get_activity_log(), function ( $e ) use ( $location ) {
-            return isset( $e['location'] ) && $e['location'] === $location
-                && isset( $e['action'] ) && in_array( $e['action'], array( 'url_added', 'url_removed' ), true )
-                && array_key_exists( 'urls_snapshot', $e );
-        } ) );
-    }
-
-    /**
-     * Filter activity log to conditions_save entries with a conditions_snapshot.
-     *
-     * @since  1.12.0
-     * @access private
-     * @param  string $location 'head'|'footer'.
-     * @return array
-     */
-    private function get_cond_snap_entries( $location ) {
-        return array_values( array_filter( $this->get_activity_log(), function ( $e ) use ( $location ) {
-            return isset( $e['location'] ) && $e['location'] === $location
-                && isset( $e['action'] ) && 'conditions_save' === $e['action']
-                && array_key_exists( 'conditions_snapshot', $e );
-        } ) );
     }
 
     /**
@@ -498,149 +467,8 @@ trait Scriptomatic_History {
     }
 
     // =========================================================================
-    // NEW AJAX HANDLERS
+    // FILE RESTORE AJAX
     // =========================================================================
-
-    /**
-     * AJAX handler — return formatted display for a URL-list snapshot entry.
-     *
-     * Expects POST fields: `nonce`, `index` (int), `location`.
-     *
-     * @since  1.12.0
-     * @return void
-     */
-    public function ajax_get_url_list_content() {
-        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
-
-        if ( ! current_user_can( $this->get_required_cap() ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
-        }
-
-        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $entries  = $this->get_url_snap_entries( $location );
-
-        if ( ! array_key_exists( $index, $entries ) ) {
-            wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
-        }
-
-        $entry = $entries[ $index ];
-        wp_send_json_success( array(
-            'display' => $this->format_entry_display( $entry ),
-        ) );
-    }
-
-    /**
-     * AJAX handler — restore a URL-list snapshot to the linked-scripts option.
-     *
-     * Expects POST fields: `nonce`, `index` (int), `location`.
-     *
-     * @since  1.12.0
-     * @return void
-     */
-    public function ajax_restore_url_list() {
-        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
-
-        if ( ! current_user_can( $this->get_required_cap() ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
-        }
-
-        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $entries  = $this->get_url_snap_entries( $location );
-
-        if ( ! array_key_exists( $index, $entries ) ) {
-            wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
-        }
-
-        $entry      = $entries[ $index ];
-        $snapshot   = $entry['urls_snapshot'];
-        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-
-        update_option( $option_key, $snapshot );
-        wp_cache_delete( $option_key, 'options' );
-
-        $this->write_activity_entry( array(
-            'action'        => 'url_list_restored',
-            'location'      => $location,
-            'detail'        => __( 'URL list restored from snapshot', 'scriptomatic' ),
-            'urls_snapshot' => $snapshot,
-        ) );
-
-        wp_send_json_success( array( 'message' => __( 'URL list restored.', 'scriptomatic' ) ) );
-    }
-
-    /**
-     * AJAX handler — return formatted display for a conditions snapshot entry.
-     *
-     * Expects POST fields: `nonce`, `index` (int), `location`.
-     *
-     * @since  1.12.0
-     * @return void
-     */
-    public function ajax_get_conditions_content() {
-        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
-
-        if ( ! current_user_can( $this->get_required_cap() ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
-        }
-
-        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $entries  = $this->get_cond_snap_entries( $location );
-
-        if ( ! array_key_exists( $index, $entries ) ) {
-            wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
-        }
-
-        $entry = $entries[ $index ];
-        wp_send_json_success( array(
-            'display' => $this->format_entry_display( $entry ),
-        ) );
-    }
-
-    /**
-     * AJAX handler — restore a conditions snapshot to the conditions option.
-     *
-     * Expects POST fields: `nonce`, `index` (int), `location`.
-     *
-     * @since  1.12.0
-     * @return void
-     */
-    public function ajax_restore_conditions() {
-        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
-
-        if ( ! current_user_can( $this->get_required_cap() ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
-        }
-
-        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $entries  = $this->get_cond_snap_entries( $location );
-
-        if ( ! array_key_exists( $index, $entries ) ) {
-            wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
-        }
-
-        $entry      = $entries[ $index ];
-        $snapshot   = $entry['conditions_snapshot'];
-        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-
-        update_option( $option_key, $snapshot );
-        wp_cache_delete( $option_key, 'options' );
-
-        $this->write_activity_entry( array(
-            'action'              => 'conditions_restored',
-            'location'            => $location,
-            'detail'              => __( 'Conditions restored from snapshot', 'scriptomatic' ),
-            'conditions_snapshot' => $snapshot,
-        ) );
-
-        wp_send_json_success( array(
-            'message'  => __( 'Conditions restored.', 'scriptomatic' ),
-            'snapshot' => $snapshot,
-        ) );
-    }
 
     /**
      * AJAX handler — re-create a JS file from a file_delete activity-log entry.

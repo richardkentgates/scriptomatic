@@ -106,13 +106,11 @@ trait Scriptomatic_Pages {
             ? array( 'file_save', 'file_rollback' )
             : array( 'save', 'rollback' );
 
-        // Check whether any displayed entry supports View/Restore in any form.
+        // Check whether any displayed entry supports View/Restore.
         $has_content_entries = false;
         foreach ( $log as $e ) {
             $ea = isset( $e['action'] ) ? $e['action'] : '';
             if ( ( array_key_exists( 'content', $e ) && in_array( $ea, $content_actions, true ) )
-                || ( in_array( $ea, array( 'url_added', 'url_removed' ), true ) && array_key_exists( 'urls_snapshot', $e ) )
-                || ( 'conditions_save' === $ea && array_key_exists( 'conditions_snapshot', $e ) )
                 || ( 'file_delete' === $ea && array_key_exists( 'content', $e ) )
             ) {
                 $has_content_entries = true;
@@ -129,7 +127,7 @@ trait Scriptomatic_Pages {
             <?php
             printf(
                 /* translators: %d: maximum number of retained log entries */
-                esc_html__( 'All saves, rollbacks, and URL changes for this location. The most recent %d entries are retained. Entries with a content snapshot support View and Restore.', 'scriptomatic' ),
+                esc_html__( 'All script saves, rollbacks, and file events for this location. The most recent %d entries are retained. Each save entry is a complete snapshot — View shows all saved data, Restore brings everything back at once.', 'scriptomatic' ),
                 $this->get_max_log_entries()
             );
             ?>
@@ -151,8 +149,6 @@ trait Scriptomatic_Pages {
             <tbody>
             <?php
             $content_index    = 0;
-            $url_snap_index   = 0;
-            $cond_snap_index  = 0;
             $file_del_index   = 0;
             foreach ( $log as $entry ) :
                 if ( ! is_array( $entry ) ) { continue; }
@@ -164,42 +160,29 @@ trait Scriptomatic_Pages {
                 $chars    = isset( $entry['chars'] )      ? (int) $entry['chars']           : 0;
                 $file_eid = isset( $entry['file_id'] )    ? (string) $entry['file_id']     : '';
 
-                // Determine whether this row gets View/Restore and which kind.
+                // Determine whether this row gets View/Restore.
                 $has_code_content = array_key_exists( 'content', $entry )
                     && in_array( $action, $content_actions, true );
-                $has_url_snap     = in_array( $action, array( 'url_added', 'url_removed' ), true )
-                    && array_key_exists( 'urls_snapshot', $entry );
-                $has_cond_snap    = ( 'conditions_save' === $action )
-                    && array_key_exists( 'conditions_snapshot', $entry );
                 $has_delete_snap  = ( 'file_delete' === $action )
                     && array_key_exists( 'content', $entry );
-                $has_content      = $has_code_content || $has_url_snap || $has_cond_snap || $has_delete_snap;
+                $has_content      = $has_code_content || $has_delete_snap;
 
-                // Restore is greyed out (disabled) when the action was a deliberate removal or
-                // the resulting state is empty — view still works for audit reference.
-                // To restore, find an earlier entry in the log with the desired content/URL state.
-                $restore_greyed = ( 'url_removed' === $action )
-                    || ( $has_code_content && '' === (string) $entry['content'] )
+                // Restore is greyed out when the script is empty or the file was deleted.
+                $restore_greyed = ( $has_code_content && '' === (string) $entry['content'] )
                     || ( 'file_delete' === $action );
 
-                if ( 'url_removed' === $action ) {
-                    $restore_title = __( 'URL intentionally removed. Find an earlier URL Added entry in the log to restore.', 'scriptomatic' );
-                } elseif ( $has_code_content && '' === (string) $entry['content'] ) {
+                if ( $has_code_content && '' === (string) $entry['content'] ) {
                     $restore_title = __( 'Script is empty — nothing to restore. Find an earlier Save entry to restore content.', 'scriptomatic' );
                 } elseif ( 'file_delete' === $action ) {
-                    $restore_title = __( 'File was deleted. Find an earlier File Save entry in the log to re-create it.', 'scriptomatic' );
+                    $restore_title = __( 'File was deleted. Use the Re-create button on an earlier File Save entry.', 'scriptomatic' );
                 } else {
                     $restore_title = '';
                 }
 
                 $this_code_index   = $has_code_content ? $content_index   : null;
-                $this_url_index    = $has_url_snap      ? $url_snap_index  : null;
-                $this_cond_index   = $has_cond_snap     ? $cond_snap_index : null;
                 $this_delete_index = $has_delete_snap   ? $file_del_index  : null;
 
                 if ( $has_code_content ) { $content_index++; }
-                if ( $has_url_snap )     { $url_snap_index++; }
-                if ( $has_cond_snap )    { $cond_snap_index++; }
                 if ( $has_delete_snap )  { $file_del_index++; }
 
                 $is_file_entry = ( 'file' === ( isset( $entry['location'] ) ? $entry['location'] : '' ) );
@@ -269,31 +252,6 @@ trait Scriptomatic_Pages {
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                             <?php endif; ?>
                         <?php endif; ?>
-                        <?php if ( $has_url_snap ) : ?>
-                            <button type="button" class="button button-small sm-url-list-view"
-                                data-index="<?php echo esc_attr( $this_url_index ); ?>"
-                                data-location="<?php echo esc_attr( $location ); ?>"
-                                data-label="<?php echo esc_attr( $label_str ); ?>"
-                            ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
-                            <button type="button" class="button button-small sm-url-list-restore"
-                                data-index="<?php echo esc_attr( $this_url_index ); ?>"
-                                data-location="<?php echo esc_attr( $location ); ?>"
-                                data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
-                                <?php if ( $restore_greyed ) : ?>disabled title="<?php echo esc_attr( $restore_title ); ?>"<?php endif; ?>
-                            ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
-                        <?php endif; ?>
-                        <?php if ( $has_cond_snap ) : ?>
-                            <button type="button" class="button button-small sm-cond-snapshot-view"
-                                data-index="<?php echo esc_attr( $this_cond_index ); ?>"
-                                data-location="<?php echo esc_attr( $location ); ?>"
-                                data-label="<?php echo esc_attr( $label_str ); ?>"
-                            ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
-                            <button type="button" class="button button-small sm-cond-snapshot-restore"
-                                data-index="<?php echo esc_attr( $this_cond_index ); ?>"
-                                data-location="<?php echo esc_attr( $location ); ?>"
-                                data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
-                            ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
-                        <?php endif; ?>
                         <?php if ( $has_delete_snap ) : ?>
                             <button type="button" class="button button-small sm-file-view"
                                 data-index="<?php echo esc_attr( $this_delete_index ); ?>"
@@ -314,7 +272,7 @@ trait Scriptomatic_Pages {
             </tbody>
         </table>
         <?php else : ?>
-        <p class="description"><?php esc_html_e( 'No activity yet. Script saves, rollbacks, and URL changes will appear here.', 'scriptomatic' ); ?></p>
+        <p class="description"><?php esc_html_e( 'No activity yet. Script saves and rollbacks will appear here.', 'scriptomatic' ); ?></p>
         <?php endif;
 
         // Lightbox — shared by inline View and file View buttons.
@@ -742,7 +700,7 @@ trait Scriptomatic_Pages {
                 '<h3>' . __( 'Scriptomatic Overview', 'scriptomatic' ) . '</h3>' .
                 '<p>' . __( 'Scriptomatic safely injects custom JavaScript into the <strong>head</strong> (before &lt;/head&gt;) and the <strong>footer</strong> (before &lt;/body&gt;) of your WordPress site. Use the <strong>Load Conditions</strong> setting on each page to control exactly which pages, post types, or user states receive the script.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'Use the <strong>Head Scripts</strong> page for analytics tags, pixel codes, and scripts that must load early. Use the <strong>Footer Scripts</strong> page for scripts that should run after page content has loaded.', 'scriptomatic' ) . '</p>' .
-                '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and an <strong>Activity Log</strong> at the bottom of the page showing all saves, rollbacks, and URL changes. Entries with a content snapshot have <strong>View</strong> and <strong>Restore</strong> buttons so you can roll back to any prior version in a single click.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and an <strong>Activity Log</strong> below showing all saves, rollbacks, and file events. Every save entry is a complete snapshot &mdash; <strong>Restore</strong> brings back the script, URL list, and conditions simultaneously.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The <strong>JS Files</strong> page lets you create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file has its own Head/Footer selector and Load Conditions, and persists across plugin updates.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The inline-script editor and JS Files editor both use <strong>CodeMirror</strong> — a full JavaScript code editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea when syntax highlighting is disabled in your WordPress profile.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, an activity log with revision rollback, and conditional loading.', 'scriptomatic' ) . '</p>',
@@ -779,7 +737,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( '&lt;script&gt; tags are automatically stripped to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Activity Log:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, external URL changes, conditions changes, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Entries with a content snapshot expose <strong>View</strong> and <strong>Restore</strong> buttons for instant rollback. Actions covered: <code>save</code>, <code>rollback</code>, <code>url_added</code>, <code>url_removed</code>, <code>conditions_save</code>, <code>url_list_restored</code>, <code>conditions_restored</code>, <code>file_save</code>, <code>file_rollback</code>, <code>file_delete</code>, <code>file_restored</code>. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Activity Log:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Every save entry is a complete snapshot of the script, URL list, and load conditions &mdash; <strong>View</strong> shows the full saved state, <strong>Restore</strong> writes all three back simultaneously. Actions covered: <code>save</code>, <code>rollback</code>, <code>file_save</code>, <code>file_rollback</code>, <code>file_delete</code>, <code>file_restored</code>. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Output Escaping:', 'scriptomatic' ) . '</strong> ' . __( 'Content is properly escaped when displayed in the admin interface.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __( 'Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic' ) . '</p>',
@@ -796,7 +754,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Keep It Clean:', 'scriptomatic' ) . '</strong> ' . __( 'Remove unused or outdated scripts regularly.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Verify Sources:', 'scriptomatic' ) . '</strong> ' . __( 'Only use code from trusted sources. Review all third-party scripts.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Monitor Performance:', 'scriptomatic' ) . '</strong> ' . __( 'Heavy scripts can slow down your site. Use browser dev tools to monitor impact.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Backup:', 'scriptomatic' ) . '</strong> ' . __( 'Every save is recorded in the <strong>Activity Log</strong> at the bottom of the page. Click <strong>Restore</strong> next to any entry to roll back to that version instantly via AJAX.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Backup:', 'scriptomatic' ) . '</strong> ' . __( 'Every save is recorded in the <strong>Activity Log</strong> as a complete snapshot. Click <strong>Restore</strong> next to any entry to roll back the script, URL list, and conditions simultaneously &mdash; no further Save needed.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Async/Defer:', 'scriptomatic' ) . '</strong> ' . __( 'Consider using async or defer attributes for external scripts to improve page load times.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );
@@ -831,8 +789,7 @@ trait Scriptomatic_Pages {
                 '<h4>' . __( 'Restore a previous version:', 'scriptomatic' ) . '</h4>' .
                 '<ul>' .
                 '<li>' . __( 'Scroll to the <strong>Activity Log</strong> panel at the bottom of the page.', 'scriptomatic' ) . '</li>' .
-                '<li>' . __( 'Click <strong>Restore</strong> next to the desired entry \u2014 the editor updates instantly via AJAX.', 'scriptomatic' ) . '</li>' .
-                '<li>' . __( 'For inline scripts, click the Save button to persist the restored content.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'Click <strong>Restore</strong> next to the desired entry &mdash; the script, URL list, and conditions are all restored simultaneously. No further Save is needed.', 'scriptomatic' ) . '</li>' .
                 '<li>' . __( 'For JS files, the restore writes the snapshot directly to disk.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );

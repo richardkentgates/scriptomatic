@@ -35,7 +35,7 @@ If applicable, add screenshots to help explain your problem.
 |--------|-------|
 | WordPress Version | e.g. 6.4.2 |
 | PHP Version | e.g. 8.1 |
-| Scriptomatic Version | e.g. 1.0.0 |
+| Scriptomatic Version | e.g. 2.5.0 |
 | Active Theme | e.g. Twenty Twenty-Four 1.0 |
 | Browser (if applicable) | e.g. Chrome 121 |
 | Multisite | Yes / No |

@@ -107,7 +107,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'2.4.0'` |
+| `SCRIPTOMATIC_VERSION` | `'2.5.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
@@ -214,7 +214,7 @@ All input validation and sanitisation lives here. Publicly callable sanitise cal
 **Core shared methods (private):**
 
 - `sanitize_script_for( $input, $location )` — runs all security gates followed by content gates (see §10). Called by both public script callbacks.
-- `sanitize_linked_for( $input, $location )` — validates URL list JSON; diffs old/new URLs and writes activity log entries for each addition/removal.
+- `sanitize_linked_for( $input, $location )` — validates URL list JSON; stores the sanitised URL list into the pending-save accumulator via `contribute_to_pending_save()`.
 - `sanitize_conditions_for( $input, $location )` — validates conditions JSON for the inline script.
 - `sanitize_conditions_array( array $raw )` — validates a `{logic, rules}` stacked conditions object; calls `sanitize_single_rule()` for each rule entry.
 - `sanitize_single_rule( array $raw )` — validates a single rule object (`{type, values}`) within a stack; clamps values per condition type.
@@ -242,14 +242,10 @@ Manages per-location revision stacks stored in `wp_options`.
 
 **Public AJAX handlers:**
 
-- `ajax_rollback()` — verifies the `SCRIPTOMATIC_ROLLBACK_NONCE` nonce, validates `$_POST['index']` and `$_POST['location']`, then writes the content **directly via `$wpdb->update()`** (bypassing `update_option()` and its registered sanitise callbacks, which would fail in an AJAX context with no `$_POST` nonce fields). Clears the options cache with `wp_cache_delete()`. Also calls `write_activity_entry()`.
-- `ajax_get_history_content()` — same nonce check, returns the entry's `content` as JSON without modifying data.
+- `ajax_rollback()` — verifies the `SCRIPTOMATIC_ROLLBACK_NONCE` nonce, validates `$_POST['index']` and `$_POST['location']`, then writes the script content, URL list, and conditions **directly via `$wpdb->update()`** (bypassing `update_option()` and its registered sanitise callbacks, which would fail in an AJAX context with no `$_POST` nonce fields). Clears the options cache with `wp_cache_delete()`. Also calls `write_activity_entry()`. When the log entry contains `urls_snapshot` or `conditions_snapshot`, those fields are restored simultaneously alongside the script.
+- `ajax_get_history_content()` — same nonce check, returns the entry's combined snapshot as a formatted lightbox display string without modifying data.
 - `ajax_rollback_js_file()` — restores a managed JS file from an activity log snapshot; writes content to disk and updates metadata.
 - `ajax_get_file_activity_content()` — returns a formatted lightbox display string for a JS file activity log entry.
-- `ajax_get_url_list_content()` — returns a formatted display string for a URL-list snapshot in an activity log entry.
-- `ajax_restore_url_list()` — restores the external URL list from an activity log snapshot.
-- `ajax_get_conditions_content()` — returns a formatted display string for a conditions snapshot in an activity log entry.
-- `ajax_restore_conditions()` — restores the load conditions from an activity log snapshot.
 - `ajax_restore_deleted_file()` — re-creates a deleted JS file from its `file_delete` log entry snapshot (writes content to disk and re-inserts metadata).
 
 **History entry structure:**
@@ -303,7 +299,6 @@ array(
 
 - `write_activity_entry( array $data )` — merges `$data` with `timestamp`, `user_login`, `user_id`; unshifts onto the log array; caps to `get_max_log_entries()`; calls `update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, $log )`.
 - `get_activity_log()` — reads and returns the log array from options.
-- `log_change( $new_content, $option_key, $location )` — called by `sanitize_script_for()` before a save; only writes an activity entry if the content has actually changed.
 
 ---
 
@@ -440,10 +435,6 @@ Output format:
 | `wp_ajax_scriptomatic_get_history_content` | default | `ajax_get_history_content()` | history |
 | `wp_ajax_scriptomatic_rollback_js_file` | default | `ajax_rollback_js_file()` | history |
 | `wp_ajax_scriptomatic_get_file_activity_content` | default | `ajax_get_file_activity_content()` | history |
-| `wp_ajax_scriptomatic_get_url_list_content` | default | `ajax_get_url_list_content()` | history |
-| `wp_ajax_scriptomatic_restore_url_list` | default | `ajax_restore_url_list()` | history |
-| `wp_ajax_scriptomatic_get_conditions_content` | default | `ajax_get_conditions_content()` | history |
-| `wp_ajax_scriptomatic_restore_conditions` | default | `ajax_restore_conditions()` | history |
 | `wp_ajax_scriptomatic_restore_deleted_file` | default | `ajax_restore_deleted_file()` | history |
 | `wp_ajax_scriptomatic_delete_js_file` | default | `ajax_delete_js_file()` | files |
 | `admin_post_scriptomatic_save_js_file` | default | `handle_save_js_file()` | files |
@@ -577,14 +568,10 @@ All endpoints are registered on `wp_ajax_{action}` (logged-in users only). Histo
 
 | Action | Nonce | Method | Description |
 |---|---|---|---|
-| `scriptomatic_rollback` | ROLLBACK | `ajax_rollback()` | Restore inline script from activity log snapshot |
+| `scriptomatic_rollback` | ROLLBACK | `ajax_rollback()` | Restore inline script, URL list, and conditions from combined snapshot |
 | `scriptomatic_get_history_content` | ROLLBACK | `ajax_get_history_content()` | Return content for lightbox display |
 | `scriptomatic_rollback_js_file` | ROLLBACK | `ajax_rollback_js_file()` | Restore a managed JS file from snapshot |
 | `scriptomatic_get_file_activity_content` | ROLLBACK | `ajax_get_file_activity_content()` | Return JS file entry display for lightbox |
-| `scriptomatic_get_url_list_content` | ROLLBACK | `ajax_get_url_list_content()` | Return URL-list snapshot display for lightbox |
-| `scriptomatic_restore_url_list` | ROLLBACK | `ajax_restore_url_list()` | Restore external URL list from snapshot |
-| `scriptomatic_get_conditions_content` | ROLLBACK | `ajax_get_conditions_content()` | Return conditions snapshot display for lightbox |
-| `scriptomatic_restore_conditions` | ROLLBACK | `ajax_restore_conditions()` | Restore load conditions from snapshot |
 | `scriptomatic_restore_deleted_file` | ROLLBACK | `ajax_restore_deleted_file()` | Re-create a deleted JS file from file_delete snapshot |
 | `scriptomatic_delete_js_file` | FILES | `ajax_delete_js_file()` | Delete a managed JS file from disk and metadata |
 
@@ -603,13 +590,8 @@ The activity log is a single `wp_options` row (`scriptomatic_activity_log`, cons
 
 | Action | Trigger | Notable keys |
 |---|---|---|
-| `save` | Inline script content changed | `content`, `chars`, `urls_snapshot`, `conditions_snapshot` |
-| `rollback` | AJAX inline rollback | `content`, `chars` |
-| `url_added` | URL added to external list | `detail` (URL), `urls_snapshot` |
-| `url_removed` | URL removed from external list | `detail` (URL), `urls_snapshot` |
-| `conditions_save` | Load conditions changed | `detail` (summary), `conditions_snapshot` |
-| `url_list_restored` | External URL list restored via AJAX | `urls_snapshot` |
-| `conditions_restored` | Load conditions restored via AJAX | `conditions_snapshot` |
+| `save` | Script save (Settings API flush) | `content`, `chars`, `urls_snapshot`, `conditions_snapshot`, `detail` (human-readable summary) |
+| `rollback` | AJAX inline rollback | `content`, `chars`, `urls_snapshot`, `conditions_snapshot` |
 | `file_save` | Managed JS file saved | `content`, `chars`, `meta`, `conditions` |
 | `file_rollback` | Managed JS file rolled back via AJAX | `content`, `chars`, `meta` |
 | `file_delete` | Managed JS file deleted | `content`, `meta`, `conditions`; when triggered by saving empty content, `meta.reason = 'empty_save'` |
@@ -692,14 +674,13 @@ All option keys explicitly cleaned up:
 
 ```
 scriptomatic_script_content    scriptomatic_footer_script
-scriptomatic_script_history    scriptomatic_footer_history
 scriptomatic_linked_scripts    scriptomatic_footer_linked
 scriptomatic_head_conditions   scriptomatic_footer_conditions
 scriptomatic_js_files          scriptomatic_plugin_settings
-scriptomatic_activity_log      scriptomatic_audit_log
+scriptomatic_activity_log
 ```
 
-`scriptomatic_script_history`, `scriptomatic_footer_history`, and `scriptomatic_audit_log` are legacy option names cleaned up for complete removal; they are no longer written by the current codebase. The uploads directory (`wp-content/uploads/scriptomatic/`) is also deleted via `scriptomatic_delete_uploads_dir()`.
+The uploads directory (`wp-content/uploads/scriptomatic/`) is also deleted via `scriptomatic_delete_uploads_dir()`.
 
 ---
 
@@ -787,4 +768,4 @@ update_option( 'scriptomatic_activity_log', array_slice( $log, 0, 200 ) );
 
 ---
 
-*Document version: 2.4.0 — reflects the codebase as of February 2026.*
+*Document version: 2.5.0 — reflects the codebase as of March 2026.*
