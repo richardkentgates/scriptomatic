@@ -121,6 +121,8 @@ class Scriptomatic {
         add_action( 'wp_ajax_scriptomatic_get_file_activity_content', array( $this, 'ajax_get_file_activity_content' ) );
         add_action( 'wp_ajax_scriptomatic_delete_js_file',            array( $this, 'ajax_delete_js_file' ) );
         add_action( 'wp_ajax_scriptomatic_restore_deleted_file',       array( $this, 'ajax_restore_deleted_file' ) );
+        add_action( 'wp_ajax_scriptomatic_rollback_urls',              array( $this, 'ajax_rollback_urls' ) );
+        add_action( 'wp_ajax_scriptomatic_get_url_history_content',    array( $this, 'ajax_get_url_history_content' ) );
 
         // Admin-post: JS file save form.
         add_action( 'admin_post_scriptomatic_save_js_file',      array( $this, 'handle_save_js_file' ) );

@@ -91,21 +91,8 @@ trait Scriptomatic_History {
         );
         wp_cache_delete( $option_key, 'options' );
 
-        // Restore the URL list snapshot if the entry carries one (combined save
-        // entries from v2.5.0+ always include all three field snapshots).
-        if ( array_key_exists( 'urls_snapshot', $entry ) && null !== $entry['urls_snapshot'] ) {
-            $linked_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-            $wpdb->update(
-                $wpdb->options,
-                array( 'option_value' => $entry['urls_snapshot'] ),
-                array( 'option_name'  => $linked_key ),
-                array( '%s' ),
-                array( '%s' )
-            );
-            wp_cache_delete( $linked_key, 'options' );
-        }
-
-        // Restore the conditions snapshot if the entry carries one.
+        // Restore the inline conditions snapshot when present — script content
+        // and its load conditions are one dataset, so both are restored together.
         if ( array_key_exists( 'conditions_snapshot', $entry ) && null !== $entry['conditions_snapshot'] ) {
             $cond_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
             $wpdb->update(
@@ -125,9 +112,6 @@ trait Scriptomatic_History {
             'chars'    => strlen( $content ),
             'detail'   => __( 'Restored from snapshot', 'scriptomatic' ),
         );
-        if ( array_key_exists( 'urls_snapshot', $entry ) ) {
-            $rollback_entry['urls_snapshot'] = $entry['urls_snapshot'];
-        }
         if ( array_key_exists( 'conditions_snapshot', $entry ) ) {
             $rollback_entry['conditions_snapshot'] = $entry['conditions_snapshot'];
         }
@@ -294,6 +278,114 @@ trait Scriptomatic_History {
 
         wp_send_json_success( array(
             'content' => $entry['content'],
+            'display' => $this->format_entry_display( $entry ),
+        ) );
+    }
+
+    // =========================================================================
+    // URL LIST HISTORY + ROLLBACK
+    // =========================================================================
+
+    /**
+     * Retrieve URL-list history entries for the given location.
+     *
+     * Filters the unified activity log to entries that carry a urls_snapshot
+     * (action in 'url_save'|'url_rollback') for the specified location.
+     *
+     * @since  2.5.1
+     * @access private
+     * @param  string $location `'head'` or `'footer'`.
+     * @return array  Re-indexed array; each element has at least 'urls_snapshot'.
+     */
+    private function get_url_history( $location = 'head' ) {
+        $log = $this->get_activity_log();
+        return array_values(
+            array_filter( $log, function ( $e ) use ( $location ) {
+                return isset( $e['location'] ) && $e['location'] === $location
+                    && array_key_exists( 'urls_snapshot', $e )
+                    && isset( $e['action'] ) && in_array( $e['action'], array( 'url_save', 'url_rollback' ), true );
+            } )
+        );
+    }
+
+    /**
+     * AJAX handler — restore a URL list snapshot for head or footer.
+     *
+     * Restores only the external URL list. Inline script and its conditions
+     * are untouched — each dataset is restored independently.
+     *
+     * Expects POST fields: `nonce`, `index` (int), `location` ('head'|'footer').
+     *
+     * @since  2.5.1
+     * @return void  Sends a JSON response and exits.
+     */
+    public function ajax_rollback_urls() {
+        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $location   = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
+        $linked_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
+        $index      = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $history    = $this->get_url_history( $location );
+
+        if ( ! array_key_exists( $index, $history ) ) {
+            wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
+        }
+
+        $entry = $history[ $index ];
+
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->options,
+            array( 'option_value' => $entry['urls_snapshot'] ),
+            array( 'option_name'  => $linked_key ),
+            array( '%s' ),
+            array( '%s' )
+        );
+        wp_cache_delete( $linked_key, 'options' );
+
+        $this->write_activity_entry( array(
+            'action'        => 'url_rollback',
+            'location'      => $location,
+            'urls_snapshot' => $entry['urls_snapshot'],
+            'detail'        => __( 'URL list restored from snapshot', 'scriptomatic' ),
+        ) );
+
+        wp_send_json_success( array(
+            'location' => $location,
+            'message'  => __( 'URL list restored successfully.', 'scriptomatic' ),
+        ) );
+    }
+
+    /**
+     * AJAX handler — return the display content of a URL-list history entry.
+     *
+     * Expects POST fields: `nonce`, `index` (int), `location` ('head'|'footer').
+     *
+     * @since  2.5.1
+     * @return void  Sends a JSON response and exits.
+     */
+    public function ajax_get_url_history_content() {
+        check_ajax_referer( SCRIPTOMATIC_ROLLBACK_NONCE, 'nonce' );
+
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
+        }
+
+        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
+        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $history  = $this->get_url_history( $location );
+
+        if ( ! array_key_exists( $index, $history ) ) {
+            wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
+        }
+
+        $entry = $history[ $index ];
+
+        wp_send_json_success( array(
             'display' => $this->format_entry_display( $entry ),
         ) );
     }

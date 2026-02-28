@@ -102,6 +102,7 @@ trait Scriptomatic_Pages {
             $ea = isset( $e['action'] ) ? $e['action'] : '';
             if ( ( array_key_exists( 'content', $e ) && in_array( $ea, $content_actions, true ) )
                 || ( 'file_delete' === $ea && array_key_exists( 'content', $e ) )
+                || ( 'file' !== $location && in_array( $ea, array( 'url_save', 'url_rollback' ), true ) && array_key_exists( 'urls_snapshot', $e ) )
             ) {
                 $has_content_entries = true;
                 break;
@@ -117,7 +118,7 @@ trait Scriptomatic_Pages {
             <?php
             printf(
                 /* translators: %d: maximum number of retained log entries */
-                esc_html__( 'All script saves, rollbacks, and file events for this location. The most recent %d entries are retained. Each save entry is a complete snapshot — View shows all saved data, Restore brings everything back at once.', 'scriptomatic' ),
+                esc_html__( 'All script saves, rollbacks, and file events for this location. The most recent %d entries are retained. Inline script, URL list, and file entries are recorded separately and restored independently.', 'scriptomatic' ),
                 $this->get_max_log_entries()
             );
             ?>
@@ -140,6 +141,7 @@ trait Scriptomatic_Pages {
             <?php
             $content_index    = 0;
             $file_del_index   = 0;
+            $url_index        = 0;
             foreach ( $log as $entry ) :
                 if ( ! is_array( $entry ) ) { continue; }
                 $ts       = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : 0;
@@ -175,11 +177,21 @@ trait Scriptomatic_Pages {
                 if ( $has_code_content ) { $content_index++; }
                 if ( $has_delete_snap )  { $file_del_index++; }
 
+                // URL dataset entries — separate index counter so they can be
+                // viewed and restored independently of inline entries.
+                $has_url_entry  = 'file' !== $location
+                    && in_array( $action, array( 'url_save', 'url_rollback' ), true )
+                    && array_key_exists( 'urls_snapshot', $entry );
+                $this_url_index = $has_url_entry ? $url_index : null;
+                if ( $has_url_entry ) { $url_index++; }
+
                 $is_file_entry = ( 'file' === ( isset( $entry['location'] ) ? $entry['location'] : '' ) );
                 // Map action keys to human-readable Event labels.
                 $action_label_map = array(
                     'save'                 => __( 'Save', 'scriptomatic' ),
                     'rollback'             => __( 'Restore', 'scriptomatic' ),
+                    'url_save'             => __( 'URL Save', 'scriptomatic' ),
+                    'url_rollback'         => __( 'URL Restore', 'scriptomatic' ),
                     'url_added'            => __( 'URL Added', 'scriptomatic' ),
                     'url_removed'          => __( 'URL Removed', 'scriptomatic' ),
                     'conditions_save'      => __( 'Conditions', 'scriptomatic' ),
@@ -254,6 +266,18 @@ trait Scriptomatic_Pages {
                                 data-original-text="<?php esc_attr_e( 'Re-create', 'scriptomatic' ); ?>"
                                 <?php if ( $restore_greyed ) : ?>disabled title="<?php echo esc_attr( $restore_title ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Re-create', 'scriptomatic' ); ?></button>
+                        <?php endif; ?>
+                        <?php if ( $has_url_entry ) : ?>
+                            <button type="button" class="button button-small sm-url-history-view"
+                                data-index="<?php echo esc_attr( $this_url_index ); ?>"
+                                data-location="<?php echo esc_attr( $location ); ?>"
+                                data-label="<?php echo esc_attr( $label_str ); ?>"
+                            ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
+                            <button type="button" class="button button-small sm-url-history-restore"
+                                data-index="<?php echo esc_attr( $this_url_index ); ?>"
+                                data-location="<?php echo esc_attr( $location ); ?>"
+                                data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
+                            ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                         <?php endif; ?>
                     </td>
                     <?php endif; ?>

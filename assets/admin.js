@@ -611,6 +611,77 @@ jQuery( document ).ready( function ( $ ) {
             } ).fail( function () { alert( i18n.rollbackError || 'Restore failed.' ); $btn.prop( 'disabled', false ).text( orig ); } );
         } );
 
+        /* =====================================================================
+         * 3.8  URL list history — "sm-url-history-restore" and "sm-url-history-view"
+         *
+         * Restores only the external URL list for the location. Inline script
+         * and its conditions are untouched — each dataset is independent.
+         * ==================================================================== */
+        $( document ).on( 'click', '.sm-url-history-restore', function () {
+            if ( ! confirm( i18n.rollbackConfirm ) ) { return; }
+            var $btn     = $( this );
+            var index    = $btn.data( 'index' );
+            var entryLoc = $btn.data( 'location' ) || loc;
+            var orig     = $btn.data( 'original-text' ) || 'Restore';
+            $btn.prop( 'disabled', true ).text( i18n.restoring || 'Restoring…' );
+            $.post( data.ajaxUrl, {
+                action:   'scriptomatic_rollback_urls',
+                nonce:    data.rollbackNonce,
+                index:    index,
+                location: entryLoc
+            }, function ( response ) {
+                if ( response.success ) {
+                    $( '<div>' ).addClass( 'notice notice-success is-dismissible' )
+                        .html( '<p>' + ( i18n.rollbackSuccess || 'Restored successfully.' ) + '</p>' )
+                        .insertAfter( '.wp-header-end' );
+                    setTimeout( function () { location.reload(); }, 800 );
+                } else {
+                    var msg = ( response.data && response.data.message ) ? response.data.message : '';
+                    alert( ( i18n.rollbackError || 'Restore failed.' ) + ( msg ? ' ' + msg : '' ) );
+                    $btn.prop( 'disabled', false ).text( orig );
+                }
+            } ).fail( function () {
+                alert( i18n.rollbackError || 'Restore failed.' );
+                $btn.prop( 'disabled', false ).text( orig );
+            } );
+        } );
+
+        $( document ).on( 'click', '.sm-url-history-view', function () {
+            var $btn     = $( this );
+            var index    = $btn.data( 'index' );
+            var entryLoc = $btn.data( 'location' ) || loc;
+            var label    = $btn.data( 'label' ) || '';
+            var orig     = $btn.text();
+            $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading…' );
+            $.post( data.ajaxUrl, {
+                action:   'scriptomatic_get_url_history_content',
+                nonce:    data.rollbackNonce,
+                index:    index,
+                location: entryLoc
+            }, function ( response ) {
+                $btn.prop( 'disabled', false ).text( orig );
+                if ( response.success ) {
+                    var content = response.data.display || '';
+                    $lightbox.find( '.sm-history-lightbox__title' ).text( i18n.viewTitle || 'Revision Preview' );
+                    $lightbox.find( '.sm-history-lightbox__meta' ).text( label );
+                    var $pre = $lightbox.find( '.sm-history-lightbox__pre' );
+                    if ( content ) {
+                        $pre.text( content ).removeClass( 'sm-history-lightbox__empty' );
+                    } else {
+                        $pre.text( i18n.emptyScript || '(empty)' ).addClass( 'sm-history-lightbox__empty' );
+                    }
+                    $lightbox.addClass( 'is-open' );
+                    $( 'body' ).css( 'overflow', 'hidden' );
+                } else {
+                    var msg = ( response.data && response.data.message ) ? response.data.message : '';
+                    alert( ( i18n.viewError || 'Could not load revision.' ) + ( msg ? ' ' + msg : '' ) );
+                }
+            } ).fail( function () {
+                $btn.prop( 'disabled', false ).text( orig );
+                alert( i18n.viewError || 'Could not load revision.' );
+            } );
+        } );
+
         $( document ).on( 'click', '.sm-file-view', function () {
             var $btn   = $( this );
             var index  = $btn.data( 'index' );

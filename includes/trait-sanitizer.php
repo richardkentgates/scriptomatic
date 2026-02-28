@@ -458,9 +458,13 @@ trait Scriptomatic_Sanitizer {
             $added_urls   = array_diff( $new_urls, $old_urls );
             $removed_urls = array_diff( $old_urls, $new_urls );
 
-            // Contribute the URL snapshot and change counts to the combined
-            // pending-save entry that is flushed as one entry at shutdown.
+            // Contribute the URL snapshot and change counts to the pending-save
+            // accumulator so a separate URL dataset entry can be written at shutdown.
             $pending_data = array( 'urls_snapshot' => $new_urls_json );
+            if ( $old_raw !== $new_urls_json ) {
+                // Any change to the list including per-URL conditions.
+                $pending_data['url_list_changed'] = true;
+            }
             if ( count( $added_urls ) > 0 ) {
                 $pending_data['urls_added'] = count( $added_urls );
             }
@@ -655,74 +659,88 @@ trait Scriptomatic_Sanitizer {
      * @return void
      */
     private function flush_pending_save_entry( $location, array $accumulated ) {
-        $entry = array(
-            'action'   => 'save',
-            'location' => $location,
-        );
+        // === INLINE SCRIPT DATASET ENTRY ===
+        // Script content + its load conditions are one dataset. Write one entry
+        // only when the script OR its conditions actually changed. Never includes
+        // URL list data so each dataset can be viewed and restored independently.
+        $inline_changed = ! empty( $accumulated['script_changed'] )
+                       || ! empty( $accumulated['conditions_changed'] );
 
-        // Script content snapshot — always included when present.
-        if ( array_key_exists( 'content', $accumulated ) ) {
-            $entry['content'] = $accumulated['content'];
-            $entry['chars']   = array_key_exists( 'chars', $accumulated )
-                ? (int) $accumulated['chars']
-                : strlen( $accumulated['content'] );
-        }
-
-        // URL list snapshot — current state at time of save.
-        if ( array_key_exists( 'urls_snapshot', $accumulated ) ) {
-            $entry['urls_snapshot'] = $accumulated['urls_snapshot'];
-        }
-
-        // Inline conditions snapshot — current state at time of save.
-        if ( array_key_exists( 'conditions_snapshot', $accumulated ) ) {
-            $entry['conditions_snapshot'] = $accumulated['conditions_snapshot'];
-        }
-
-        // Build human-readable summary of what changed for the Changes column.
-        $detail_parts = array();
-
-        if ( ! empty( $accumulated['script_changed'] ) ) {
-            $chars          = isset( $entry['chars'] ) ? (int) $entry['chars'] : 0;
-            $detail_parts[] = sprintf(
-                /* translators: %s: character count */
-                __( 'Script: %s chars', 'scriptomatic' ),
-                number_format( $chars )
+        if ( $inline_changed ) {
+            $inline_entry = array(
+                'action'   => 'save',
+                'location' => $location,
             );
+
+            if ( array_key_exists( 'content', $accumulated ) ) {
+                $inline_entry['content'] = $accumulated['content'];
+                $inline_entry['chars']   = isset( $accumulated['chars'] )
+                    ? (int) $accumulated['chars']
+                    : strlen( $accumulated['content'] );
+            }
+
+            // Snapshot the current inline conditions alongside the script so
+            // a single Restore brings back the full inline dataset at once.
+            if ( array_key_exists( 'conditions_snapshot', $accumulated ) ) {
+                $inline_entry['conditions_snapshot'] = $accumulated['conditions_snapshot'];
+            }
+
+            $detail_parts = array();
+            if ( ! empty( $accumulated['script_changed'] ) ) {
+                $chars          = isset( $inline_entry['chars'] ) ? (int) $inline_entry['chars'] : 0;
+                $detail_parts[] = sprintf(
+                    /* translators: %s: character count */
+                    __( 'Script: %s chars', 'scriptomatic' ),
+                    number_format( $chars )
+                );
+            }
+            if ( ! empty( $accumulated['conditions_changed'] ) && ! empty( $accumulated['conditions_detail'] ) ) {
+                $detail_parts[] = sprintf(
+                    /* translators: %s: conditions summary label */
+                    __( 'Conditions: %s', 'scriptomatic' ),
+                    $accumulated['conditions_detail']
+                );
+            }
+
+            $inline_entry['detail'] = implode( ' · ', $detail_parts );
+            $this->write_activity_entry( $inline_entry );
         }
 
-        if ( ! empty( $accumulated['urls_added'] ) ) {
-            $n              = (int) $accumulated['urls_added'];
-            $detail_parts[] = sprintf(
-                /* translators: %d: number of URLs added */
-                _n( '%d URL added', '%d URLs added', $n, 'scriptomatic' ),
-                $n
+        // === URL DATASET ENTRY ===
+        // External URL list + per-URL conditions are a separate dataset. Write
+        // one entry only when the list actually changed. Never combined with the
+        // inline entry so each dataset can be viewed and restored independently.
+        if ( ! empty( $accumulated['url_list_changed'] ) && array_key_exists( 'urls_snapshot', $accumulated ) ) {
+            $url_entry = array(
+                'action'        => 'url_save',
+                'location'      => $location,
+                'urls_snapshot' => $accumulated['urls_snapshot'],
             );
+
+            $detail_parts = array();
+            if ( ! empty( $accumulated['urls_added'] ) ) {
+                $n              = (int) $accumulated['urls_added'];
+                $detail_parts[] = sprintf(
+                    /* translators: %d: number of URLs added */
+                    _n( '%d URL added', '%d URLs added', $n, 'scriptomatic' ),
+                    $n
+                );
+            }
+            if ( ! empty( $accumulated['urls_removed'] ) ) {
+                $n              = (int) $accumulated['urls_removed'];
+                $detail_parts[] = sprintf(
+                    /* translators: %d: number of URLs removed */
+                    _n( '%d URL removed', '%d URLs removed', $n, 'scriptomatic' ),
+                    $n
+                );
+            }
+            if ( empty( $detail_parts ) ) {
+                // Per-URL conditions changed without adding or removing a URL.
+                $detail_parts[] = __( 'URL conditions updated', 'scriptomatic' );
+            }
+
+            $url_entry['detail'] = implode( ' · ', $detail_parts );
+            $this->write_activity_entry( $url_entry );
         }
-
-        if ( ! empty( $accumulated['urls_removed'] ) ) {
-            $n              = (int) $accumulated['urls_removed'];
-            $detail_parts[] = sprintf(
-                /* translators: %d: number of URLs removed */
-                _n( '%d URL removed', '%d URLs removed', $n, 'scriptomatic' ),
-                $n
-            );
-        }
-
-        if ( ! empty( $accumulated['conditions_changed'] ) && ! empty( $accumulated['conditions_detail'] ) ) {
-            $detail_parts[] = sprintf(
-                /* translators: %s: conditions summary label */
-                __( 'Conditions: %s', 'scriptomatic' ),
-                $accumulated['conditions_detail']
-            );
-        }
-
-        // Do not write anything if nothing actually changed this request.
-        if ( empty( $detail_parts ) ) {
-            return;
-        }
-
-        $entry['detail'] = implode( ' · ', $detail_parts );
-
-        $this->write_activity_entry( $entry );
     }
 }
