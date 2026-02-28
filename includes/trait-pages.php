@@ -164,10 +164,27 @@ trait Scriptomatic_Pages {
                 $chars    = isset( $entry['chars'] )      ? (int) $entry['chars']           : 0;
                 $file_eid = isset( $entry['file_id'] )    ? (string) $entry['file_id']     : '';
 
-                $has_content = array_key_exists( 'content', $entry )
+                // Determine whether this row gets View/Restore and which kind.
+                $has_code_content = array_key_exists( 'content', $entry )
                     && in_array( $action, $content_actions, true );
-                $this_index  = $has_content ? $content_index : null;
-                if ( $has_content ) { $content_index++; }
+                $has_url_snap     = in_array( $action, array( 'url_added', 'url_removed' ), true )
+                    && array_key_exists( 'urls_snapshot', $entry );
+                $has_cond_snap    = ( 'conditions_save' === $action )
+                    && array_key_exists( 'conditions_snapshot', $entry );
+                $has_delete_snap  = ( 'file_delete' === $action )
+                    && array_key_exists( 'content', $entry );
+                $has_content      = $has_code_content || $has_url_snap || $has_cond_snap || $has_delete_snap;
+
+                $this_code_index   = $has_code_content ? $content_index   : null;
+                $this_url_index    = $has_url_snap      ? $url_snap_index  : null;
+                $this_cond_index   = $has_cond_snap     ? $cond_snap_index : null;
+                $this_delete_index = $has_delete_snap   ? $file_del_index  : null;
+                $this_index        = $this_code_index; // legacy alias
+
+                if ( $has_code_content ) { $content_index++; }
+                if ( $has_url_snap )     { $url_snap_index++; }
+                if ( $has_cond_snap )    { $cond_snap_index++; }
+                if ( $has_delete_snap )  { $file_del_index++; }
 
                 $is_file_entry = ( 'file' === ( isset( $entry['location'] ) ? $entry['location'] : '' ) );
                 $action_label  = ucwords( str_replace( '_', ' ', $action ) );
@@ -263,25 +280,6 @@ trait Scriptomatic_Pages {
         </table>
         <?php else : ?>
         <p class="description"><?php esc_html_e( 'No activity yet. Script saves, rollbacks, and URL changes will appear here.', 'scriptomatic' ); ?></p>
-        <?php endif;
-
-        // Clear Log button — omit on per-file edit views (file_id is set).
-        if ( ! empty( $log ) && '' === $file_id ) :
-            $clear_url = wp_nonce_url(
-                add_query_arg(
-                    array( 'page' => $page_slug, 'action' => 'clear', 'location' => $location ),
-                    admin_url( 'admin.php' )
-                ),
-                SCRIPTOMATIC_CLEAR_LOG_NONCE,
-                'scriptomatic_clear_nonce'
-            );
-        ?>
-        <p style="margin-top:8px;">
-            <a href="<?php echo esc_url( $clear_url ); ?>" class="button"
-               onclick="return confirm('<?php esc_attr_e( 'Clear the activity log for this location? This cannot be undone.', 'scriptomatic' ); ?>');">
-                <?php esc_html_e( 'Clear Log', 'scriptomatic' ); ?>
-            </a>
-        </p>
         <?php endif;
 
         // Lightbox — shared by inline View and file View buttons.
