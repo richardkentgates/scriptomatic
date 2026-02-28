@@ -444,31 +444,21 @@ trait Scriptomatic_Sanitizer {
             $new_urls_json = wp_json_encode( $clean );
             $old_urls_json = wp_json_encode( is_array( $old_decoded ) ? $old_decoded : array() );
 
-            // Capture conditions from the current POST submission (the conditions
-            // sanitize callback runs after this one, so the DB still holds old values;
-            // reading from POST gives us the new conditions the user just submitted).
-            $cond_opt      = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-            $cond_post_raw = isset( $_POST[ $cond_opt ] ) ? wp_unslash( $_POST[ $cond_opt ] ) : null; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $cond_decoded  = $cond_post_raw ? json_decode( $cond_post_raw, true ) : null;
-            $cond_snap     = wp_json_encode( $this->sanitize_conditions_array( is_array( $cond_decoded ) ? $cond_decoded : array() ) );
-
             foreach ( array_diff( $new_urls, $old_urls ) as $url ) {
                 $this->write_activity_entry( array(
-                    'action'              => 'url_added',
-                    'location'            => $location,
-                    'detail'              => $url,
-                    'urls_snapshot'       => $new_urls_json,
-                    'conditions_snapshot' => $cond_snap,
+                    'action'        => 'url_added',
+                    'location'      => $location,
+                    'detail'        => $url,
+                    'urls_snapshot' => $new_urls_json, // state after addition — Restore returns URL list to this state
                 ) );
             }
 
             foreach ( array_diff( $old_urls, $new_urls ) as $url ) {
                 $this->write_activity_entry( array(
-                    'action'              => 'url_removed',
-                    'location'            => $location,
-                    'detail'              => $url,
-                    'urls_snapshot'       => $old_urls_json, // old list — includes removed URL; restore brings it back
-                    'conditions_snapshot' => $cond_snap,
+                    'action'        => 'url_removed',
+                    'location'      => $location,
+                    'detail'        => $url,
+                    'urls_snapshot' => $old_urls_json, // state before removal — shown in lightbox; Restore is greyed out
                 ) );
             }
         }
@@ -581,8 +571,7 @@ trait Scriptomatic_Sanitizer {
                 'action'              => 'conditions_save',
                 'location'            => $location,
                 'detail'              => $cond_detail,
-                'conditions_snapshot' => $new_json,
-                'urls_snapshot'       => get_option( ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED, '[]' ),
+                'conditions_snapshot' => $new_json, // state after save — Restore returns conditions to this state
             ) );
         }
 

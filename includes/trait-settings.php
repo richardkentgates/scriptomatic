@@ -222,15 +222,11 @@ trait Scriptomatic_Settings {
     private function log_change( $new_content, $option_key, $location ) {
         $old_content = get_option( $option_key, '' );
         if ( $old_content !== $new_content ) {
-            $urls_option = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED     : SCRIPTOMATIC_HEAD_LINKED;
-            $cond_option = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
             $this->write_activity_entry( array(
-                'action'              => 'save',
-                'location'            => $location,
-                'content'             => $new_content,
-                'chars'               => strlen( $new_content ),
-                'urls_snapshot'       => get_option( $urls_option, '[]' ),
-                'conditions_snapshot' => get_option( $cond_option, '' ),
+                'action'   => 'save',
+                'location' => $location,
+                'content'  => $new_content,
+                'chars'    => strlen( $new_content ),
             ) );
         }
     }

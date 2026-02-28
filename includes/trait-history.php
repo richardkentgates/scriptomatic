@@ -96,28 +96,11 @@ trait Scriptomatic_History {
         );
         wp_cache_delete( $option_key, 'options' );
 
-        // Also restore the URL list and conditions that were captured with this entry.
-        $urls_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED     : SCRIPTOMATIC_HEAD_LINKED;
-        $cond_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-        $urls_snap = isset( $entry['urls_snapshot'] )       ? $entry['urls_snapshot']       : null;
-        $cond_snap = isset( $entry['conditions_snapshot'] ) ? $entry['conditions_snapshot'] : null;
-
-        if ( null !== $urls_snap ) {
-            update_option( $urls_key, $urls_snap );
-            wp_cache_delete( $urls_key, 'options' );
-        }
-        if ( null !== $cond_snap ) {
-            update_option( $cond_key, $cond_snap );
-            wp_cache_delete( $cond_key, 'options' );
-        }
-
         $this->write_activity_entry( array(
-            'action'              => 'rollback',
-            'location'            => $location,
-            'content'             => $content,
-            'chars'               => strlen( $content ),
-            'urls_snapshot'       => $urls_snap,
-            'conditions_snapshot' => $cond_snap,
+            'action'   => 'rollback',
+            'location' => $location,
+            'content'  => $content,
+            'chars'    => strlen( $content ),
         ) );
 
         wp_send_json_success( array(
@@ -542,27 +525,14 @@ trait Scriptomatic_History {
         update_option( $option_key, $snapshot );
         wp_cache_delete( $option_key, 'options' );
 
-        // Also restore conditions to the state saved alongside this URL snapshot.
-        $cond_snap = array_key_exists( 'conditions_snapshot', $entry ) ? $entry['conditions_snapshot'] : null;
-        if ( null !== $cond_snap ) {
-            $cond_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-            update_option( $cond_key, $cond_snap );
-            wp_cache_delete( $cond_key, 'options' );
-        }
-
         $this->write_activity_entry( array(
-            'action'              => 'url_list_restored',
-            'location'            => $location,
-            'detail'              => __( 'URL list restored from snapshot', 'scriptomatic' ),
-            'urls_snapshot'       => $snapshot,
-            'conditions_snapshot' => $cond_snap,
+            'action'        => 'url_list_restored',
+            'location'      => $location,
+            'detail'        => __( 'URL list restored from snapshot', 'scriptomatic' ),
+            'urls_snapshot' => $snapshot,
         ) );
 
-        $msg = null !== $cond_snap
-            ? __( 'URL list and conditions restored.', 'scriptomatic' )
-            : __( 'URL list restored.', 'scriptomatic' );
-
-        wp_send_json_success( array( 'message' => $msg ) );
+        wp_send_json_success( array( 'message' => __( 'URL list restored.', 'scriptomatic' ) ) );
     }
 
     /**
@@ -624,28 +594,15 @@ trait Scriptomatic_History {
         update_option( $option_key, $snapshot );
         wp_cache_delete( $option_key, 'options' );
 
-        // Also restore URL list to the state saved alongside this conditions snapshot.
-        $urls_snap = array_key_exists( 'urls_snapshot', $entry ) ? $entry['urls_snapshot'] : null;
-        if ( null !== $urls_snap ) {
-            $url_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-            update_option( $url_key, $urls_snap );
-            wp_cache_delete( $url_key, 'options' );
-        }
-
         $this->write_activity_entry( array(
             'action'              => 'conditions_restored',
             'location'            => $location,
             'detail'              => __( 'Conditions restored from snapshot', 'scriptomatic' ),
             'conditions_snapshot' => $snapshot,
-            'urls_snapshot'       => $urls_snap,
         ) );
 
-        $msg = null !== $urls_snap
-            ? __( 'Conditions and URL list restored.', 'scriptomatic' )
-            : __( 'Conditions restored.', 'scriptomatic' );
-
         wp_send_json_success( array(
-            'message'  => $msg,
+            'message'  => __( 'Conditions restored.', 'scriptomatic' ),
             'snapshot' => $snapshot,
         ) );
     }

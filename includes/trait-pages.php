@@ -175,6 +175,23 @@ trait Scriptomatic_Pages {
                     && array_key_exists( 'content', $entry );
                 $has_content      = $has_code_content || $has_url_snap || $has_cond_snap || $has_delete_snap;
 
+                // Restore is greyed out (disabled) when the action was a deliberate removal or
+                // the resulting state is empty — view still works for audit reference.
+                // To restore, find an earlier entry in the log with the desired content/URL state.
+                $restore_greyed = ( 'url_removed' === $action )
+                    || ( $has_code_content && '' === (string) $entry['content'] )
+                    || ( 'file_delete' === $action );
+
+                if ( 'url_removed' === $action ) {
+                    $restore_title = __( 'URL intentionally removed. Find an earlier URL Added entry in the log to restore.', 'scriptomatic' );
+                } elseif ( $has_code_content && '' === (string) $entry['content'] ) {
+                    $restore_title = __( 'Script is empty — nothing to restore. Find an earlier Save entry to restore content.', 'scriptomatic' );
+                } elseif ( 'file_delete' === $action ) {
+                    $restore_title = __( 'File was deleted. Find an earlier File Save entry in the log to re-create it.', 'scriptomatic' );
+                } else {
+                    $restore_title = '';
+                }
+
                 $this_code_index   = $has_code_content ? $content_index   : null;
                 $this_url_index    = $has_url_snap      ? $url_snap_index  : null;
                 $this_cond_index   = $has_cond_snap     ? $cond_snap_index : null;
@@ -221,6 +238,7 @@ trait Scriptomatic_Pages {
                                 data-index="<?php echo esc_attr( $this_code_index ); ?>"
                                 data-file-id="<?php echo esc_attr( $file_eid ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
+                                <?php if ( $restore_greyed ) : ?>disabled title="<?php echo esc_attr( $restore_title ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                             <?php else : ?>
                             <button type="button" class="button button-small scriptomatic-history-view"
@@ -232,6 +250,7 @@ trait Scriptomatic_Pages {
                                 data-index="<?php echo esc_attr( $this_code_index ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
+                                <?php if ( $restore_greyed ) : ?>disabled title="<?php echo esc_attr( $restore_title ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                             <?php endif; ?>
                         <?php endif; ?>
@@ -245,6 +264,7 @@ trait Scriptomatic_Pages {
                                 data-index="<?php echo esc_attr( $this_url_index ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
+                                <?php if ( $restore_greyed ) : ?>disabled title="<?php echo esc_attr( $restore_title ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                         <?php endif; ?>
                         <?php if ( $has_cond_snap ) : ?>
@@ -269,6 +289,7 @@ trait Scriptomatic_Pages {
                             <button type="button" class="button button-small sm-file-reanimate"
                                 data-index="<?php echo esc_attr( $this_delete_index ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Re-create', 'scriptomatic' ); ?>"
+                                <?php if ( $restore_greyed ) : ?>disabled title="<?php echo esc_attr( $restore_title ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Re-create', 'scriptomatic' ); ?></button>
                         <?php endif; ?>
                     </td>

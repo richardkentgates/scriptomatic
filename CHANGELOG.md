@@ -13,6 +13,31 @@ _Nothing yet._
 
 ---
 
+## [2.3.0] – 2026-02-28
+
+### Changed
+- **Activity Log entries are now strictly single-concern.** Each log entry
+  records only its own action's data — no more cross-data bundling:
+  - `url_added` / `url_removed` entries carry only `urls_snapshot` (no
+    conditions snapshot).
+  - `conditions_save` entries carry only `conditions_snapshot` (no URL
+    snapshot).
+  - `save` / `rollback` entries carry only `content` + `chars` (no URL or
+    conditions snapshots).
+- **Restore is now greyed out for deliberate removals and empty states.**
+  The Restore button is disabled (but View remains active for audit reference)
+  when the action is a `url_removed` event, a `save`/`rollback` with empty
+  content, or a `file_delete` event. Hovering the button shows a tooltip
+  explaining why. To undo these actions, find an earlier log entry with the
+  desired state and click Restore there.
+- **Cross-restore side-effects removed.** Restoring a URL list snapshot no
+  longer silently overwrites conditions; restoring a conditions snapshot no
+  longer silently overwrites the URL list; rolling back an inline script no
+  longer silently overwrites URLs or conditions. Each Restore is now a
+  surgical single-field operation.
+
+---
+
 ## [2.2.0] – 2026-03-01
 
 ### Fixed
