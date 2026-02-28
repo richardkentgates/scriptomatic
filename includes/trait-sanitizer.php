@@ -667,8 +667,13 @@ trait Scriptomatic_Sanitizer {
                        || ! empty( $accumulated['conditions_changed'] );
 
         if ( $inline_changed ) {
+            // When only conditions changed (no script edit), use 'conditions_save'
+            // so this entry is NOT counted in the content-restore index and does
+            // not bump the most recent real save/rollback off index 0.  The
+            // 'conditions_save' label is already defined in the action_label_map.
+            $script_actually_changed = ! empty( $accumulated['script_changed'] );
             $inline_entry = array(
-                'action'   => 'save',
+                'action'   => $script_actually_changed ? 'save' : 'conditions_save',
                 'location' => $location,
             );
 
