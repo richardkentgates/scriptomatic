@@ -13,7 +13,7 @@
  *     "label":      "My Tracker",
  *     "filename":   "my-tracker.js",
  *     "location":   "head",
- *     "conditions": { "type": "all", "values": [] }
+ *     "conditions": { "logic": "and", "rules": [] }
  *   }
  *
  * @package  Scriptomatic
@@ -147,7 +147,7 @@ trait Scriptomatic_Files {
             : '';
         $cond_raw    = isset( $_POST['sm_file_conditions'] )
             ? wp_unslash( $_POST['sm_file_conditions'] )
-            : '{"type":"all","values":[]}';
+            : '{"logic":"and","rules":[]}';
 
         // Validate: label is required.
         if ( '' === $label ) {
@@ -182,8 +182,7 @@ trait Scriptomatic_Files {
             return;
         }
 
-        // Parse and sanitise conditions JSON (handles both legacy {type,values}
-        // and new stacked {logic,rules} format via sanitize_conditions_array()).
+        // Parse and sanitise conditions JSON ({logic,rules} stacked format).
         $conditions_raw = json_decode( $cond_raw, true );
         if ( ! is_array( $conditions_raw ) ) {
             $conditions_raw = array( 'logic' => 'and', 'rules' => array() );

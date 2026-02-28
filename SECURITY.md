@@ -10,8 +10,7 @@ We provide security updates for the following versions:
 
 | Version | Supported          | Status        |
 | ------- | ------------------ | ------------- |
-| 1.4.x   | :white_check_mark: | Active Support |
-| < 1.4   | :x:                | Unsupported    |
+| 2.0.x   | :white_check_mark: | Active Support |
 
 ## Security Features
 
@@ -39,7 +38,7 @@ We provide security updates for the following versions:
   - Action performed
 
   Note: IP addresses are intentionally not logged to protect user privacy.
-- **Audit Log**: Script save and rollback events recorded in the persistent Audit Log, embedded at the bottom of the Head Scripts and Footer Scripts pages; entries capture timestamp, user, action, and character count
+- **Activity Log**: Script saves, rollbacks, URL changes, conditions changes, URL-list and conditions restores, and JS file events (including deleted-file re-creation) are recorded in the persistent Activity Log, embedded at the bottom of each admin page; entries capture timestamp, user, action (`save`, `rollback`, `url_added`, `url_removed`, `conditions_save`, `url_list_restored`, `conditions_restored`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), and a content summary
 - **Settings Errors**: User-facing error messages for validation failures
 
 ### Output Escaping
@@ -156,7 +155,7 @@ We classify vulnerabilities using the following severity levels:
 2. **Two-Factor Authentication**: Enable 2FA on all admin accounts
 3. **Limited Access**: Only give `manage_options` capability to trusted users
 4. **Regular Audits**: Review scripts regularly for unauthorized changes
-5. **Monitoring**: Review the Audit Log (bottom of the Head Scripts and Footer Scripts pages) for unexpected script changes; check server error logs for other security events
+5. **Monitoring**: Review the Activity Log (bottom of the Head Scripts, Footer Scripts, and JS Files pages) for unexpected script changes; check server error logs for other security events
 6. **Updates**: Keep WordPress, themes, and plugins updated
 7. **Backups**: Maintain regular backups before making script changes
 
@@ -212,7 +211,7 @@ We appreciate responsible security researchers who help keep Scriptomatic secure
 
 ---
 
-**Last Updated**: February 26, 2026
-**Version**: 1.4.3
+**Last Updated**: February 28, 2026
+**Version**: 2.0.0
 
 Thank you for helping keep Scriptomatic secure!

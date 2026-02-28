@@ -292,9 +292,9 @@ trait Scriptomatic_History {
     /**
      * Build a human-readable plaintext string for a conditions array.
      *
-     * Accepts both legacy {type,values} and new {logic,rules} formats.
+     * Accepts a {logic,rules} format conditions array.
      *
-     * @since  1.12.0
+     * @since  1.0.0
      * @access private
      * @param  array|string $cond Decoded conditions array or JSON string.
      * @return string
@@ -324,9 +324,6 @@ trait Scriptomatic_History {
         if ( isset( $cond['rules'] ) && is_array( $cond['rules'] ) ) {
             $rules = $cond['rules'];
             $logic = ( isset( $cond['logic'] ) && 'or' === $cond['logic'] ) ? 'OR' : 'AND';
-        } elseif ( isset( $cond['type'] ) && 'all' !== $cond['type'] && '' !== $cond['type'] ) {
-            $rules = array( $cond );
-            $logic = 'AND';
         } else {
             return 'All pages (no conditions)';
         }
@@ -362,8 +359,8 @@ trait Scriptomatic_History {
         }
         $lines = array();
         foreach ( $list as $i => $entry ) {
-            $url  = is_array( $entry ) ? ( isset( $entry['url'] ) ? $entry['url'] : '' ) : (string) $entry;
-            $cond = is_array( $entry ) && isset( $entry['conditions'] ) ? $entry['conditions'] : array();
+            $url  = is_array( $entry ) && isset( $entry['url'] ) ? $entry['url'] : '';
+            $cond = is_array( $entry ) && isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) ? $entry['conditions'] : array();
             $lines[] = ( $i + 1 ) . '. ' . $url;
             $lines[] = '   Conditions: ' . $this->format_conditions_display( $cond );
         }

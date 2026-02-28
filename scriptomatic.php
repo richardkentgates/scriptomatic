@@ -37,19 +37,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ---- Core ----
-define( 'SCRIPTOMATIC_VERSION',     '1.12.0' );
+define( 'SCRIPTOMATIC_VERSION',     '2.0.0' );
 define( 'SCRIPTOMATIC_PLUGIN_FILE', __FILE__ );
 define( 'SCRIPTOMATIC_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'SCRIPTOMATIC_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 
 // ---- Option keys: head scripts ----
 define( 'SCRIPTOMATIC_HEAD_SCRIPT',  'scriptomatic_script_content' );
-define( 'SCRIPTOMATIC_HEAD_HISTORY', 'scriptomatic_script_history' );
 define( 'SCRIPTOMATIC_HEAD_LINKED',  'scriptomatic_linked_scripts' );
 
 // ---- Option keys: footer scripts ----
 define( 'SCRIPTOMATIC_FOOTER_SCRIPT',  'scriptomatic_footer_script' );
-define( 'SCRIPTOMATIC_FOOTER_HISTORY', 'scriptomatic_footer_history' );
 define( 'SCRIPTOMATIC_FOOTER_LINKED',  'scriptomatic_footer_linked' );
 
 // ---- Option keys: load conditions ----
@@ -60,9 +58,8 @@ define( 'SCRIPTOMATIC_FOOTER_CONDITIONS', 'scriptomatic_footer_conditions' );
 define( 'SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION', 'scriptomatic_plugin_settings' );
 
 // ---- Limits / timing ----
-define( 'SCRIPTOMATIC_MAX_SCRIPT_LENGTH',   100000 ); // 100 KB hard limit per inline script
-define( 'SCRIPTOMATIC_RATE_LIMIT_SECONDS',  10 );     // Minimum seconds between saves per user
-define( 'SCRIPTOMATIC_DEFAULT_MAX_HISTORY', 25 );     // Default revisions retained per location
+define( 'SCRIPTOMATIC_MAX_SCRIPT_LENGTH',  100000 ); // 100 KB hard limit per inline script
+define( 'SCRIPTOMATIC_RATE_LIMIT_SECONDS', 10 );     // Minimum seconds between saves per user
 
 // ---- Nonces ----
 define( 'SCRIPTOMATIC_HEAD_NONCE',     'scriptomatic_save_head' );    // Head script form secondary nonce
@@ -73,11 +70,9 @@ define( 'SCRIPTOMATIC_ROLLBACK_NONCE', 'scriptomatic_rollback' );     // AJAX ro
 // ---- Option keys: managed JS files ----
 define( 'SCRIPTOMATIC_JS_FILES_OPTION', 'scriptomatic_js_files' );    // DB option key for JS file metadata array
 
-// ---- Activity / audit log ----
-define( 'SCRIPTOMATIC_ACTIVITY_LOG_OPTION', 'scriptomatic_activity_log' ); // Unified activity log (saves, rollbacks, URL events, file events)
-define( 'SCRIPTOMATIC_AUDIT_LOG_OPTION',    'scriptomatic_audit_log' );    // Legacy key — kept for one-time migration read
+// ---- Activity log ----
+define( 'SCRIPTOMATIC_ACTIVITY_LOG_OPTION', 'scriptomatic_activity_log' ); // Unified activity log
 define( 'SCRIPTOMATIC_MAX_LOG_ENTRIES',     200 );                         // Default maximum entries retained
-define( 'SCRIPTOMATIC_CLEAR_LOG_NONCE',     'scriptomatic_clear_log' );    // Nonce for the clear-log admin action
 
 // ---- Nonces: JS files ----
 define( 'SCRIPTOMATIC_FILES_NONCE', 'scriptomatic_save_js_file' );    // File edit form + AJAX delete nonce

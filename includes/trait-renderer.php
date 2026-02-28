@@ -193,20 +193,6 @@ trait Scriptomatic_Renderer {
             $entries = array();
         }
 
-        // Migrate any legacy plain-URL strings to the {url, conditions} structure.
-        $migrated = array();
-        foreach ( $entries as $e ) {
-            if ( is_string( $e ) && '' !== trim( $e ) ) {
-                $migrated[] = array( 'url' => $e, 'conditions' => array( 'type' => 'all', 'values' => array() ) );
-            } elseif ( is_array( $e ) && ! empty( $e['url'] ) ) {
-                if ( ! isset( $e['conditions'] ) || ! is_array( $e['conditions'] ) ) {
-                    $e['conditions'] = array( 'type' => 'all', 'values' => array() );
-                }
-                $migrated[] = $e;
-            }
-        }
-        $entries = $migrated;
-
         $prefix     = 'scriptomatic-' . $location;
         $list_id    = $prefix . '-url-entries';
         $add_input  = $prefix . '-new-url';
@@ -221,7 +207,7 @@ trait Scriptomatic_Renderer {
                     $url        = isset( $entry['url'] )        ? (string) $entry['url'] : '';
                     $conditions = ( isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
                                   ? $entry['conditions']
-                                  : array( 'type' => 'all', 'values' => array() );
+                                  : array( 'logic' => 'and', 'rules' => array() );
                     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside helper
                     echo $this->render_url_entry_html( $location, $idx, $url, $conditions, $post_types );
                 endforeach; ?>
@@ -254,7 +240,7 @@ trait Scriptomatic_Renderer {
                     $location,
                     '__IDX__',
                     '',
-                    array( 'type' => 'all', 'values' => array() ),
+                    array( 'logic' => 'and', 'rules' => array() ),
                     $post_types,
                     true
                 );
@@ -278,17 +264,16 @@ trait Scriptomatic_Renderer {
      * @param  string     $location    `'head'` or `'footer'`.
      * @param  int|string $idx         Entry index, or `'__IDX__'` for the JS template.
      * @param  string     $url         URL for this entry (empty string for the template).
-     * @param  array      $conditions  Decoded `{type, values}` conditions array.
+     * @param  array      $conditions  Decoded `{logic, rules}` conditions array.
      * @param  object[]   $post_types  Public post-type objects from get_post_types().
      * @param  bool       $is_template When true renders an inert template for JS cloning.
      * @return string HTML string.
      */
     private function render_url_entry_html( $location, $idx, $url, array $conditions, $post_types, $is_template = false ) {
-        $pfx        = 'sm-url-' . $location . '-cond-' . $idx;
-        $eid        = 'sm-url-' . $location . '-entry-' . $idx;
-        $conditions = $this->migrate_conditions_to_stack( $conditions );
-        $logic      = $conditions['logic'];
-        $rules      = $is_template ? array() : $conditions['rules'];
+        $pfx   = 'sm-url-' . $location . '-cond-' . $idx;
+        $eid   = 'sm-url-' . $location . '-entry-' . $idx;
+        $logic = ( isset( $conditions['logic'] ) && 'or' === $conditions['logic'] ) ? 'or' : 'and';
+        $rules = $is_template ? array() : ( isset( $conditions['rules'] ) && is_array( $conditions['rules'] ) ? $conditions['rules'] : array() );
 
         ob_start();
         ?>
@@ -319,13 +304,12 @@ trait Scriptomatic_Renderer {
      *
      * @since  1.6.0
      * @access private
-     * @param  array $conditions Decoded `{type, values}` conditions array.
+     * @param  array $conditions Decoded `{logic, rules}` conditions array.
      * @return bool  True when the script should be output, false otherwise.
      */
     private function evaluate_conditions_object( array $conditions ) {
-        $stack = $this->migrate_conditions_to_stack( $conditions );
-        $logic = $stack['logic'];
-        $rules = $stack['rules'];
+        $logic = ( isset( $conditions['logic'] ) && 'or' === $conditions['logic'] ) ? 'or' : 'and';
+        $rules = ( isset( $conditions['rules'] ) && is_array( $conditions['rules'] ) ) ? $conditions['rules'] : array();
 
         if ( empty( $rules ) ) {
             return true; // No conditions — load everywhere.
@@ -370,40 +354,9 @@ trait Scriptomatic_Renderer {
     }
 
     /**
-     * Migrate a legacy `{type, values}` conditions array to the new stacked
-     * `{logic, rules}` format.  If $raw already has a `rules` key, it is
-     * returned untouched.
-     *
-     * @since  1.11.0
-     * @access private
-     * @param  array $raw Decoded conditions array.
-     * @return array      Normalised `{logic, rules}` array.
-     */
-    private function migrate_conditions_to_stack( array $raw ) {
-        // Already new format.
-        if ( isset( $raw['rules'] ) && is_array( $raw['rules'] ) ) {
-            $logic = ( isset( $raw['logic'] ) && 'or' === $raw['logic'] ) ? 'or' : 'and';
-            return array( 'logic' => $logic, 'rules' => $raw['rules'] );
-        }
-
-        // Legacy single-condition: type "all" → empty rules.
-        $type   = isset( $raw['type'] ) ? (string) $raw['type'] : 'all';
-        $values = ( isset( $raw['values'] ) && is_array( $raw['values'] ) ) ? $raw['values'] : array();
-
-        if ( '' === $type || 'all' === $type ) {
-            return array( 'logic' => 'and', 'rules' => array() );
-        }
-
-        return array(
-            'logic' => 'and',
-            'rules' => array( array( 'type' => $type, 'values' => $values ) ),
-        );
-    }
-
-    /**
      * Evaluate a single condition rule array against the current request.
      *
-     * @since  1.11.0
+     * @since  1.0.0
      * @access private
      * @param  array $rule Decoded `{type, values}` rule array.
      * @return bool

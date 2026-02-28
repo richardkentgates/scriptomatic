@@ -106,7 +106,6 @@ class Scriptomatic {
         add_action( 'init',                  array( $this, 'load_textdomain' ) );
         add_action( 'admin_menu',            array( $this, 'add_admin_menus' ) );
         add_action( 'admin_init',            array( $this, 'register_settings' ) );
-        add_action( 'admin_init',            array( $this, 'maybe_clear_audit_log' ) );
         add_action( 'wp_head',               array( $this, 'inject_head_scripts' ), 999 );
         add_action( 'wp_footer',             array( $this, 'inject_footer_scripts' ), 999 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );

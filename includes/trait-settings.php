@@ -49,7 +49,7 @@ trait Scriptomatic_Settings {
         register_setting( 'scriptomatic_head_group', SCRIPTOMATIC_HEAD_CONDITIONS, array(
             'type'              => 'string',
             'sanitize_callback' => array( $this, 'sanitize_head_conditions' ),
-            'default'           => '{"type":"all","values":[]}',
+            'default'           => '{"logic":"and","rules":[]}',
         ) );
         add_settings_section( 'sm_head_conditions', __( 'Load Conditions', 'scriptomatic' ), array( $this, 'render_head_conditions_section' ), 'scriptomatic_head_page' );
         add_settings_field( SCRIPTOMATIC_HEAD_CONDITIONS, __( 'When to inject', 'scriptomatic' ),
@@ -81,7 +81,7 @@ trait Scriptomatic_Settings {
         register_setting( 'scriptomatic_footer_group', SCRIPTOMATIC_FOOTER_CONDITIONS, array(
             'type'              => 'string',
             'sanitize_callback' => array( $this, 'sanitize_footer_conditions' ),
-            'default'           => '{"type":"all","values":[]}',
+            'default'           => '{"logic":"and","rules":[]}',
         ) );
         add_settings_section( 'sm_footer_conditions', __( 'Load Conditions', 'scriptomatic' ), array( $this, 'render_footer_conditions_section' ), 'scriptomatic_footer_page' );
         add_settings_field( SCRIPTOMATIC_FOOTER_CONDITIONS, __( 'When to inject', 'scriptomatic' ),
@@ -229,33 +229,8 @@ trait Scriptomatic_Settings {
     }
 
     // =========================================================================
-    // AUDIT LOG
+    // ACTIVITY LOG
     // =========================================================================
-
-    /**
-     * Append an entry to the persistent audit log.
-     *
-     * Always writes to per-site options.
-     * The log is capped at {@see get_max_log_entries()} to bound storage.
-     *
-     * @since  1.5.0
-     * @access private
-     * @param  array $data Associative array with keys: action (string),
-     *                     location (string), chars (int, for save/rollback),
-     *                     detail (string, optional — URL for url_added/url_removed).
-     * @return void
-     */
-    /**
-     * Backward-compat alias — delegates to write_activity_entry().
-     *
-     * @since  1.5.0
-     * @access private
-     * @param  array $data Entry data (see write_activity_entry).
-     * @return void
-     */
-    private function write_audit_log_entry( array $data ) {
-        $this->write_activity_entry( $data );
-    }
 
     /**
      * Append an entry to the unified activity log.
@@ -271,7 +246,7 @@ trait Scriptomatic_Settings {
      *   detail   (string) — URL for url_added/url_removed; human label for file events
      *   file_id  (string) — only for file actions
      *
-     * @since  1.9.0
+     * @since  1.0.0
      * @access private
      * @param  array $data Entry data.
      * @return void
@@ -299,84 +274,14 @@ trait Scriptomatic_Settings {
     }
 
     /**
-     * Return the unified activity log, running a one-time migration on first call.
+     * Return the unified activity log.
      *
-     * @since  1.9.0
+     * @since  1.0.0
      * @access private
      * @return array
      */
     private function get_activity_log() {
-        $log = get_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, null );
-        if ( null === $log ) {
-            $log = $this->migrate_to_unified_log();
-            update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, $log );
-        }
+        $log = get_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, array() );
         return is_array( $log ) ? $log : array();
-    }
-
-    /**
-     * Build the initial unified log from the legacy per-location history options
-     * and the legacy audit-log option.
-     *
-     * Called exactly once — when SCRIPTOMATIC_ACTIVITY_LOG_OPTION is absent.
-     *
-     * @since  1.9.0
-     * @access private
-     * @return array
-     */
-    private function migrate_to_unified_log() {
-        $merged = array();
-
-        // Old head history → 'save'/'head' entries with content snapshots.
-        $head_history = get_option( SCRIPTOMATIC_HEAD_HISTORY, array() );
-        if ( is_array( $head_history ) ) {
-            foreach ( $head_history as $e ) {
-                $merged[] = array(
-                    'timestamp'  => isset( $e['timestamp'] )  ? (int) $e['timestamp']  : 0,
-                    'user_login' => isset( $e['user_login'] ) ? (string) $e['user_login'] : '',
-                    'user_id'    => isset( $e['user_id'] )    ? (int) $e['user_id']     : 0,
-                    'action'     => 'save',
-                    'location'   => 'head',
-                    'content'    => isset( $e['content'] )    ? (string) $e['content']  : '',
-                    'chars'      => isset( $e['length'] )     ? (int) $e['length']
-                                    : ( isset( $e['content'] ) ? strlen( $e['content'] ) : 0 ),
-                );
-            }
-        }
-
-        // Old footer history → 'save'/'footer' entries with content snapshots.
-        $footer_history = get_option( SCRIPTOMATIC_FOOTER_HISTORY, array() );
-        if ( is_array( $footer_history ) ) {
-            foreach ( $footer_history as $e ) {
-                $merged[] = array(
-                    'timestamp'  => isset( $e['timestamp'] )  ? (int) $e['timestamp']  : 0,
-                    'user_login' => isset( $e['user_login'] ) ? (string) $e['user_login'] : '',
-                    'user_id'    => isset( $e['user_id'] )    ? (int) $e['user_id']     : 0,
-                    'action'     => 'save',
-                    'location'   => 'footer',
-                    'content'    => isset( $e['content'] )    ? (string) $e['content']  : '',
-                    'chars'      => isset( $e['length'] )     ? (int) $e['length']
-                                    : ( isset( $e['content'] ) ? strlen( $e['content'] ) : 0 ),
-                );
-            }
-        }
-
-        // Old audit log — migrate only URL events (save/rollback already captured above).
-        $audit = get_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, array() );
-        if ( is_array( $audit ) ) {
-            foreach ( $audit as $e ) {
-                if ( isset( $e['action'] ) && in_array( $e['action'], array( 'url_added', 'url_removed' ), true ) ) {
-                    $merged[] = $e;
-                }
-            }
-        }
-
-        // Sort descending by timestamp (newest first).
-        usort( $merged, function ( $a, $b ) {
-            return ( isset( $b['timestamp'] ) ? (int) $b['timestamp'] : 0 )
-                 - ( isset( $a['timestamp'] ) ? (int) $a['timestamp'] : 0 );
-        } );
-
-        return $merged;
     }
 }

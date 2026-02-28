@@ -239,29 +239,12 @@ trait Scriptomatic_Sanitizer {
      * Shared by {@see sanitize_conditions_for()} (inline-script conditions) and
      * {@see sanitize_linked_for()} (per-URL conditions embedded in every entry).
      *
-     * @since  1.6.0
+     * @since  1.0.0
      * @access private
-     * @param  array $raw Decoded conditions array ({logic,rules} stack or legacy {type,values}).
+     * @param  array $raw Decoded conditions array ({logic, rules} format).
      * @return array      Sanitised {logic, rules} array.
      */
     private function sanitize_conditions_array( array $raw ) {
-        // Auto-migrate legacy {type, values} single-condition format.
-        if ( ! isset( $raw['rules'] ) ) {
-            $type = isset( $raw['type'] ) ? (string) $raw['type'] : 'all';
-            if ( 'all' === $type || '' === $type ) {
-                return array( 'logic' => 'and', 'rules' => array() );
-            }
-            $raw = array(
-                'logic' => 'and',
-                'rules' => array(
-                    array(
-                        'type'   => $type,
-                        'values' => ( isset( $raw['values'] ) && is_array( $raw['values'] ) ) ? $raw['values'] : array(),
-                    ),
-                ),
-            );
-        }
-
         $logic     = ( isset( $raw['logic'] ) && 'or' === $raw['logic'] ) ? 'or' : 'and';
         $raw_rules = ( isset( $raw['rules'] ) && is_array( $raw['rules'] ) ) ? $raw['rules'] : array();
 
@@ -370,15 +353,13 @@ trait Scriptomatic_Sanitizer {
     /**
      * Core sanitisation logic for linked-script entries with per-URL conditions.
      *
-     * Accepts the new `[{url, conditions}]` format or the legacy `["url"]` format
-     * (plain strings are automatically migrated). Validates each URL and sanitises
-     * each entry's conditions object via {@see sanitize_conditions_array()}.
+     * Validates each URL and sanitises each entry's conditions object via
+     * {@see sanitize_conditions_array()}.
      *
      * Diffs the incoming URL list against the stored list and writes an audit
      * log entry for every URL that was added or removed.
      *
-     * @since  1.2.0 (rewritten 1.6.0)
-     * @since  1.7.1 Audit-logs URL additions and removals.
+     * @since  1.0.0
      * @access private
      * @param  mixed  $input    Raw value (expected JSON string).
      * @param  string $location `'head'` or `'footer'`.
@@ -416,18 +397,6 @@ trait Scriptomatic_Sanitizer {
 
         $clean = array();
         foreach ( $decoded as $entry ) {
-            // Migrate legacy plain URL strings to the new {url, conditions} structure.
-            if ( is_string( $entry ) ) {
-                $url = esc_url_raw( trim( $entry ) );
-                if ( ! empty( $url ) && preg_match( '/^https?:\/\//i', $url ) ) {
-                    $clean[] = array(
-                        'url'        => $url,
-                        'conditions' => array( 'type' => 'all', 'values' => array() ),
-                    );
-                }
-                continue;
-            }
-
             if ( ! is_array( $entry ) ) {
                 continue;
             }
@@ -457,8 +426,7 @@ trait Scriptomatic_Sanitizer {
             $old_urls    = array();
             if ( is_array( $old_decoded ) ) {
                 foreach ( $old_decoded as $e ) {
-                    // Handle both legacy plain strings and the current {url, conditions} format.
-                    $u = is_string( $e ) ? trim( $e ) : ( isset( $e['url'] ) ? (string) $e['url'] : '' );
+                    $u = isset( $e['url'] ) ? (string) $e['url'] : '';
                     if ( '' !== $u ) {
                         $old_urls[] = $u;
                     }
@@ -470,7 +438,7 @@ trait Scriptomatic_Sanitizer {
             $new_urls_json = wp_json_encode( $clean );
 
             foreach ( array_diff( $new_urls, $old_urls ) as $url ) {
-                $this->write_audit_log_entry( array(
+                $this->write_activity_entry( array(
                     'action'        => 'url_added',
                     'location'      => $location,
                     'detail'        => $url,
@@ -479,7 +447,7 @@ trait Scriptomatic_Sanitizer {
             }
 
             foreach ( array_diff( $old_urls, $new_urls ) as $url ) {
-                $this->write_audit_log_entry( array(
+                $this->write_activity_entry( array(
                     'action'        => 'url_removed',
                     'location'      => $location,
                     'detail'        => $url,
@@ -533,7 +501,7 @@ trait Scriptomatic_Sanitizer {
         $option_key   = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
         $nonce_action = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_NONCE       : SCRIPTOMATIC_HEAD_NONCE;
         $nonce_field  = ( 'footer' === $location ) ? 'scriptomatic_footer_nonce'     : 'scriptomatic_save_nonce';
-        $default      = wp_json_encode( array( 'type' => 'all', 'values' => array() ) );
+        $default      = wp_json_encode( array( 'logic' => 'and', 'rules' => array() ) );
 
         // Gate 0: Capability.
         if ( ! current_user_can( $this->get_required_cap() ) ) {
@@ -579,9 +547,6 @@ trait Scriptomatic_Sanitizer {
             if ( isset( $new_conditions['rules'] ) && is_array( $new_conditions['rules'] ) ) {
                 $stack_rules  = $new_conditions['rules'];
                 $stack_logic  = isset( $new_conditions['logic'] ) ? strtoupper( $new_conditions['logic'] ) : 'AND';
-            } elseif ( isset( $new_conditions['type'] ) && 'all' !== $new_conditions['type'] ) {
-                $stack_rules = array( $new_conditions );
-                $stack_logic = 'AND';
             } else {
                 $stack_rules = array();
                 $stack_logic = 'AND';
@@ -595,7 +560,7 @@ trait Scriptomatic_Sanitizer {
             } else {
                 $cond_detail = sprintf( '%d rules (%s)', $rcount, $stack_logic );
             }
-            $this->write_audit_log_entry( array(
+            $this->write_activity_entry( array(
                 'action'              => 'conditions_save',
                 'location'            => $location,
                 'detail'              => $cond_detail,

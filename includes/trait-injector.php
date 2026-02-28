@@ -75,14 +75,6 @@ trait Scriptomatic_Injector {
         $output_parts = array();
 
         foreach ( $linked_entries as $entry ) {
-            // Legacy plain URL string — treat as All Pages.
-            if ( is_string( $entry ) ) {
-                $url = trim( $entry );
-                if ( '' !== $url ) {
-                    $output_parts[] = '<script src="' . esc_url( $url ) . '"></script>';
-                }
-                continue;
-            }
             if ( ! is_array( $entry ) ) {
                 continue;
             }
@@ -90,7 +82,7 @@ trait Scriptomatic_Injector {
             $url        = isset( $entry['url'] ) ? (string) $entry['url'] : '';
             $conditions = ( isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
                           ? $entry['conditions']
-                          : array( 'type' => 'all', 'values' => array() );
+                          : array( 'logic' => 'and', 'rules' => array() );
 
             if ( '' === $url ) {
                 continue;
@@ -112,7 +104,7 @@ trait Scriptomatic_Injector {
             }
             $conditions = ( isset( $file['conditions'] ) && is_array( $file['conditions'] ) )
                 ? $file['conditions']
-                : array( 'type' => 'all', 'values' => array() );
+                : array( 'logic' => 'and', 'rules' => array() );
 
             if ( $this->evaluate_conditions_object( $conditions ) ) {
                 $file_url       = $this->get_js_files_url() . $file['filename'];

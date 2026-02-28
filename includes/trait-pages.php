@@ -179,7 +179,6 @@ trait Scriptomatic_Pages {
                 $this_url_index    = $has_url_snap      ? $url_snap_index  : null;
                 $this_cond_index   = $has_cond_snap     ? $cond_snap_index : null;
                 $this_delete_index = $has_delete_snap   ? $file_del_index  : null;
-                $this_index        = $this_code_index; // legacy alias
 
                 if ( $has_code_content ) { $content_index++; }
                 if ( $has_url_snap )     { $url_snap_index++; }
@@ -457,7 +456,9 @@ trait Scriptomatic_Pages {
                         $fname     = isset( $file['filename'] ) ? $file['filename'] : '';
                         $floc      = ( isset( $file['location'] ) && 'footer' === $file['location'] ) ? 'footer' : 'head';
                         $fcond_raw  = ( isset( $file['conditions'] ) && is_array( $file['conditions'] ) ) ? $file['conditions'] : array();
-                        $fcond      = $this->migrate_conditions_to_stack( $fcond_raw );
+                        $fcond      = ( is_array( $fcond_raw ) && isset( $fcond_raw['rules'] ) )
+                                      ? $fcond_raw
+                                      : array( 'logic' => 'and', 'rules' => array() );
                         $fcond_cnt  = count( $fcond['rules'] );
                         if ( 0 === $fcond_cnt ) {
                             $cond_lbl = __( 'All pages', 'scriptomatic' );
@@ -542,7 +543,7 @@ trait Scriptomatic_Pages {
         $location   = ( $entry && 'footer' === $entry['location'] ) ? 'footer' : 'head';
         $conditions = ( $entry && isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
             ? $entry['conditions']
-            : array( 'type' => 'all', 'values' => array() );
+            : array( 'logic' => 'and', 'rules' => array() );
 
         // Read existing file content from disk.
         $content = '';
@@ -677,75 +678,6 @@ trait Scriptomatic_Pages {
 
 
 
-    /**
-     * Output the audit log table — removed in 1.9.0, superseded by render_activity_log().
-     *
-     * This stub is intentionally blank; callers have been updated to use
-     * render_activity_log() instead.
-     *
-     * @since      1.5.0
-     * @deprecated 1.9.0
-     * @access private
-     * @return void
-     */
-    private function render_audit_log_table( $page_slug = '', $location = '' ) {
-        // No-op: replaced by render_activity_log().
-    }
-
-    /**
-     * Handle the “Clear Audit Log” action before any output is sent.
-     *
-     * Hooked to `admin_init`. Validates a nonce and capability gate before
-     * wiping the stored log.
-     *
-     * @since  1.5.0
-     * @return void
-     */
-    /**
-     * Handle the "Clear Activity Log" action before any output is sent.
-     *
-     * Removes all entries for the specified location from the unified activity
-     * log and redirects back to the page.
-     *
-     * @since  1.5.0
-     * @since  1.9.0 Targets unified SCRIPTOMATIC_ACTIVITY_LOG_OPTION; supports
-     *               the files page slug and a location query-string parameter.
-     * @return void
-     */
-    public function maybe_clear_audit_log() {
-        if ( ! isset( $_GET['action'] ) || 'clear' !== $_GET['action'] ) {
-            return;
-        }
-        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-        if ( ! in_array( $page, array( 'scriptomatic', 'scriptomatic-footer', 'scriptomatic-files' ), true ) ) {
-            return;
-        }
-
-        check_admin_referer( SCRIPTOMATIC_CLEAR_LOG_NONCE, 'scriptomatic_clear_nonce' );
-
-        if ( ! current_user_can( $this->get_required_cap() ) ) {
-            wp_die( esc_html__( 'Permission denied.', 'scriptomatic' ), 403 );
-        }
-
-        $location = isset( $_GET['location'] ) ? sanitize_key( wp_unslash( $_GET['location'] ) ) : '';
-
-        if ( '' !== $location ) {
-            // Remove only entries belonging to this location.
-            $log      = $this->get_activity_log();
-            $filtered = array_values(
-                array_filter( $log, function ( $e ) use ( $location ) {
-                    return ! isset( $e['location'] ) || $e['location'] !== $location;
-                } )
-            );
-            update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, $filtered );
-        } else {
-            update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, array() );
-        }
-
-        wp_redirect( esc_url_raw( add_query_arg( array( 'page' => $page, 'cleared' => '1' ), admin_url( 'admin.php' ) ) ) );
-        exit;
-    }
-
     // =========================================================================
     // CONTEXTUAL HELP TABS
     // =========================================================================
@@ -806,7 +738,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, 100 KB length cap, PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( '&lt;script&gt; tags are automatically stripped to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Activity Log:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, external URL changes, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Entries with a content snapshot expose <strong>View</strong> and <strong>Restore</strong> buttons for instant rollback. Actions covered: <code>save</code>, <code>rollback</code>, <code>url_added</code>, <code>url_removed</code>, <code>file_save</code>, <code>file_rollback</code>, <code>file_delete</code>. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Activity Log:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, external URL changes, conditions changes, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Entries with a content snapshot expose <strong>View</strong> and <strong>Restore</strong> buttons for instant rollback. Actions covered: <code>save</code>, <code>rollback</code>, <code>url_added</code>, <code>url_removed</code>, <code>conditions_save</code>, <code>url_list_restored</code>, <code>conditions_restored</code>, <code>file_save</code>, <code>file_rollback</code>, <code>file_delete</code>, <code>file_restored</code>. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Output Escaping:', 'scriptomatic' ) . '</strong> ' . __( 'Content is properly escaped when displayed in the admin interface.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __( 'Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic' ) . '</p>',

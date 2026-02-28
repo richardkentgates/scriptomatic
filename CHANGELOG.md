@@ -13,6 +13,21 @@ _Nothing yet._
 
 ---
 
+## [2.0.0] – 2026-02-28
+
+### Changed
+- **First public release.** All internal development backward-compatibility code removed; the codebase now reflects a clean, single-version baseline.
+- Conditions storage is exclusively the `{logic, rules}` stacked format; all legacy `{type, values}` single-condition auto-migration paths have been removed throughout `trait-sanitizer.php`, `trait-renderer.php`, `trait-injector.php`, `trait-pages.php`, `trait-history.php`, and `trait-files.php`.
+- External script URL lists are exclusively the `[{url, conditions}]` array format; legacy plain-string URL migration paths removed from `trait-sanitizer.php`, `trait-renderer.php`, and `trait-injector.php`.
+- Activity log is read directly via `get_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION )` with an empty-array default; the one-time migration from legacy per-location `head_history` / `footer_history` options has been removed from `trait-settings.php`.
+- `write_activity_entry()` is now the sole logging method; the `write_audit_log_entry()` backward-compat alias has been removed.
+- Removed deprecated `render_audit_log_table()` no-op stub and unused `maybe_clear_audit_log()` method from `trait-pages.php`.
+- Removed constants: `SCRIPTOMATIC_HEAD_HISTORY`, `SCRIPTOMATIC_FOOTER_HISTORY`, `SCRIPTOMATIC_DEFAULT_MAX_HISTORY`, `SCRIPTOMATIC_AUDIT_LOG_OPTION`, `SCRIPTOMATIC_CLEAR_LOG_NONCE`.
+- Default registered conditions value updated from `{"type":"all","values":[]}` to `{"logic":"and","rules":[]}` in both Settings API registrations.
+- Help tab Security section updated to list all current Activity Log action types including `conditions_save`, `url_list_restored`, `conditions_restored`, and `file_restored`.
+
+---
+
 ## [1.12.0] – 2026-06-05
 
 ### Added
