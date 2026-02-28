@@ -245,7 +245,7 @@ trait Scriptomatic_Sanitizer {
      * @return array      Sanitised `{type, values}` array.
      */
     private function sanitize_conditions_array( array $raw ) {
-        $allowed_types = array( 'all', 'front_page', 'singular', 'post_type', 'page_id', 'url_contains', 'logged_in', 'logged_out' );
+        $allowed_types = array( 'all', 'front_page', 'singular', 'post_type', 'page_id', 'url_contains', 'logged_in', 'logged_out', 'by_date', 'by_datetime', 'week_number', 'by_month' );
         $type          = ( isset( $raw['type'] ) && in_array( $raw['type'], $allowed_types, true ) )
                          ? $raw['type'] : 'all';
         $raw_values    = ( isset( $raw['values'] ) && is_array( $raw['values'] ) ) ? $raw['values'] : array();
@@ -275,6 +275,37 @@ trait Scriptomatic_Sanitizer {
                     $pattern = sanitize_text_field( wp_unslash( (string) $pattern ) );
                     if ( '' !== $pattern ) {
                         $clean_values[] = $pattern;
+                    }
+                }
+                break;
+
+            case 'by_date':
+            case 'by_datetime':
+                foreach ( $raw_values as $i => $v ) {
+                    if ( $i >= 2 ) {
+                        break;
+                    }
+                    $v = sanitize_text_field( wp_unslash( (string) $v ) );
+                    if ( '' !== $v ) {
+                        $clean_values[] = $v;
+                    }
+                }
+                break;
+
+            case 'week_number':
+                foreach ( $raw_values as $w ) {
+                    $w = absint( $w );
+                    if ( $w >= 1 && $w <= 53 ) {
+                        $clean_values[] = $w;
+                    }
+                }
+                break;
+
+            case 'by_month':
+                foreach ( $raw_values as $m ) {
+                    $m = absint( $m );
+                    if ( $m >= 1 && $m <= 12 ) {
+                        $clean_values[] = $m;
                     }
                 }
                 break;

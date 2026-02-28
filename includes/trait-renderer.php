@@ -298,6 +298,10 @@ trait Scriptomatic_Renderer {
             'url_contains' => __( 'URL contains (any match)', 'scriptomatic' ),
             'logged_in'    => __( 'Logged-in users only', 'scriptomatic' ),
             'logged_out'   => __( 'Logged-out visitors only', 'scriptomatic' ),
+            'by_date'      => __( 'Date range', 'scriptomatic' ),
+            'by_datetime'  => __( 'Date & time range', 'scriptomatic' ),
+            'week_number'  => __( 'Specific week numbers', 'scriptomatic' ),
+            'by_month'     => __( 'Specific months', 'scriptomatic' ),
         );
 
         ob_start();
@@ -397,6 +401,95 @@ trait Scriptomatic_Renderer {
                         </div>
                     </div>
 
+                    <?php /* --- Panel: by_date --- */ ?>
+                    <div class="sm-cond-panel" data-panel="by_date"<?php echo ( $is_template || 'by_date' !== $type ) ? ' hidden' : ''; ?>>
+                        <div class="sm-cond-inner">
+                            <p class="description"><?php esc_html_e( 'Script loads only between the selected dates (inclusive). Leave "To" blank for a single-day match.', 'scriptomatic' ); ?></p>
+                            <div class="sm-cond-date-row">
+                                <label>
+                                    <?php esc_html_e( 'From:', 'scriptomatic' ); ?>
+                                    <input type="date" id="<?php echo esc_attr( $pfx ); ?>-date-from" class="sm-date-from"
+                                        value="<?php echo ( ! $is_template && 'by_date' === $type && isset( $values[0] ) ) ? esc_attr( $values[0] ) : ''; ?>"
+                                        aria-label="<?php esc_attr_e( 'Start date', 'scriptomatic' ); ?>">
+                                </label>
+                                <label>
+                                    <?php esc_html_e( 'To:', 'scriptomatic' ); ?>
+                                    <input type="date" id="<?php echo esc_attr( $pfx ); ?>-date-to" class="sm-date-to"
+                                        value="<?php echo ( ! $is_template && 'by_date' === $type && isset( $values[1] ) ) ? esc_attr( $values[1] ) : ''; ?>"
+                                        aria-label="<?php esc_attr_e( 'End date', 'scriptomatic' ); ?>">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php /* --- Panel: by_datetime --- */ ?>
+                    <div class="sm-cond-panel" data-panel="by_datetime"<?php echo ( $is_template || 'by_datetime' !== $type ) ? ' hidden' : ''; ?>>
+                        <div class="sm-cond-inner">
+                            <p class="description"><?php esc_html_e( 'Script loads only within the selected date/time window (inclusive, site timezone).', 'scriptomatic' ); ?></p>
+                            <div class="sm-cond-date-row">
+                                <label>
+                                    <?php esc_html_e( 'From:', 'scriptomatic' ); ?>
+                                    <input type="datetime-local" id="<?php echo esc_attr( $pfx ); ?>-dt-from" class="sm-dt-from"
+                                        value="<?php echo ( ! $is_template && 'by_datetime' === $type && isset( $values[0] ) ) ? esc_attr( $values[0] ) : ''; ?>"
+                                        aria-label="<?php esc_attr_e( 'Start date and time', 'scriptomatic' ); ?>">
+                                </label>
+                                <label>
+                                    <?php esc_html_e( 'To:', 'scriptomatic' ); ?>
+                                    <input type="datetime-local" id="<?php echo esc_attr( $pfx ); ?>-dt-to" class="sm-dt-to"
+                                        value="<?php echo ( ! $is_template && 'by_datetime' === $type && isset( $values[1] ) ) ? esc_attr( $values[1] ) : ''; ?>"
+                                        aria-label="<?php esc_attr_e( 'End date and time', 'scriptomatic' ); ?>">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php /* --- Panel: week_number --- */ ?>
+                    <div class="sm-cond-panel" data-panel="week_number"<?php echo ( $is_template || 'week_number' !== $type ) ? ' hidden' : ''; ?>>
+                        <div class="sm-cond-inner">
+                            <p class="description"><?php esc_html_e( 'Script loads when the current ISO week number (1–53) matches any of the listed values.', 'scriptomatic' ); ?></p>
+                            <div id="<?php echo esc_attr( $pfx ); ?>-week-chicklets" class="scriptomatic-chicklet-list scriptomatic-chicklet-list--alt">
+                                <?php if ( ! $is_template && 'week_number' === $type ) : foreach ( $values as $wk ) :
+                                    $wk = absint( $wk );
+                                    if ( ! $wk ) { continue; }
+                                    /* translators: %d: ISO week number */
+                                    $wk_label = sprintf( __( 'Week %d', 'scriptomatic' ), $wk );
+                                ?>
+                                <span class="scriptomatic-chicklet" data-val="<?php echo esc_attr( $wk ); ?>">
+                                    <span class="chicklet-label" title="<?php echo esc_attr( $wk_label ); ?>"><?php echo esc_html( $wk_label ); ?></span>
+                                    <button type="button" class="scriptomatic-remove-url" aria-label="<?php esc_attr_e( 'Remove week', 'scriptomatic' ); ?>">&times;</button>
+                                </span>
+                                <?php endforeach; endif; ?>
+                            </div>
+                            <div class="sm-cond-add-row">
+                                <input type="number" id="<?php echo esc_attr( $pfx ); ?>-week-new" class="small-text" min="1" max="53" step="1"
+                                    placeholder="<?php esc_attr_e( '1–53', 'scriptomatic' ); ?>"
+                                    aria-label="<?php esc_attr_e( 'ISO week number to add', 'scriptomatic' ); ?>">
+                                <button type="button" id="<?php echo esc_attr( $pfx ); ?>-week-add" class="button button-secondary"><?php esc_html_e( 'Add Week', 'scriptomatic' ); ?></button>
+                            </div>
+                            <p id="<?php echo esc_attr( $pfx ); ?>-week-error" class="scriptomatic-url-error" style="display:none;"></p>
+                        </div>
+                    </div>
+
+                    <?php /* --- Panel: by_month --- */ ?>
+                    <div class="sm-cond-panel" data-panel="by_month"<?php echo ( $is_template || 'by_month' !== $type ) ? ' hidden' : ''; ?>>
+                        <fieldset class="sm-cond-fieldset">
+                            <legend><?php esc_html_e( 'Load during these months:', 'scriptomatic' ); ?></legend>
+                            <div class="sm-pt-grid">
+                            <?php for ( $m = 1; $m <= 12; $m++ ) :
+                                $m_checked = ( ! $is_template && 'by_month' === $type ) && in_array( $m, array_map( 'absint', $values ), true );
+                            ?>
+                                <label class="sm-pt-label">
+                                    <input type="checkbox" class="sm-month-checkbox"
+                                        data-prefix="<?php echo esc_attr( $pfx ); ?>"
+                                        value="<?php echo esc_attr( $m ); ?>"
+                                        <?php if ( ! $is_template ) { checked( $m_checked ); } ?>>
+                                    <span><?php echo esc_html( date_i18n( 'F', mktime( 0, 0, 0, $m, 1 ) ) ); ?></span>
+                                </label>
+                            <?php endfor; ?>
+                            </div>
+                        </fieldset>
+                    </div>
+
                     <input type="hidden"
                         id="<?php echo esc_attr( $pfx ); ?>-json"
                         data-entry-cond-json="true"
@@ -464,6 +557,36 @@ trait Scriptomatic_Renderer {
 
             case 'logged_out':
                 return ! is_user_logged_in();
+
+            case 'by_date':
+                if ( empty( $values ) || empty( $values[0] ) ) {
+                    return false;
+                }
+                $today = current_time( 'Y-m-d' );
+                $from  = sanitize_text_field( $values[0] );
+                $to    = ! empty( $values[1] ) ? sanitize_text_field( $values[1] ) : $from;
+                return $today >= $from && $today <= $to;
+
+            case 'by_datetime':
+                if ( empty( $values ) || empty( $values[0] ) ) {
+                    return false;
+                }
+                $now  = current_time( 'Y-m-d\TH:i' );
+                $from = sanitize_text_field( $values[0] );
+                $to   = ! empty( $values[1] ) ? sanitize_text_field( $values[1] ) : $from;
+                return $now >= $from && $now <= $to;
+
+            case 'week_number':
+                if ( empty( $values ) ) {
+                    return false;
+                }
+                return in_array( (int) current_time( 'W' ), array_map( 'intval', $values ), true );
+
+            case 'by_month':
+                if ( empty( $values ) ) {
+                    return false;
+                }
+                return in_array( (int) current_time( 'n' ), array_map( 'intval', $values ), true );
 
             default:
                 return true;
@@ -574,6 +697,10 @@ trait Scriptomatic_Renderer {
             'url_contains' => __( 'URL contains (any match)', 'scriptomatic' ),
             'logged_in'    => __( 'Logged-in users only', 'scriptomatic' ),
             'logged_out'   => __( 'Logged-out visitors only', 'scriptomatic' ),
+            'by_date'      => __( 'Date range', 'scriptomatic' ),
+            'by_datetime'  => __( 'Date & time range', 'scriptomatic' ),
+            'week_number'  => __( 'Specific week numbers', 'scriptomatic' ),
+            'by_month'     => __( 'Specific months', 'scriptomatic' ),
         );
         ?>
         <div class="scriptomatic-conditions-wrap" data-location="<?php echo esc_attr( $location ); ?>" data-prefix="<?php echo esc_attr( $pfx ); ?>">
@@ -662,6 +789,96 @@ trait Scriptomatic_Renderer {
                     </div>
                     <p id="<?php echo esc_attr( $pfx ); ?>-url-error" class="scriptomatic-url-error" style="display:none;"></p>
                 </div>
+            </div>
+
+            <?php /* --- Panel: by_date --- */ ?>
+            <div class="sm-cond-panel" data-panel="by_date" <?php echo 'by_date' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e( 'Script loads only between the selected dates (inclusive). Leave "To" blank for a single-day match.', 'scriptomatic' ); ?></p>
+                    <div class="sm-cond-date-row">
+                        <label>
+                            <?php esc_html_e( 'From:', 'scriptomatic' ); ?>
+                            <input type="date" id="<?php echo esc_attr( $pfx ); ?>-date-from" class="sm-date-from"
+                                value="<?php echo ( 'by_date' === $type && isset( $values[0] ) ) ? esc_attr( $values[0] ) : ''; ?>"
+                                aria-label="<?php esc_attr_e( 'Start date', 'scriptomatic' ); ?>">
+                        </label>
+                        <label>
+                            <?php esc_html_e( 'To:', 'scriptomatic' ); ?>
+                            <input type="date" id="<?php echo esc_attr( $pfx ); ?>-date-to" class="sm-date-to"
+                                value="<?php echo ( 'by_date' === $type && isset( $values[1] ) ) ? esc_attr( $values[1] ) : ''; ?>"
+                                aria-label="<?php esc_attr_e( 'End date', 'scriptomatic' ); ?>">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <?php /* --- Panel: by_datetime --- */ ?>
+            <div class="sm-cond-panel" data-panel="by_datetime" <?php echo 'by_datetime' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e( 'Script loads only within the selected date/time window (inclusive, site timezone).', 'scriptomatic' ); ?></p>
+                    <div class="sm-cond-date-row">
+                        <label>
+                            <?php esc_html_e( 'From:', 'scriptomatic' ); ?>
+                            <input type="datetime-local" id="<?php echo esc_attr( $pfx ); ?>-dt-from" class="sm-dt-from"
+                                value="<?php echo ( 'by_datetime' === $type && isset( $values[0] ) ) ? esc_attr( $values[0] ) : ''; ?>"
+                                aria-label="<?php esc_attr_e( 'Start date and time', 'scriptomatic' ); ?>">
+                        </label>
+                        <label>
+                            <?php esc_html_e( 'To:', 'scriptomatic' ); ?>
+                            <input type="datetime-local" id="<?php echo esc_attr( $pfx ); ?>-dt-to" class="sm-dt-to"
+                                value="<?php echo ( 'by_datetime' === $type && isset( $values[1] ) ) ? esc_attr( $values[1] ) : ''; ?>"
+                                aria-label="<?php esc_attr_e( 'End date and time', 'scriptomatic' ); ?>">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <?php /* --- Panel: week_number --- */ ?>
+            <div class="sm-cond-panel" data-panel="week_number" <?php echo 'week_number' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e( 'Script loads when the current ISO week number (1–53) matches any of the listed values.', 'scriptomatic' ); ?></p>
+                    <div id="<?php echo esc_attr( $pfx ); ?>-week-chicklets" class="scriptomatic-chicklet-list scriptomatic-chicklet-list--alt" aria-label="<?php esc_attr_e( 'Added week numbers', 'scriptomatic' ); ?>">
+                        <?php if ( 'week_number' === $type ) : foreach ( $values as $wk ) :
+                            $wk = absint( $wk );
+                            if ( ! $wk ) { continue; }
+                            /* translators: %d: ISO week number */
+                            $wk_label = sprintf( __( 'Week %d', 'scriptomatic' ), $wk );
+                        ?>
+                        <span class="scriptomatic-chicklet" data-val="<?php echo esc_attr( $wk ); ?>">
+                            <span class="chicklet-label" title="<?php echo esc_attr( $wk_label ); ?>"><?php echo esc_html( $wk_label ); ?></span>
+                            <button type="button" class="scriptomatic-remove-url" aria-label="<?php esc_attr_e( 'Remove week', 'scriptomatic' ); ?>">&times;</button>
+                        </span>
+                        <?php endforeach; endif; ?>
+                    </div>
+                    <div class="sm-cond-add-row">
+                        <input type="number" id="<?php echo esc_attr( $pfx ); ?>-week-new" class="small-text" min="1" max="53" step="1"
+                            placeholder="<?php esc_attr_e( '1–53', 'scriptomatic' ); ?>"
+                            aria-label="<?php esc_attr_e( 'ISO week number to add', 'scriptomatic' ); ?>">
+                        <button type="button" id="<?php echo esc_attr( $pfx ); ?>-week-add" class="button button-secondary"><?php esc_html_e( 'Add Week', 'scriptomatic' ); ?></button>
+                    </div>
+                    <p id="<?php echo esc_attr( $pfx ); ?>-week-error" class="scriptomatic-url-error" style="display:none;"></p>
+                </div>
+            </div>
+
+            <?php /* --- Panel: by_month --- */ ?>
+            <div class="sm-cond-panel" data-panel="by_month" <?php echo 'by_month' !== $type ? 'hidden' : ''; ?>>
+                <fieldset class="sm-cond-fieldset">
+                    <legend><?php esc_html_e( 'Load during these months:', 'scriptomatic' ); ?></legend>
+                    <div class="sm-pt-grid">
+                    <?php for ( $m = 1; $m <= 12; $m++ ) :
+                        $m_checked = ( 'by_month' === $type ) && in_array( $m, array_map( 'absint', $values ), true );
+                    ?>
+                        <label class="sm-pt-label">
+                            <input type="checkbox" class="sm-month-checkbox"
+                                data-prefix="<?php echo esc_attr( $pfx ); ?>"
+                                value="<?php echo esc_attr( $m ); ?>"
+                                <?php checked( $m_checked ); ?>
+                            >
+                            <span><?php echo esc_html( date_i18n( 'F', mktime( 0, 0, 0, $m, 1 ) ) ); ?></span>
+                        </label>
+                    <?php endfor; ?>
+                    </div>
+                </fieldset>
             </div>
 
             <input type="hidden"
@@ -785,6 +1002,10 @@ trait Scriptomatic_Renderer {
             'url_contains' => __( 'URL contains (any match)', 'scriptomatic' ),
             'logged_in'    => __( 'Logged-in users only', 'scriptomatic' ),
             'logged_out'   => __( 'Logged-out visitors only', 'scriptomatic' ),
+            'by_date'      => __( 'Date range', 'scriptomatic' ),
+            'by_datetime'  => __( 'Date & time range', 'scriptomatic' ),
+            'week_number'  => __( 'Specific week numbers', 'scriptomatic' ),
+            'by_month'     => __( 'Specific months', 'scriptomatic' ),
         );
         ?>
         <div class="scriptomatic-conditions-wrap" data-prefix="<?php echo esc_attr( $pfx ); ?>">
@@ -873,6 +1094,96 @@ trait Scriptomatic_Renderer {
                     </div>
                     <p id="<?php echo esc_attr( $pfx ); ?>-url-error" class="scriptomatic-url-error" style="display:none;"></p>
                 </div>
+            </div>
+
+            <?php /* --- Panel: by_date --- */ ?>
+            <div class="sm-cond-panel" data-panel="by_date" <?php echo 'by_date' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e( 'File loads only between the selected dates (inclusive). Leave "To" blank for a single-day match.', 'scriptomatic' ); ?></p>
+                    <div class="sm-cond-date-row">
+                        <label>
+                            <?php esc_html_e( 'From:', 'scriptomatic' ); ?>
+                            <input type="date" id="<?php echo esc_attr( $pfx ); ?>-date-from" class="sm-date-from"
+                                value="<?php echo ( 'by_date' === $type && isset( $values[0] ) ) ? esc_attr( $values[0] ) : ''; ?>"
+                                aria-label="<?php esc_attr_e( 'Start date', 'scriptomatic' ); ?>">
+                        </label>
+                        <label>
+                            <?php esc_html_e( 'To:', 'scriptomatic' ); ?>
+                            <input type="date" id="<?php echo esc_attr( $pfx ); ?>-date-to" class="sm-date-to"
+                                value="<?php echo ( 'by_date' === $type && isset( $values[1] ) ) ? esc_attr( $values[1] ) : ''; ?>"
+                                aria-label="<?php esc_attr_e( 'End date', 'scriptomatic' ); ?>">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <?php /* --- Panel: by_datetime --- */ ?>
+            <div class="sm-cond-panel" data-panel="by_datetime" <?php echo 'by_datetime' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e( 'File loads only within the selected date/time window (inclusive, site timezone).', 'scriptomatic' ); ?></p>
+                    <div class="sm-cond-date-row">
+                        <label>
+                            <?php esc_html_e( 'From:', 'scriptomatic' ); ?>
+                            <input type="datetime-local" id="<?php echo esc_attr( $pfx ); ?>-dt-from" class="sm-dt-from"
+                                value="<?php echo ( 'by_datetime' === $type && isset( $values[0] ) ) ? esc_attr( $values[0] ) : ''; ?>"
+                                aria-label="<?php esc_attr_e( 'Start date and time', 'scriptomatic' ); ?>">
+                        </label>
+                        <label>
+                            <?php esc_html_e( 'To:', 'scriptomatic' ); ?>
+                            <input type="datetime-local" id="<?php echo esc_attr( $pfx ); ?>-dt-to" class="sm-dt-to"
+                                value="<?php echo ( 'by_datetime' === $type && isset( $values[1] ) ) ? esc_attr( $values[1] ) : ''; ?>"
+                                aria-label="<?php esc_attr_e( 'End date and time', 'scriptomatic' ); ?>">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <?php /* --- Panel: week_number --- */ ?>
+            <div class="sm-cond-panel" data-panel="week_number" <?php echo 'week_number' !== $type ? 'hidden' : ''; ?>>
+                <div class="sm-cond-inner">
+                    <p class="description"><?php esc_html_e( 'File loads when the current ISO week number (1–53) matches any of the listed values.', 'scriptomatic' ); ?></p>
+                    <div id="<?php echo esc_attr( $pfx ); ?>-week-chicklets" class="scriptomatic-chicklet-list scriptomatic-chicklet-list--alt" aria-label="<?php esc_attr_e( 'Added week numbers', 'scriptomatic' ); ?>">
+                        <?php if ( 'week_number' === $type ) : foreach ( $values as $wk ) :
+                            $wk = absint( $wk );
+                            if ( ! $wk ) { continue; }
+                            /* translators: %d: ISO week number */
+                            $wk_label = sprintf( __( 'Week %d', 'scriptomatic' ), $wk );
+                        ?>
+                        <span class="scriptomatic-chicklet" data-val="<?php echo esc_attr( $wk ); ?>">
+                            <span class="chicklet-label" title="<?php echo esc_attr( $wk_label ); ?>"><?php echo esc_html( $wk_label ); ?></span>
+                            <button type="button" class="scriptomatic-remove-url" aria-label="<?php esc_attr_e( 'Remove week', 'scriptomatic' ); ?>">&times;</button>
+                        </span>
+                        <?php endforeach; endif; ?>
+                    </div>
+                    <div class="sm-cond-add-row">
+                        <input type="number" id="<?php echo esc_attr( $pfx ); ?>-week-new" class="small-text" min="1" max="53" step="1"
+                            placeholder="<?php esc_attr_e( '1–53', 'scriptomatic' ); ?>"
+                            aria-label="<?php esc_attr_e( 'ISO week number to add', 'scriptomatic' ); ?>">
+                        <button type="button" id="<?php echo esc_attr( $pfx ); ?>-week-add" class="button button-secondary"><?php esc_html_e( 'Add Week', 'scriptomatic' ); ?></button>
+                    </div>
+                    <p id="<?php echo esc_attr( $pfx ); ?>-week-error" class="scriptomatic-url-error" style="display:none;"></p>
+                </div>
+            </div>
+
+            <?php /* --- Panel: by_month --- */ ?>
+            <div class="sm-cond-panel" data-panel="by_month" <?php echo 'by_month' !== $type ? 'hidden' : ''; ?>>
+                <fieldset class="sm-cond-fieldset">
+                    <legend><?php esc_html_e( 'Load during these months:', 'scriptomatic' ); ?></legend>
+                    <div class="sm-pt-grid">
+                    <?php for ( $m = 1; $m <= 12; $m++ ) :
+                        $m_checked = ( 'by_month' === $type ) && in_array( $m, array_map( 'absint', $values ), true );
+                    ?>
+                        <label class="sm-pt-label">
+                            <input type="checkbox" class="sm-month-checkbox"
+                                data-prefix="<?php echo esc_attr( $pfx ); ?>"
+                                value="<?php echo esc_attr( $m ); ?>"
+                                <?php checked( $m_checked ); ?>
+                            >
+                            <span><?php echo esc_html( date_i18n( 'F', mktime( 0, 0, 0, $m, 1 ) ) ); ?></span>
+                        </label>
+                    <?php endfor; ?>
+                    </div>
+                </fieldset>
             </div>
 
             <input type="hidden"

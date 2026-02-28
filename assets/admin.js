@@ -169,6 +169,24 @@ jQuery( document ).ready( function ( $ ) {
                 $( '#' + condPfx + '-url-chicklets .scriptomatic-chicklet' ).each( function () {
                     values.push( $( this ).data( 'val' ) );
                 } );
+            } else if ( t === 'by_date' ) {
+                var dateFrom = $( '#' + condPfx + '-date-from' ).val();
+                var dateTo   = $( '#' + condPfx + '-date-to' ).val();
+                if ( dateFrom ) { values.push( dateFrom ); }
+                if ( dateTo )   { values.push( dateTo ); }
+            } else if ( t === 'by_datetime' ) {
+                var dtFrom = $( '#' + condPfx + '-dt-from' ).val();
+                var dtTo   = $( '#' + condPfx + '-dt-to' ).val();
+                if ( dtFrom ) { values.push( dtFrom ); }
+                if ( dtTo )   { values.push( dtTo ); }
+            } else if ( t === 'week_number' ) {
+                $( '#' + condPfx + '-week-chicklets .scriptomatic-chicklet' ).each( function () {
+                    values.push( parseInt( $( this ).data( 'val' ), 10 ) );
+                } );
+            } else if ( t === 'by_month' ) {
+                $wrap.find( '.sm-month-checkbox:checked' ).each( function () {
+                    values.push( parseInt( $( this ).val(), 10 ) );
+                } );
             }
 
             $json.val( JSON.stringify( { type: t, values: values } ) );
@@ -192,7 +210,8 @@ jQuery( document ).ready( function ( $ ) {
         } );
         showPanel( $type.val() );
 
-        $wrap.on( 'change', '.sm-pt-checkbox', syncJson );
+        $wrap.on( 'change', '.sm-pt-checkbox, .sm-month-checkbox', syncJson );
+        $wrap.on( 'change', '.sm-date-from, .sm-date-to, .sm-dt-from, .sm-dt-to', syncJson );
 
         /* -- ID chicklet manager -- */
         var $idList  = $( '#' + condPfx + '-id-chicklets' );
@@ -264,11 +283,43 @@ jQuery( document ).ready( function ( $ ) {
             } );
         }
 
-        /* Shared remove handler for both ID and URL-pattern chicklets */
+        /* -- Week-number chicklet manager -- */
+        var $weekList  = $( '#' + condPfx + '-week-chicklets' );
+        var $weekInput = $( '#' + condPfx + '-week-new' );
+        var $weekAdd   = $( '#' + condPfx + '-week-add' );
+        var $weekError = $( '#' + condPfx + '-week-error' );
+
+        function addWeek() {
+            var wk = parseInt( $weekInput.val(), 10 );
+            $weekError.hide().text( '' );
+            if ( ! wk || wk < 1 || wk > 53 ) {
+                $weekError.text( i18n.invalidWeek || 'Please enter a valid week number (1\u201353).' ).show();
+                $weekInput.trigger( 'focus' );
+                return;
+            }
+            if ( $weekList.find( '[data-val="' + wk + '"]' ).length ) {
+                $weekError.text( i18n.duplicateWeek || 'This week number has already been added.' ).show();
+                $weekInput.trigger( 'focus' );
+                return;
+            }
+            $weekList.append( makeChicklet( wk, 'Week ' + wk ) );
+            $weekInput.val( '' ).trigger( 'focus' );
+            syncJson();
+        }
+
+        if ( $weekAdd.length ) {
+            $weekAdd.on( 'click', addWeek );
+            $weekInput.on( 'keydown', function ( e ) {
+                if ( e.key === 'Enter' ) { e.preventDefault(); addWeek(); }
+            } );
+        }
+
+        /* Shared remove handler for ID, URL-pattern, and week-number chicklets */
         $wrap.on(
             'click',
             '#' + condPfx + '-id-chicklets .scriptomatic-remove-url, ' +
-            '#' + condPfx + '-url-chicklets .scriptomatic-remove-url',
+            '#' + condPfx + '-url-chicklets .scriptomatic-remove-url, ' +
+            '#' + condPfx + '-week-chicklets .scriptomatic-remove-url',
             function () {
                 $( this ).closest( '.scriptomatic-chicklet' ).remove();
                 syncJson();
