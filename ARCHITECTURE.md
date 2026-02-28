@@ -27,7 +27,7 @@ This document describes the internal structure of Scriptomatic for developers wh
 10. [Security Model](#10-security-model)
 11. [Load Condition System](#11-load-condition-system)
 12. [AJAX Endpoints](#12-ajax-endpoints)
-13. [Audit Log](#13-audit-log)
+13. [Activity Log](#13-activity-log)
 14. [Revision History](#14-revision-history)
 15. [Front-End Injection Pipeline](#15-front-end-injection-pipeline)
 16. [Admin Assets](#16-admin-assets)
@@ -70,9 +70,9 @@ scriptomatic/
     ├── trait-menus.php           # Admin menu and sub-menu registration
     ├── trait-sanitizer.php       # Input validation, sanitisation, rate limiter
     ├── trait-history.php         # Revision history storage and AJAX rollback
-    ├── trait-settings.php        # Settings API wiring, audit log write/read, settings CRUD
+    ├── trait-settings.php        # Settings API wiring, activity log write/read, settings CRUD
     ├── trait-renderer.php        # Settings-field callbacks, load-condition evaluator
-    ├── trait-pages.php           # Page renderers, audit log table, help tabs, action links
+    ├── trait-pages.php           # Page renderers, Activity Log, JS Files pages, help tabs, action links
     ├── trait-enqueue.php         # Admin asset enqueueing
     ├── trait-injector.php        # Front-end HTML output
     └── trait-files.php           # Managed JS files: disk I/O, save/delete handlers
@@ -107,7 +107,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'1.8.0'` |
+| `SCRIPTOMATIC_VERSION` | `'2.0.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
@@ -117,7 +117,6 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 | Constant | Option Name |
 |---|---|
 | `SCRIPTOMATIC_HEAD_SCRIPT` | `scriptomatic_script_content` |
-| `SCRIPTOMATIC_HEAD_HISTORY` | `scriptomatic_script_history` |
 | `SCRIPTOMATIC_HEAD_LINKED` | `scriptomatic_linked_scripts` |
 | `SCRIPTOMATIC_HEAD_CONDITIONS` | `scriptomatic_head_conditions` |
 
@@ -126,7 +125,6 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 | Constant | Option Name |
 |---|---|
 | `SCRIPTOMATIC_FOOTER_SCRIPT` | `scriptomatic_footer_script` |
-| `SCRIPTOMATIC_FOOTER_HISTORY` | `scriptomatic_footer_history` |
 | `SCRIPTOMATIC_FOOTER_LINKED` | `scriptomatic_footer_linked` |
 | `SCRIPTOMATIC_FOOTER_CONDITIONS` | `scriptomatic_footer_conditions` |
 
@@ -135,7 +133,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 | Constant | Option Name |
 |---|---|
 | `SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION` | `scriptomatic_plugin_settings` |
-| `SCRIPTOMATIC_AUDIT_LOG_OPTION` | `scriptomatic_audit_log` |
+| `SCRIPTOMATIC_ACTIVITY_LOG_OPTION` | `scriptomatic_activity_log` |
 
 ### Option Keys — Managed JS Files
 
@@ -149,8 +147,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 |---|---|---|
 | `SCRIPTOMATIC_MAX_SCRIPT_LENGTH` | `100000` | Hard cap on inline script bytes |
 | `SCRIPTOMATIC_RATE_LIMIT_SECONDS` | `10` | Cooldown between saves (per user, per location) |
-| `SCRIPTOMATIC_DEFAULT_MAX_HISTORY` | `25` | Default revision count per location |
-| `SCRIPTOMATIC_MAX_LOG_ENTRIES` | `200` | Default audit log entry cap |
+| `SCRIPTOMATIC_MAX_LOG_ENTRIES` | `200` | Default activity log entry cap |
 
 ### Nonces
 
@@ -190,6 +187,7 @@ Registers the top-level `Scriptomatic` menu (position 82, `dashicons-editor-code
 |---|---|---|
 | `scriptomatic` | Head Scripts — Scriptomatic | `render_head_page()` |
 | `scriptomatic-footer` | Footer Scripts — Scriptomatic | `render_footer_page()` |
+| `scriptomatic-files` | JS Files — Scriptomatic | `render_js_files_page()` |
 | `scriptomatic-settings` | Preferences — Scriptomatic | `render_general_settings_page()` |
 
 Help tabs are attached to each sub-page hook via `load-{hook}` actions, which all call `add_help_tab()` from `trait-pages.php`.
@@ -216,9 +214,10 @@ All input validation and sanitisation lives here. Publicly callable sanitise cal
 **Core shared methods (private):**
 
 - `sanitize_script_for( $input, $location )` — runs all security gates followed by content gates (see §10). Called by both public script callbacks.
-- `sanitize_linked_for( $input, $location )` — validates URL list JSON; migrates legacy plain-string format to `{url, conditions}` structure; diffs old/new URLs and writes audit log entries for each addition/removal.
+- `sanitize_linked_for( $input, $location )` — validates URL list JSON; diffs old/new URLs and writes activity log entries for each addition/removal.
 - `sanitize_conditions_for( $input, $location )` — validates conditions JSON for the inline script.
-- `sanitize_conditions_array( array $raw )` — shared by both `sanitize_conditions_for()` and `sanitize_linked_for()` to validate a `{type, values}` conditions object.
+- `sanitize_conditions_array( array $raw )` — validates a `{logic, rules}` stacked conditions object; calls `sanitize_single_rule()` for each rule entry.
+- `sanitize_single_rule( array $raw )` — validates a single rule object (`{type, values}`) within a stack; clamps values per condition type.
 
 **Rate limiter (private):**
 
@@ -227,7 +226,7 @@ All input validation and sanitisation lives here. Publicly callable sanitise cal
 
 **Double-call guard:**
 
-The WordPress Settings API invokes each sanitise callback twice per POST request. Both `sanitize_script_for()` and `sanitize_linked_for()` use a `static $processed_this_request` array to detect the second invocation and skip rate-limiting, history recording, and audit logging on the second call.
+The WordPress Settings API invokes each sanitise callback twice per POST request. Both `sanitize_script_for()` and `sanitize_linked_for()` use a `static $processed_this_request` array to detect the second invocation and skip rate-limiting, history recording, and activity logging on the second call.
 
 ---
 
@@ -239,16 +238,23 @@ Manages per-location revision stacks stored in `wp_options`.
 
 **Private methods:**
 
-- `push_history( $content, $location )` — unshifts a new entry onto the history array, deduplicates sequential identical entries, caps to `get_max_history()`, and calls `update_option()`.
-- `get_history( $location )` — reads and returns the history array.
-- `get_max_history()` — reads `get_plugin_settings()['max_history']`, falls back to `SCRIPTOMATIC_DEFAULT_MAX_HISTORY`.
+- `get_history( $location )` — filters the unified activity log to entries carrying a content snapshot (`action` in `save`|`rollback`) for the given location; returns a re-indexed array.
 
 **Public AJAX handlers:**
 
-- `ajax_rollback()` — verifies the `SCRIPTOMATIC_ROLLBACK_NONCE` nonce, validates `$_POST['index']` and `$_POST['location']`, then writes the content **directly via `$wpdb->update()`** (bypassing `update_option()` and its registered sanitise callbacks, which would fail in an AJAX context with no `$_POST` nonce fields). Clears the options cache with `wp_cache_delete()`. Also calls `push_history()` and `write_audit_log_entry()`.
-- `ajax_get_history_content()` — same nonce check, returns `$history[$index]['content']` as JSON without modifying any data.
+- `ajax_rollback()` — verifies the `SCRIPTOMATIC_ROLLBACK_NONCE` nonce, validates `$_POST['index']` and `$_POST['location']`, then writes the content **directly via `$wpdb->update()`** (bypassing `update_option()` and its registered sanitise callbacks, which would fail in an AJAX context with no `$_POST` nonce fields). Clears the options cache with `wp_cache_delete()`. Also calls `write_activity_entry()`.
+- `ajax_get_history_content()` — same nonce check, returns the entry's `content` as JSON without modifying data.
+- `ajax_rollback_js_file()` — restores a managed JS file from an activity log snapshot; writes content to disk and updates metadata.
+- `ajax_get_file_activity_content()` — returns a formatted lightbox display string for a JS file activity log entry.
+- `ajax_get_url_list_content()` — returns a formatted display string for a URL-list snapshot in an activity log entry.
+- `ajax_restore_url_list()` — restores the external URL list from an activity log snapshot.
+- `ajax_get_conditions_content()` — returns a formatted display string for a conditions snapshot in an activity log entry.
+- `ajax_restore_conditions()` — restores the load conditions from an activity log snapshot.
+- `ajax_restore_deleted_file()` — re-creates a deleted JS file from its `file_delete` log entry snapshot (writes content to disk and re-inserts metadata).
 
 **History entry structure:**
+
+Revision history is stored inside the unified activity log (`SCRIPTOMATIC_ACTIVITY_LOG_OPTION`). Entries with action `save` or `rollback` carry a `content` key and are returned by `get_history()`:
 
 ```php
 array(
@@ -256,7 +262,9 @@ array(
     'timestamp'  => int,      // Unix timestamp
     'user_login' => string,   // wp_get_current_user()->user_login
     'user_id'    => int,      // wp_get_current_user()->ID
-    'length'     => int,      // strlen( $content )
+    'action'     => string,   // 'save' or 'rollback'
+    'location'   => string,   // 'head' or 'footer'
+    'chars'      => int,      // strlen( $content )
 )
 ```
 
@@ -279,24 +287,23 @@ array(
 **Plugin settings CRUD:**
 
 - `get_plugin_settings()` — returns the stored settings merged with defaults via `wp_parse_args()`. Safe to call anywhere.
-- `sanitize_plugin_settings( $input )` — validates and clamps `max_history` (3–100) and `max_log_entries` (3–1000). When either limit is reduced, immediately trims the existing stored data via `update_option()`.
+- `sanitize_plugin_settings( $input )` — validates and clamps `max_log_entries` (3–1000). When the limit is reduced, immediately trims the existing activity log via `update_option()`.
 - `get_max_log_entries()` — convenience getter for `max_log_entries`.
 
 **Plugin settings data structure:**
 
 ```php
 array(
-    'max_history'            => int,   // 3–100, default 25
     'max_log_entries'        => int,   // 3–1000, default 200
     'keep_data_on_uninstall' => bool,  // default false
 )
 ```
 
-**Audit log (write/read):**
+**Activity log (write/read):**
 
-- `write_audit_log_entry( array $data )` — merges `$data` with `timestamp`, `user_login`, `user_id`; unshifts onto the log array; caps to `get_max_log_entries()`; calls `update_option( SCRIPTOMATIC_AUDIT_LOG_OPTION, $log )`.
-- `get_audit_log()` — reads and returns the log array from options.
-- `log_change( $new_content, $option_key, $location )` — called by `sanitize_script_for()` before a save; only writes an audit entry if the content has actually changed.
+- `write_activity_entry( array $data )` — merges `$data` with `timestamp`, `user_login`, `user_id`; unshifts onto the log array; caps to `get_max_log_entries()`; calls `update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, $log )`.
+- `get_activity_log()` — reads and returns the log array from options.
+- `log_change( $new_content, $option_key, $location )` — called by `sanitize_script_for()` before a save; only writes an activity entry if the content has actually changed.
 
 ---
 
@@ -312,18 +319,22 @@ All Settings API field and section callback methods. Also owns `check_load_condi
 
 **Public field callbacks:**
 
-`render_head_script_field()`, `render_head_linked_field()`, `render_head_conditions_field()`, `render_footer_script_field()`, `render_footer_linked_field()`, `render_footer_conditions_field()`, `render_max_history_field()`, `render_max_log_field()`, `render_keep_data_field()`
+`render_head_script_field()`, `render_head_linked_field()`, `render_head_conditions_field()`, `render_footer_script_field()`, `render_footer_linked_field()`, `render_footer_conditions_field()`, `render_max_log_field()`, `render_keep_data_field()`
 
 **Private shared implementations:**
 
 - `render_script_field_for( $location )` — outputs the `<textarea>`, live character counter span, and security notice block.
-- `render_linked_field_for( $location )` — outputs the chicklet URL manager (reads stored JSON, migrates legacy plain-string entries, renders each entry as a `.sm-url-entry` block with its own conditions sub-panel). Outputs a hidden `<input name="{option_key}">` containing JSON, updated by `admin.js` before form submit.
-- `render_conditions_field_for( $location )` — outputs the condition type `<select>` and the sub-panels for each condition type.
+- `render_linked_field_for( $location )` — outputs the chicklet URL manager (reads stored JSON, renders each entry as a `.sm-url-entry` block with its own conditions sub-panel). Outputs a hidden `<input name="{option_key}">` containing JSON, updated by `admin.js` before form submit.
+- `render_conditions_field_for( $location )` — outputs the stacked conditions widget for the inline-script location by calling `render_conditions_stack_ui()`.
 
 **Load condition evaluation (used by `trait-injector.php`):**
 
 - `check_load_conditions( $location )` — reads the location-level conditions option and delegates to `evaluate_conditions_object()`.
-- `evaluate_conditions_object( array $conditions )` — evaluates a `{type, values}` object against the current WordPress page context. Called once for the inline script and once per external URL entry.
+- `evaluate_conditions_object( array $conditions )` — evaluates a `{logic, rules}` stacked conditions object against the current WordPress page context. Loops over all rules via `evaluate_single_rule()`; applies AND or OR logic with short-circuit. Called once for the inline script and once per external URL entry.
+- `evaluate_single_rule( array $rule )` — evaluates a single `{type, values}` rule object; contains all 11 condition-type `switch` cases.
+- `render_condition_rule_card_html( $cond_pfx, $ridx, array $rule, $post_types )` — renders a single rule card (type select + sub-panels + remove button).
+- `render_conditions_stack_ui( $pfx, $logic, array $rules, $post_types, $input_name )` — renders the full stacked conditions widget (logic toggle, rules list, add button, hidden JSON input, and `<template>` clone).
+- `render_file_conditions_widget( $pfx, array $conditions )` — public entry point used by the JS Files edit page to emit the conditions widget.
 
 ---
 
@@ -331,17 +342,20 @@ All Settings API field and section callback methods. Also owns `check_load_condi
 
 **Trait name:** `Scriptomatic_Pages`
 
-Full-page renderers, the embedded audit log table, contextual help, and the plugins-page action link.
+Full-page renderers, the Activity Log table, JS Files pages, contextual help, and the plugins-page action link.
 
 **Public page renderers:**
 
-- `render_head_page()` — outputs the Head Scripts settings form (wraps with `settings_fields()` / `do_settings_sections()` for group `scriptomatic_head_group` / page `scriptomatic_head_page`). Also renders the secondary nonce field, the revision history panel, and calls `render_audit_log_table( 'scriptomatic', 'head' )`.
+- `render_head_page()` — outputs the Head Scripts settings form (wraps with `settings_fields()` / `do_settings_sections()` for group `scriptomatic_head_group` / page `scriptomatic_head_page`). Also renders the secondary nonce field and calls `render_activity_log( 'head' )`.
 - `render_footer_page()` — same for the footer location.
+- `render_js_files_page()` — dispatches to `render_js_file_list_view()` (no `id` parameter) or `render_js_file_edit_view()` (when `id` query parameter is present).
 - `render_general_settings_page()` — Preferences form, group `scriptomatic_general_group` / page `scriptomatic_general_page`.
 
-**Private audit log table:**
+**Private view helpers:**
 
-- `render_audit_log_table( $page_slug, $location )` — filters the stored log to entries matching `$location`, then outputs a `<table>` with columns: Date/Time, User, Action, Detail. The Detail column shows character count for `save`/`rollback` entries and the URL (truncated to 60 chars) for `url_added`/`url_removed` entries.
+- `render_js_file_list_view()` — outputs the managed JS files table (label, filename, location, conditions summary) with Add New and Edit links; includes an all-files activity log panel at the bottom.
+- `render_js_file_edit_view()` — outputs the JS file edit form (label, filename, Head/Footer selector, CodeMirror editor, conditions widget) and a per-file activity log panel.
+- `render_activity_log( $location, $file_id )` — queries the unified activity log, filters by location/file_id, and renders the table with View and Restore buttons where applicable.
 
 **Public contextual help:**
 
@@ -379,7 +393,7 @@ Full-page renderers, the embedded audit log table, contextual help, and the plug
 
 Output format:
 ```html
-<!-- Scriptomatic v1.8.0 (head) -->
+<!-- Scriptomatic v2.0.0 (head) -->
 <script src="https://example.com/script.js"></script>
 <script src="/wp-content/uploads/scriptomatic/my-tracker.js"></script>
 <script>
@@ -403,10 +417,10 @@ Output format:
 - `save_js_files_meta( $files )` — JSON-encodes and persists the array.
 
 **`admin_post` save handler:**
-- `handle_save_js_file()` — registered on `admin_post_scriptomatic_save_js_file`. Validates capability (Gate 0) + nonce `SCRIPTOMATIC_FILES_NONCE` (Gate 1). Auto-slugs filename from label if blank; enforces `.js` extension and safe character set; enforces `wp_max_upload_size()`. Writes file bytes with `file_put_contents()`. On rename, removes the old file. Updates metadata array; writes audit log entry.
+- `handle_save_js_file()` — registered on `admin_post_scriptomatic_save_js_file`. Validates capability (Gate 0) + nonce `SCRIPTOMATIC_FILES_NONCE` (Gate 1). Auto-slugs filename from label if blank; enforces `.js` extension and safe character set; enforces `wp_max_upload_size()`. Writes file bytes with `file_put_contents()`. On rename, removes the old file. Updates metadata array; writes activity log entry.
 
 **AJAX delete handler:**
-- `ajax_delete_js_file()` — registered on `wp_ajax_scriptomatic_delete_js_file`. Same two security gates. Removes file from disk and from the metadata array. Writes audit log entry. Returns JSON success/error.
+- `ajax_delete_js_file()` — registered on `wp_ajax_scriptomatic_delete_js_file`. Same two security gates. Removes file from disk and from the metadata array. Writes activity log entry. Returns JSON success/error.
 
 ---
 
@@ -424,6 +438,13 @@ Output format:
 | `plugin_action_links_{basename}` | default | `add_action_links()` | pages |
 | `wp_ajax_scriptomatic_rollback` | default | `ajax_rollback()` | history |
 | `wp_ajax_scriptomatic_get_history_content` | default | `ajax_get_history_content()` | history |
+| `wp_ajax_scriptomatic_rollback_js_file` | default | `ajax_rollback_js_file()` | history |
+| `wp_ajax_scriptomatic_get_file_activity_content` | default | `ajax_get_file_activity_content()` | history |
+| `wp_ajax_scriptomatic_get_url_list_content` | default | `ajax_get_url_list_content()` | history |
+| `wp_ajax_scriptomatic_restore_url_list` | default | `ajax_restore_url_list()` | history |
+| `wp_ajax_scriptomatic_get_conditions_content` | default | `ajax_get_conditions_content()` | history |
+| `wp_ajax_scriptomatic_restore_conditions` | default | `ajax_restore_conditions()` | history |
+| `wp_ajax_scriptomatic_restore_deleted_file` | default | `ajax_restore_deleted_file()` | history |
 | `wp_ajax_scriptomatic_delete_js_file` | default | `ajax_delete_js_file()` | files |
 | `admin_post_scriptomatic_save_js_file` | default | `handle_save_js_file()` | files |
 | `load-{head_hook}` | default | `add_help_tab()` | pages |
@@ -461,35 +482,39 @@ Each registered `option_key` maps to one sanitise callback. The groups are used 
 [
   {
     "url": "https://example.com/script.js",
-    "conditions": { "type": "all", "values": [] }
+    "conditions": { "logic": "and", "rules": [] }
   }
 ]
 ```
 
-Legacy format (plain URL string) is accepted at read-time and migrated transparently.
-
 ### Load conditions (inline script)
-`string` — JSON-encoded conditions object:
+`string` — JSON-encoded stacked conditions object:
 
 ```json
-{ "type": "post_type", "values": ["post", "page"] }
+{ "logic": "and", "rules": [ { "type": "post_type", "values": ["post", "page"] } ] }
 ```
 
-### Revision history
-`array` — serialised by `update_option()`. Array of history entry arrays (see §6 — trait-history.php).
+An empty `rules` array means “load on all pages”.
 
-### Audit log
-`array` — serialised by `update_option()`. Array of log entry arrays:
+### Revision history
+Revision history is stored within the unified activity log (see §13 and §14). Use `get_history( $location )` in `trait-history.php` to fetch content-bearing entries.
+
+### Activity log
+`array` — serialised by `update_option()`. Stored in `SCRIPTOMATIC_ACTIVITY_LOG_OPTION` (`scriptomatic_activity_log`). Entries are prepended (newest first). Example structure:
 
 ```php
 array(
-    'timestamp'  => int,     // Unix timestamp
-    'user_login' => string,
-    'user_id'    => int,
-    'action'     => string,  // 'save' | 'rollback' | 'url_added' | 'url_removed'
-    'location'   => string,  // 'head' | 'footer'
-    'chars'      => int,     // present for 'save' and 'rollback'
-    'detail'     => string,  // present for 'url_added' and 'url_removed' — the URL
+    'timestamp'            => int,     // Unix timestamp
+    'user_login'           => string,
+    'user_id'              => int,
+    'action'               => string,  // see action table in §13
+    'location'             => string,  // 'head' | 'footer' | '' for cross-location events
+    'chars'                => int,     // present for content-bearing events
+    'detail'               => string,  // URL or file label for informational events
+    'content'              => string,  // snapshot for save/rollback/file events
+    'urls_snapshot'        => array,   // full URL list at time of change
+    'conditions_snapshot'  => array,   // full conditions at time of change
+    'meta'                 => array,   // file metadata for JS file events
 )
 ```
 
@@ -512,7 +537,7 @@ Every save path enforces the same three gates in order:
 - Length cap: `SCRIPTOMATIC_MAX_SCRIPT_LENGTH` (100 KB)
 - Dangerous HTML tag detection: `<iframe>`, `<object>`, `<embed>`, `<link>`, `<style>`, `<meta>` (warning, not rejection)
 
-**AJAX security**: Both AJAX endpoints use `check_ajax_referer()` with `SCRIPTOMATIC_ROLLBACK_NONCE` and then `current_user_can()`. The `wp_ajax_` prefix ensures only logged-in users can trigger them.
+**AJAX security**: All AJAX endpoints use `check_ajax_referer()` with the appropriate nonce constant and then `current_user_can()`. The `wp_ajax_` prefix ensures only logged-in users can trigger them.
 
 **Rollback write path**: Uses `$wpdb->update()` + `wp_cache_delete()` directly, bypassing `update_option()` which would invoke the registered sanitise callback. The content is already validated — it came from our own stored history.
 
@@ -522,13 +547,12 @@ Every save path enforces the same three gates in order:
 
 ## 11. Load Condition System
 
-Conditions are stored per-location for the inline script, and per-entry for each external URL.
+Conditions are stored per-location for the inline script, and per-entry for each external URL. The format is always `{logic, rules}` — an empty `rules` array means "load on all pages".
 
-**Allowed types:**
+**Allowed rule `type` values:**
 
 | Type | Values array | Evaluation |
 |---|---|---|
-| `all` | empty | Always true |
 | `front_page` | empty | `is_front_page()` |
 | `singular` | empty | `is_singular()` |
 | `post_type` | `['post', 'page', …]` | `is_singular( $values )` |
@@ -543,67 +567,53 @@ Conditions are stored per-location for the inline script, and per-entry for each
 
 Evaluation methods are in `trait-renderer.php`:
 - `check_load_conditions( $location )` — reads the location-level option and delegates.
-- `evaluate_conditions_object( array $conditions )` — evaluates a single `{type, values}` object. Called by the injector for each items.
+- `evaluate_conditions_object( array $conditions )` — evaluates a `{logic, rules}` stacked object; loops over each rule via `evaluate_single_rule()`, applying AND or OR logic with short-circuit. Called by the injector for each item.
 
 ---
 
 ## 12. AJAX Endpoints
 
-Both endpoints are registered on `wp_ajax_{action}` (logged-in users only).
+All endpoints are registered on `wp_ajax_{action}` (logged-in users only). History/restore endpoints use `SCRIPTOMATIC_ROLLBACK_NONCE`; file-management endpoints use `SCRIPTOMATIC_FILES_NONCE`.
 
-### `scriptomatic_rollback`
+| Action | Nonce | Method | Description |
+|---|---|---|---|
+| `scriptomatic_rollback` | ROLLBACK | `ajax_rollback()` | Restore inline script from activity log snapshot |
+| `scriptomatic_get_history_content` | ROLLBACK | `ajax_get_history_content()` | Return content for lightbox display |
+| `scriptomatic_rollback_js_file` | ROLLBACK | `ajax_rollback_js_file()` | Restore a managed JS file from snapshot |
+| `scriptomatic_get_file_activity_content` | ROLLBACK | `ajax_get_file_activity_content()` | Return JS file entry display for lightbox |
+| `scriptomatic_get_url_list_content` | ROLLBACK | `ajax_get_url_list_content()` | Return URL-list snapshot display for lightbox |
+| `scriptomatic_restore_url_list` | ROLLBACK | `ajax_restore_url_list()` | Restore external URL list from snapshot |
+| `scriptomatic_get_conditions_content` | ROLLBACK | `ajax_get_conditions_content()` | Return conditions snapshot display for lightbox |
+| `scriptomatic_restore_conditions` | ROLLBACK | `ajax_restore_conditions()` | Restore load conditions from snapshot |
+| `scriptomatic_restore_deleted_file` | ROLLBACK | `ajax_restore_deleted_file()` | Re-create a deleted JS file from file_delete snapshot |
+| `scriptomatic_delete_js_file` | FILES | `ajax_delete_js_file()` | Delete a managed JS file from disk and metadata |
 
-| Field | Type | Description |
-|---|---|---|
-| `nonce` | string | `SCRIPTOMATIC_ROLLBACK_NONCE` |
-| `location` | string | `'head'` or `'footer'` |
-| `index` | int | Zero-based index into the history array |
-
-**Success response:**
+**Standard success response shape:**
 ```json
-{
-  "success": true,
-  "data": {
-    "content":  "...",
-    "length":   1234,
-    "location": "head",
-    "message":  "Script restored successfully."
-  }
-}
-```
-
-### `scriptomatic_get_history_content`
-
-| Field | Type | Description |
-|---|---|---|
-| `nonce` | string | `SCRIPTOMATIC_ROLLBACK_NONCE` |
-| `location` | string | `'head'` or `'footer'` |
-| `index` | int | Zero-based index into the history array |
-
-**Success response:**
-```json
-{
-  "success": true,
-  "data": {
-    "content": "..."
-  }
-}
+{ "success": true, "data": { ... } }
 ```
 
 ---
 
-## 13. Audit Log
+## 13. Activity Log
 
-The audit log is a single `wp_options` row (`scriptomatic_audit_log`) storing a serialised PHP array. Entries are prepended (newest first). When the array length exceeds `get_max_log_entries()`, the oldest entries are sliced off.
+The activity log is a single `wp_options` row (`scriptomatic_activity_log`, constant `SCRIPTOMATIC_ACTIVITY_LOG_OPTION`) storing a serialised PHP array. Entries are prepended (newest first). When the array length exceeds `get_max_log_entries()`, the oldest entries are sliced off. Written via `write_activity_entry()` in `trait-settings.php`.
 
 **Events logged:**
 
-| Action | Trigger | `chars` | `detail` |
-|---|---|---|---|
-| `save` | Inline script content changed on form save | New content byte count | — |
-| `rollback` | AJAX rollback | Restored content byte count | — |
-| `url_added` | URL present in new list but not old | — | The URL string |
-| `url_removed` | URL present in old list but not new | — | The URL string |
+| Action | Trigger | Notable keys |
+|---|---|---|
+| `save` | Inline script content changed | `content`, `chars`, `urls_snapshot`, `conditions_snapshot` |
+| `rollback` | AJAX inline rollback | `content`, `chars` |
+| `url_added` | URL added to external list | `detail` (URL), `urls_snapshot` |
+| `url_removed` | URL removed from external list | `detail` (URL), `urls_snapshot` |
+| `conditions_save` | Load conditions changed | `detail` (summary), `conditions_snapshot` |
+| `url_list_restored` | External URL list restored via AJAX | `urls_snapshot` |
+| `conditions_restored` | Load conditions restored via AJAX | `conditions_snapshot` |
+| `file_save` | Managed JS file saved | `content`, `chars`, `meta`, `conditions` |
+| `file_rollback` | Managed JS file rolled back via AJAX | `content`, `chars`, `meta` |
+| `file_delete` | Managed JS file deleted | `content`, `meta`, `conditions` |
+| `file_restored` | Deleted JS file re-created via AJAX | `meta` |
 
 The log is per-site (always uses `get_option` / `update_option`). On multisite, each site has its own log.
 
@@ -611,14 +621,11 @@ The log is per-site (always uses `get_option` / `update_option`). On multisite, 
 
 ## 14. Revision History
 
-Two history stacks, one per location, stored as serialised arrays in `wp_options`:
+Revision history is stored **inside the unified activity log** (`SCRIPTOMATIC_ACTIVITY_LOG_OPTION`). There are no separate per-location history option keys.
 
-- `SCRIPTOMATIC_HEAD_HISTORY` → `scriptomatic_script_history`
-- `SCRIPTOMATIC_FOOTER_HISTORY` → `scriptomatic_footer_history`
+`get_history( $location )` in `trait-history.php` filters the activity log to entries with action `save` or `rollback` for the given location. Because every save already records a `content` snapshot in the log, the history is always available without any additional storage.
 
-`push_history()` deduplicates sequential saves of identical content (no-op if `$history[0]['content'] === $content`), then unshifts the new entry and trims to `get_max_history()`.
-
-History is capped to a range of 3–100 entries (configurable in Preferences). Reducing the limit in Preferences immediately trims both stacks.
+History depth is effectively bounded by the activity log limit (configurable in Preferences, 3–1000, default 200).
 
 ---
 
@@ -653,19 +660,22 @@ Localized via `wp_localize_script()` as `scriptomaticData`:
 
 ```js
 {
-  maxLength:     100000,
-  nonce:         "...",    // SCRIPTOMATIC_ROLLBACK_NONCE
-  ajaxUrl:       "...",
-  location:      "head",   // or "footer"
-  currentLength: 1234
+  ajaxUrl:            "...",
+  rollbackNonce:      "...",   // SCRIPTOMATIC_ROLLBACK_NONCE
+  filesNonce:         "...",   // SCRIPTOMATIC_FILES_NONCE
+  maxLength:          100000,
+  maxUploadSize:      ...,
+  location:           "head",  // or "footer" or "files"
+  codeEditorSettings: { ... }, // wp_enqueue_code_editor() result, or false
+  i18n:               { ... }  // translatable strings
 }
 ```
 
 Responsibilities:
 - Live character counter: updates on `input` events, changes CSS class at 75% and 90% thresholds.
-- URL manager: add/remove URL chiclet entries; encode the full entry list as JSON into the hidden `<input>` before form submit.
-- Conditions sub-panel toggler: shows/hides the relevant sub-panel based on the selected condition type.
-- Revision history panel: "Restore" button fires `scriptomatic_rollback` AJAX, updates the textarea and counter on success. "View" button fires `scriptomatic_get_history_content` AJAX, then opens a lightbox displaying the content.
+- URL manager: add/remove URL chicklet entries; per-entry conditions sub-panel; encode the full entry list as JSON into the hidden `<input>` before form submit.
+- Stacked conditions widget: `initConditions()` manages rule-card add/remove, logic toggle, and JSON sync (`syncJson()`).
+- Activity log: View button fires a `get_*_content` AJAX call and opens a lightbox. Restore button fires the corresponding `restore_*` or `rollback` AJAX call and updates the editor/form in place.
 
 ---
 
@@ -685,8 +695,11 @@ scriptomatic_script_content    scriptomatic_footer_script
 scriptomatic_script_history    scriptomatic_footer_history
 scriptomatic_linked_scripts    scriptomatic_footer_linked
 scriptomatic_head_conditions   scriptomatic_footer_conditions
-scriptomatic_plugin_settings   scriptomatic_audit_log
+scriptomatic_js_files          scriptomatic_plugin_settings
+scriptomatic_activity_log      scriptomatic_audit_log
 ```
+
+`scriptomatic_script_history`, `scriptomatic_footer_history`, and `scriptomatic_audit_log` are legacy option names cleaned up for complete removal; they are no longer written by the current codebase. The uploads directory (`wp-content/uploads/scriptomatic/`) is also deleted via `scriptomatic_delete_uploads_dir()`.
 
 ---
 
@@ -709,13 +722,13 @@ $footer_script = get_option( 'scriptomatic_footer_script', '' );
 $head_urls = json_decode( get_option( 'scriptomatic_linked_scripts', '[]' ), true );
 
 // Head load conditions
-$head_conditions = json_decode( get_option( 'scriptomatic_head_conditions', '{"type":"all","values":[]}' ), true );
+$head_conditions = json_decode( get_option( 'scriptomatic_head_conditions', '{"logic":"and","rules":[]}' ), true );
 
 // Plugin settings
 $settings = get_option( 'scriptomatic_plugin_settings', array() );
 
-// Audit log (newest first)
-$log = get_option( 'scriptomatic_audit_log', array() );
+// Activity log (newest first)
+$log = get_option( 'scriptomatic_activity_log', array() );
 ```
 
 ### Hooking into injection output
@@ -739,9 +752,9 @@ add_action( 'wp_head', function() {
 ### Adding a new condition type
 
 1. Add the new type string to the `$allowed_types` array in `sanitize_conditions_array()` in `trait-sanitizer.php`.
-2. Add a `case` to the `switch` statement in the same method if the type requires value sanitisation.
-3. Add a `case` to `evaluate_conditions_object()` in `trait-renderer.php` that returns `true` or `false`.
-4. Add the UI sub-panel to `render_conditions_field_for()` in `trait-renderer.php` and the corresponding JS toggle in `admin.js`.
+2. Add a `case` to `sanitize_single_rule()` in `trait-sanitizer.php` if the type requires value sanitisation.
+3. Add a `case` to `evaluate_single_rule()` in `trait-renderer.php` that returns `true` or `false`.
+4. Add the UI sub-panel to `render_condition_rule_card_html()` in `trait-renderer.php` and the corresponding JS branch in `admin.js`.
 
 ### Adding a third injection location
 
@@ -754,12 +767,12 @@ The codebase uses `'head'` and `'footer'` as string identifiers throughout. To a
 5. Add a new action hook and injection method to `trait-injector.php`.
 6. Update the `enqueue_admin_scripts()` hook detection in `trait-enqueue.php`.
 
-### Writing to the audit log from external code
+### Writing to the activity log from external code
 
-`write_audit_log_entry()` is `private` on the trait, but you can write directly to the option it uses:
+`write_activity_entry()` is `private` on the trait, but you can write directly to the option it uses:
 
 ```php
-$log   = (array) get_option( 'scriptomatic_audit_log', array() );
+$log   = (array) get_option( 'scriptomatic_activity_log', array() );
 $entry = array(
     'timestamp'  => time(),
     'user_login' => wp_get_current_user()->user_login,
@@ -769,9 +782,9 @@ $entry = array(
     'detail'     => 'optional context string',
 );
 array_unshift( $log, $entry );
-update_option( 'scriptomatic_audit_log', array_slice( $log, 0, 200 ) );
+update_option( 'scriptomatic_activity_log', array_slice( $log, 0, 200 ) );
 ```
 
 ---
 
-*Document version: 1.7.x — reflects the codebase as of January 2026.*
+*Document version: 2.0.0 — reflects the codebase as of February 2026.*

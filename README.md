@@ -19,7 +19,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **🗂️ Managed JS Files**: Create, edit, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`; each file has its own Head/Footer selector and Load Conditions; managed files survive plugin updates
 - **💻 Built-in Code Editor**: Inline scripts and managed JS files use a full CodeMirror JavaScript editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete hints (`wp.ajax`, `wp.hooks`, `jQuery`, `ajaxurl`, and more). Falls back to a plain textarea if syntax highlighting is disabled in the user profile.
 - **📚 Contextual Help**: Built-in help tabs with detailed documentation on the Head Scripts, Footer Scripts, and Preferences admin pages
-- **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months — or leave it on all pages (12 condition types)
+- **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months — or leave it on all pages (11 condition types)
 - **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
 - **📋 Activity Log**: All script saves, rollbacks, external URL changes, conditions changes, URL-list and conditions restores, and JS file events (including deleted-file re-creation) are recorded in a persistent **Activity Log** embedded at the bottom of each admin page. Entries that carry a content snapshot expose **View** and **Restore** buttons for instant AJAX rollback; informational entries (URL changes, file deletions) are shown without action buttons. Log limit is configurable in Preferences (3–1000, default 200); oldest entries are discarded automatically once the cap is reached.
@@ -54,7 +54,7 @@ scriptomatic/
     ├── trait-history.php         # Revision history storage and AJAX rollback
     ├── trait-settings.php        # Settings API wiring and plugin-settings CRUD
     ├── trait-renderer.php        # Settings-field callbacks; load-condition evaluator
-    ├── trait-pages.php           # Page renderers, embedded Audit Log, help tabs, action links
+    ├── trait-pages.php           # Page renderers, Activity Log, JS Files pages, help tabs, action links
     ├── trait-enqueue.php         # Admin-asset enqueuing
     ├── trait-injector.php        # Front-end HTML injection
     └── trait-files.php           # Managed JS files: CRUD, disk I/O, save + delete handlers
@@ -180,7 +180,7 @@ Scriptomatic is built with security as a top priority:
 - A transient-based per-user, per-location cooldown (10 seconds) prevents rapid repeated saves
 - Saves submitted within the cooldown window are rejected with an admin notice
 
-### Audit Logging
+### Activity Logging
 - All saves, AJAX rollbacks, external URL changes, conditions changes, URL-list and conditions restores, and JS file events are recorded in the persistent **Activity Log** embedded on each admin page; each page shows only its own location's entries
 - Each entry captures: timestamp, username, user ID, action (`save`, `rollback`, `url_added`, `url_removed`, `conditions_save`, `url_list_restored`, `conditions_restored`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), and either a character count (for content-bearing events) or the URL/file label (for informational events)
 - Entries with content snapshots (saves, rollbacks, file saves, file rollbacks, restores) expose **View** and **Restore** buttons directly in the table
@@ -293,6 +293,7 @@ eval(someUntrustedString); // Never use eval!
 ## 📚 Documentation
 
 - **[Changelog](CHANGELOG.md)**: Version history and changes
+- **[Architecture](ARCHITECTURE.md)**: Internal structure reference for developers extending the plugin
 - **[Security Policy](SECURITY.md)**: Security guidelines and reporting
 - **[License](LICENSE)**: GPL v2 license details
 
