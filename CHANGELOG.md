@@ -13,6 +13,19 @@ _Nothing yet._
 
 ---
 
+## [2.5.1] – 2026-02-28
+
+### Fixed
+- **Restore/Load/Delete buttons displayed `\u2026` instead of `…` as a literal
+  string in the browser.** The `wp_localize_script` i18n strings for
+  `restoring`, `loading`, and `deleting` used PHP double-quoted `"\u2026"`
+  escape sequences. PHP does not expand `\u` escapes — the backslash was
+  passed verbatim into the JSON payload, so the button text read
+  `Restoring\u2026` rather than `Restoring…`. Fixed by using the actual UTF-8
+  ellipsis character `…` in single-quoted strings.
+
+---
+
 ## [2.5.0] – 2026-03-01
 
 ### Changed
