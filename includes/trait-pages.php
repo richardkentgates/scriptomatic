@@ -159,31 +159,43 @@ trait Scriptomatic_Pages {
                     && array_key_exists( 'content', $entry );
                 $has_content      = $has_code_content || $has_delete_snap;
 
-                // Restore is greyed out when the script is empty or the file was deleted.
-                $restore_greyed = ( $has_code_content && '' === (string) $entry['content'] )
-                    || ( 'file_delete' === $action );
-
-                if ( $has_code_content && '' === (string) $entry['content'] ) {
-                    $restore_title = __( 'Script is empty — nothing to restore. Find an earlier Save entry to restore content.', 'scriptomatic' );
-                } elseif ( 'file_delete' === $action ) {
-                    $restore_title = __( 'File was deleted. Use the Re-create button on an earlier File Save entry.', 'scriptomatic' );
-                } else {
-                    $restore_title = '';
-                }
-
+                // Assign indices before greyed-out logic so index 0 (current
+                // state) can be used as a disable condition.
                 $this_code_index   = $has_code_content ? $content_index   : null;
                 $this_delete_index = $has_delete_snap   ? $file_del_index  : null;
 
                 if ( $has_code_content ) { $content_index++; }
                 if ( $has_delete_snap )  { $file_del_index++; }
 
-                // URL dataset entries — separate index counter so they can be
-                // viewed and restored independently of inline entries.
+                // URL dataset entries — separate index counter.
                 $has_url_entry  = 'file' !== $location
                     && in_array( $action, array( 'url_save', 'url_rollback' ), true )
                     && array_key_exists( 'urls_snapshot', $entry );
                 $this_url_index = $has_url_entry ? $url_index : null;
+
                 if ( $has_url_entry ) { $url_index++; }
+
+                // Restore is greyed out when: script is empty, file was deleted,
+                // or this entry IS the current state (index 0 — nothing to restore).
+                $restore_greyed = ( $has_code_content && '' === (string) $entry['content'] )
+                    || ( 'file_delete' === $action )
+                    || ( ( $has_code_content ) && 0 === $this_code_index );
+
+                if ( $has_code_content && '' === (string) $entry['content'] ) {
+                    $restore_title = __( 'Script is empty — nothing to restore. Find an earlier Save entry to restore content.', 'scriptomatic' );
+                } elseif ( 'file_delete' === $action ) {
+                    $restore_title = __( 'File was deleted. Use the Re-create button on an earlier File Save entry.', 'scriptomatic' );
+                } elseif ( $has_code_content && 0 === $this_code_index ) {
+                    $restore_title = __( 'This is the current version — nothing to restore.', 'scriptomatic' );
+                } else {
+                    $restore_title = '';
+                }
+
+                // URL Restore is greyed out when this entry IS the current URL list.
+                $url_restore_greyed = $has_url_entry && 0 === $this_url_index;
+                $url_restore_title  = $url_restore_greyed
+                    ? __( 'This is the current URL list — nothing to restore.', 'scriptomatic' )
+                    : '';
 
                 $is_file_entry = ( 'file' === ( isset( $entry['location'] ) ? $entry['location'] : '' ) );
                 // Map action keys to human-readable Event labels.
@@ -277,6 +289,7 @@ trait Scriptomatic_Pages {
                                 data-index="<?php echo esc_attr( $this_url_index ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
+                                <?php if ( $url_restore_greyed ) : ?>disabled title="<?php echo esc_attr( $url_restore_title ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                         <?php endif; ?>
                     </td>
