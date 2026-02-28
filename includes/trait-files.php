@@ -149,6 +149,56 @@ trait Scriptomatic_Files {
             ? wp_unslash( $_POST['sm_file_conditions'] )
             : '{"logic":"and","rules":[]}';
 
+        // Empty content: delete an existing file or reject a new-file attempt.
+        if ( '' === trim( $content ) ) {
+            if ( '' !== $original_id ) {
+                $files_meta = $this->get_js_files_meta();
+                $found      = null;
+                foreach ( $files_meta as $i => $f ) {
+                    if ( $f['id'] === $original_id ) {
+                        $found = $f;
+                        array_splice( $files_meta, $i, 1 );
+                        break;
+                    }
+                }
+                if ( $found ) {
+                    $dir          = $this->get_js_files_dir();
+                    $path         = $dir . $found['filename'];
+                    $file_content = '';
+                    if ( file_exists( $path ) ) {
+                        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+                        $file_content = (string) file_get_contents( $path );
+                        @unlink( $path ); // phpcs:ignore
+                    }
+                    $this->save_js_files_meta( $files_meta );
+                    $this->write_activity_entry( array(
+                        'action'     => 'file_delete',
+                        'location'   => 'file',
+                        'file_id'    => $original_id,
+                        'detail'     => $found['label'],
+                        'content'    => $file_content,
+                        'conditions' => isset( $found['conditions'] ) ? $found['conditions'] : array(),
+                        'meta'       => array(
+                            'label'    => $found['label'],
+                            'filename' => $found['filename'],
+                            'location' => isset( $found['location'] ) ? $found['location'] : 'head',
+                            'reason'   => 'empty_save',
+                        ),
+                    ) );
+                }
+                wp_safe_redirect(
+                    add_query_arg(
+                        array( 'page' => 'scriptomatic-files', 'deleted' => '1' ),
+                        admin_url( 'admin.php' )
+                    )
+                );
+                exit;
+            }
+            // New file with no content — nothing to save.
+            $this->redirect_file_edit( '', 'empty_content' );
+            return;
+        }
+
         // Validate: label is required.
         if ( '' === $label ) {
             $this->redirect_file_edit( $original_id, 'missing_label' );

@@ -430,6 +430,10 @@ trait Scriptomatic_Pages {
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'File saved.', 'scriptomatic' ); ?></p></div>
             <?php endif; ?>
 
+            <?php if ( isset( $_GET['deleted'] ) && '1' === $_GET['deleted'] ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+            <div class="notice notice-warning is-dismissible"><p><?php esc_html_e( 'File was empty and has been deleted.', 'scriptomatic' ); ?></p></div>
+            <?php endif; ?>
+
             <p class="description" style="margin-top:8px;">
                 <?php esc_html_e( 'Manage standalone JavaScript files stored on this server. Each file can be loaded in the head or footer with its own conditions.', 'scriptomatic' ); ?>
             </p>
@@ -519,6 +523,7 @@ trait Scriptomatic_Pages {
             'invalid_filename' => __( 'The filename is invalid. Use letters, numbers, dashes and underscores only.', 'scriptomatic' ),
             'too_large'        => __( 'The file exceeds the maximum upload size allowed by this server.', 'scriptomatic' ),
             'write_failed'     => __( 'Could not write the file to disk. Please check directory permissions.', 'scriptomatic' ),
+            'empty_content'    => __( 'File content cannot be empty. Add some JavaScript or discard the file.', 'scriptomatic' ),
         );
 
         $error_code = isset( $_GET['error'] ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : '';
