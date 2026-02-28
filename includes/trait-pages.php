@@ -424,9 +424,22 @@ trait Scriptomatic_Pages {
                         $flabel    = isset( $file['label'] )    ? $file['label']    : $fid;
                         $fname     = isset( $file['filename'] ) ? $file['filename'] : '';
                         $floc      = ( isset( $file['location'] ) && 'footer' === $file['location'] ) ? 'footer' : 'head';
-                        $fcond     = ( isset( $file['conditions'] ) && is_array( $file['conditions'] ) ) ? $file['conditions'] : array( 'type' => 'all', 'values' => array() );
-                        $cond_type = isset( $fcond['type'] ) ? $fcond['type'] : 'all';
-                        $cond_lbl  = isset( $condition_labels[ $cond_type ] ) ? $condition_labels[ $cond_type ] : $cond_type;
+                        $fcond_raw  = ( isset( $file['conditions'] ) && is_array( $file['conditions'] ) ) ? $file['conditions'] : array();
+                        $fcond      = $this->migrate_conditions_to_stack( $fcond_raw );
+                        $fcond_cnt  = count( $fcond['rules'] );
+                        if ( 0 === $fcond_cnt ) {
+                            $cond_lbl = __( 'All pages', 'scriptomatic' );
+                        } elseif ( 1 === $fcond_cnt ) {
+                            $fcond_type = isset( $fcond['rules'][0]['type'] ) ? $fcond['rules'][0]['type'] : '';
+                            $cond_lbl   = isset( $condition_labels[ $fcond_type ] ) ? $condition_labels[ $fcond_type ] : $fcond_type;
+                        } else {
+                            $cond_lbl = sprintf(
+                                /* translators: 1: number of rules, 2: logic operator (AND/OR) */
+                                __( '%1$d rules (%2$s)', 'scriptomatic' ),
+                                $fcond_cnt,
+                                strtoupper( $fcond['logic'] )
+                            );
+                        }
 
                         $edit_url = add_query_arg(
                             array( 'page' => 'scriptomatic-files', 'action' => 'edit', 'file' => $fid ),

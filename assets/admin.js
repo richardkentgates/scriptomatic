@@ -149,185 +149,192 @@ jQuery( document ).ready( function ( $ ) {
      * @param {Function|null} onUpdate Optional callback fired after every syncJson().
      */
     function initConditions( $wrap, onUpdate ) {
-        var condPfx = $wrap.data( 'prefix' );
-        var $type   = $( '#' + condPfx + '-type' );
-        var $json   = $( '#' + condPfx + '-json' );
+        var condPfx  = $wrap.data( 'prefix' );
+        var $ruleList = $( '#' + condPfx + '-rules' );
+        var $json     = $( '#' + condPfx + '-json' );
+        var $logicRow = $wrap.find( '.sm-logic-row' );
+        var nextRidx  = $ruleList.find( '.sm-rule-card' ).length;
 
+        /* ----------------------------------------------------------------
+         * syncJson — rebuild the hidden JSON input from current DOM state.
+         * ---------------------------------------------------------------- */
         function syncJson() {
-            var t      = $type.val();
-            var values = [];
+            var $radios = $wrap.find( '.sm-logic-radio:checked' );
+            var logic   = $radios.length ? $radios.val() : 'and';
+            var rules   = [];
 
-            if ( t === 'post_type' ) {
-                $wrap.find( '.sm-pt-checkbox:checked' ).each( function () {
-                    values.push( $( this ).val() );
-                } );
-            } else if ( t === 'page_id' ) {
-                $( '#' + condPfx + '-id-chicklets .scriptomatic-chicklet' ).each( function () {
-                    values.push( parseInt( $( this ).data( 'val' ), 10 ) );
-                } );
-            } else if ( t === 'url_contains' ) {
-                $( '#' + condPfx + '-url-chicklets .scriptomatic-chicklet' ).each( function () {
-                    values.push( $( this ).data( 'val' ) );
-                } );
-            } else if ( t === 'by_date' ) {
-                var dateFrom = $( '#' + condPfx + '-date-from' ).val();
-                var dateTo   = $( '#' + condPfx + '-date-to' ).val();
-                if ( dateFrom ) { values.push( dateFrom ); }
-                if ( dateTo )   { values.push( dateTo ); }
-            } else if ( t === 'by_datetime' ) {
-                var dtFrom = $( '#' + condPfx + '-dt-from' ).val();
-                var dtTo   = $( '#' + condPfx + '-dt-to' ).val();
-                if ( dtFrom ) { values.push( dtFrom ); }
-                if ( dtTo )   { values.push( dtTo ); }
-            } else if ( t === 'week_number' ) {
-                $( '#' + condPfx + '-week-chicklets .scriptomatic-chicklet' ).each( function () {
-                    values.push( parseInt( $( this ).data( 'val' ), 10 ) );
-                } );
-            } else if ( t === 'by_month' ) {
-                $wrap.find( '.sm-month-checkbox:checked' ).each( function () {
-                    values.push( parseInt( $( this ).val(), 10 ) );
-                } );
-            }
+            $ruleList.find( '.sm-rule-card' ).each( function () {
+                var $card = $( this );
+                var ridx  = $card.data( 'ridx' );
+                var rpfx  = condPfx + '-rule-' + ridx;
+                var t     = $( '#' + rpfx + '-type' ).val() || '';
+                var vals  = [];
 
-            $json.val( JSON.stringify( { type: t, values: values } ) );
+                if ( t === 'post_type' ) {
+                    $card.find( '.sm-pt-checkbox:checked' ).each( function () {
+                        vals.push( $( this ).val() );
+                    } );
+                } else if ( t === 'page_id' ) {
+                    $( '#' + rpfx + '-id-chicklets .sm-chicklet' ).each( function () {
+                        vals.push( parseInt( $( this ).data( 'value' ), 10 ) );
+                    } );
+                } else if ( t === 'url_contains' ) {
+                    $( '#' + rpfx + '-url-chicklets .sm-chicklet' ).each( function () {
+                        vals.push( String( $( this ).data( 'value' ) ) );
+                    } );
+                } else if ( t === 'by_date' ) {
+                    var df = $( '#' + rpfx + '-date-from' ).val();
+                    var dt = $( '#' + rpfx + '-date-to' ).val();
+                    if ( df ) { vals.push( df ); }
+                    if ( dt ) { vals.push( dt ); }
+                } else if ( t === 'by_datetime' ) {
+                    var dtf = $( '#' + rpfx + '-datetime-from' ).val();
+                    var dtt = $( '#' + rpfx + '-datetime-to' ).val();
+                    if ( dtf ) { vals.push( dtf ); }
+                    if ( dtt ) { vals.push( dtt ); }
+                } else if ( t === 'week_number' ) {
+                    $( '#' + rpfx + '-week-chicklets .sm-chicklet' ).each( function () {
+                        vals.push( parseInt( $( this ).data( 'value' ), 10 ) );
+                    } );
+                } else if ( t === 'by_month' ) {
+                    $card.find( '.sm-month-checkbox:checked' ).each( function () {
+                        vals.push( parseInt( $( this ).val(), 10 ) );
+                    } );
+                }
+
+                if ( t ) {
+                    rules.push( { type: t, values: vals } );
+                }
+            } );
+
+            $json.val( JSON.stringify( { logic: logic, rules: rules } ) );
 
             if ( typeof onUpdate === 'function' ) {
                 onUpdate();
             }
         }
 
-        function showPanel( t ) {
-            $wrap.find( '.sm-cond-panel' ).attr( 'hidden', true );
-            var $panel = $wrap.find( '.sm-cond-panel[data-panel="' + t + '"]' );
-            if ( $panel.length ) {
-                $panel.removeAttr( 'hidden' );
+        /* ----------------------------------------------------------------
+         * updateUI — toggle logic row & "no conditions" message,
+         *            renumber rule labels.
+         * ---------------------------------------------------------------- */
+        function updateUI() {
+            var $cards = $ruleList.find( '.sm-rule-card' );
+            var count  = $cards.length;
+
+            if ( count >= 2 ) {
+                $logicRow.removeAttr( 'hidden' );
+            } else {
+                $logicRow.attr( 'hidden', true );
             }
-        }
 
-        $type.on( 'change', function () {
-            showPanel( $( this ).val() );
-            syncJson();
-        } );
-        showPanel( $type.val() );
-
-        $wrap.on( 'change', '.sm-pt-checkbox, .sm-month-checkbox', syncJson );
-        $wrap.on( 'change', '.sm-date-from, .sm-date-to, .sm-dt-from, .sm-dt-to', syncJson );
-
-        /* -- ID chicklet manager -- */
-        var $idList  = $( '#' + condPfx + '-id-chicklets' );
-        var $idInput = $( '#' + condPfx + '-id-new' );
-        var $idAdd   = $( '#' + condPfx + '-id-add' );
-        var $idError = $( '#' + condPfx + '-id-error' );
-
-        function makeChicklet( val, label ) {
-            var $c = $( '<span>' ).addClass( 'scriptomatic-chicklet' ).attr( 'data-val', val );
-            $( '<span>' ).addClass( 'chicklet-label' ).attr( 'title', label ).text( label ).appendTo( $c );
-            $( '<button>' ).attr( { type: 'button', 'aria-label': 'Remove' } )
-                .addClass( 'scriptomatic-remove-url' ).html( '&times;' ).appendTo( $c );
-            return $c;
-        }
-
-        function addId() {
-            var id = parseInt( $idInput.val(), 10 );
-            $idError.hide().text( '' );
-            if ( ! id || id < 1 ) {
-                $idError.text( i18n.invalidId || 'Please enter a valid positive integer ID.' ).show();
-                $idInput.trigger( 'focus' );
-                return;
+            var $noMsg = $wrap.find( '.sm-no-conditions-msg' );
+            if ( count > 0 ) {
+                $noMsg.hide();
+            } else {
+                $noMsg.show();
             }
-            if ( $idList.find( '[data-val="' + id + '"]' ).length ) {
-                $idError.text( i18n.duplicateId || 'This ID has already been added.' ).show();
-                $idInput.trigger( 'focus' );
-                return;
-            }
-            $idList.append( makeChicklet( id, String( id ) ) );
-            $idInput.val( '' ).trigger( 'focus' );
-            syncJson();
-        }
 
-        if ( $idAdd.length ) {
-            $idAdd.on( 'click', addId );
-            $idInput.on( 'keydown', function ( e ) {
-                if ( e.key === 'Enter' ) { e.preventDefault(); addId(); }
+            $cards.each( function ( i ) {
+                $( this ).find( '.sm-rule-num' ).text( i + 1 );
             } );
         }
 
-        /* -- URL-pattern chicklet manager -- */
-        var $urlPatList  = $( '#' + condPfx + '-url-chicklets' );
-        var $urlPatInput = $( '#' + condPfx + '-url-new' );
-        var $urlPatAdd   = $( '#' + condPfx + '-url-add' );
-        var $urlPatError = $( '#' + condPfx + '-url-error' );
+        /* ----------------------------------------------------------------
+         * initRuleCard — wire all interactions for a single rule card.
+         * ---------------------------------------------------------------- */
+        function initRuleCard( $card ) {
+            var ridx        = $card.data( 'ridx' );
+            var rpfx        = condPfx + '-rule-' + ridx;
+            var $typeSelect = $( '#' + rpfx + '-type' );
 
-        function addPattern() {
-            var pat = $.trim( $urlPatInput.val() );
-            $urlPatError.hide().text( '' );
-            if ( ! pat ) {
-                $urlPatError.text( i18n.emptyPattern || 'Please enter a URL path or pattern.' ).show();
-                $urlPatInput.trigger( 'focus' );
-                return;
+            function showPanel( t ) {
+                $card.find( '.sm-cond-panel' ).attr( 'hidden', true );
+                var $p = $card.find( '.sm-cond-panel[data-panel="' + t + '"]' );
+                if ( $p.length ) { $p.removeAttr( 'hidden' ); }
             }
-            if ( $urlPatList.find( '[data-val="' + pat.replace( /"/g, '\\"' ) + '"]' ).length ) {
-                $urlPatError.text( i18n.duplicatePattern || 'This pattern has already been added.' ).show();
-                $urlPatInput.trigger( 'focus' );
-                return;
-            }
-            $urlPatList.append( makeChicklet( pat, pat ) );
-            $urlPatInput.val( '' ).trigger( 'focus' );
-            syncJson();
-        }
 
-        if ( $urlPatAdd.length ) {
-            $urlPatAdd.on( 'click', addPattern );
-            $urlPatInput.on( 'keydown', function ( e ) {
-                if ( e.key === 'Enter' ) { e.preventDefault(); addPattern(); }
-            } );
-        }
-
-        /* -- Week-number chicklet manager -- */
-        var $weekList  = $( '#' + condPfx + '-week-chicklets' );
-        var $weekInput = $( '#' + condPfx + '-week-new' );
-        var $weekAdd   = $( '#' + condPfx + '-week-add' );
-        var $weekError = $( '#' + condPfx + '-week-error' );
-
-        function addWeek() {
-            var wk = parseInt( $weekInput.val(), 10 );
-            $weekError.hide().text( '' );
-            if ( ! wk || wk < 1 || wk > 53 ) {
-                $weekError.text( i18n.invalidWeek || 'Please enter a valid week number (1\u201353).' ).show();
-                $weekInput.trigger( 'focus' );
-                return;
-            }
-            if ( $weekList.find( '[data-val="' + wk + '"]' ).length ) {
-                $weekError.text( i18n.duplicateWeek || 'This week number has already been added.' ).show();
-                $weekInput.trigger( 'focus' );
-                return;
-            }
-            $weekList.append( makeChicklet( wk, 'Week ' + wk ) );
-            $weekInput.val( '' ).trigger( 'focus' );
-            syncJson();
-        }
-
-        if ( $weekAdd.length ) {
-            $weekAdd.on( 'click', addWeek );
-            $weekInput.on( 'keydown', function ( e ) {
-                if ( e.key === 'Enter' ) { e.preventDefault(); addWeek(); }
-            } );
-        }
-
-        /* Shared remove handler for ID, URL-pattern, and week-number chicklets */
-        $wrap.on(
-            'click',
-            '#' + condPfx + '-id-chicklets .scriptomatic-remove-url, ' +
-            '#' + condPfx + '-url-chicklets .scriptomatic-remove-url, ' +
-            '#' + condPfx + '-week-chicklets .scriptomatic-remove-url',
-            function () {
-                $( this ).closest( '.scriptomatic-chicklet' ).remove();
+            $typeSelect.on( 'change', function () {
+                showPanel( $( this ).val() );
                 syncJson();
-            }
-        );
+            } );
+            showPanel( $typeSelect.val() );
 
+            $card.on( 'change', '.sm-pt-checkbox, .sm-month-checkbox', syncJson );
+            $card.on( 'change', '.sm-date-from, .sm-date-to, .sm-datetime-from, .sm-datetime-to', syncJson );
+
+            /* Chicklet add button (shared handler — reads data-target) */
+            $card.on( 'click', '.sm-chicklet-add', function () {
+                var $btn   = $( this );
+                var target = $btn.data( 'target' );
+                var $list  = $( '#' + target );
+                var $input = $btn.closest( '.sm-chicklet-add-row' ).find( '.sm-chicklet-input' );
+                var raw    = $.trim( $input.val() );
+                if ( ! raw ) { $input.trigger( 'focus' ); return; }
+                var isNum  = $input.attr( 'type' ) === 'number';
+                var val    = isNum ? parseInt( raw, 10 ) : raw;
+                if ( isNum && ( ! val || val < 1 ) ) { $input.trigger( 'focus' ); return; }
+                if ( $list.find( '[data-value="' + val + '"]' ).length ) { $input.trigger( 'focus' ); return; }
+                var display = ( target.indexOf( '-week-' ) !== -1 ) ? 'W' + val : String( val );
+                var $c = $( '<span>' ).addClass( 'sm-chicklet' ).attr( 'data-value', val ).text( display + '\u00a0' );
+                $( '<button>' ).attr( { type: 'button', 'aria-label': 'Remove' } )
+                    .addClass( 'sm-chicklet-remove' ).html( '&times;' ).appendTo( $c );
+                $list.append( $c );
+                $input.val( '' ).trigger( 'focus' );
+                syncJson();
+            } );
+
+            /* Enter key in chicklet inputs */
+            $card.on( 'keydown', '.sm-chicklet-input', function ( e ) {
+                if ( e.key === 'Enter' ) {
+                    e.preventDefault();
+                    $( this ).closest( '.sm-chicklet-add-row' ).find( '.sm-chicklet-add' ).trigger( 'click' );
+                }
+            } );
+
+            /* Chicklet remove */
+            $card.on( 'click', '.sm-chicklet-remove', function () {
+                $( this ).closest( '.sm-chicklet' ).remove();
+                syncJson();
+            } );
+
+            /* Remove rule */
+            $card.find( '.sm-rule-remove' ).on( 'click', function () {
+                $card.remove();
+                updateUI();
+                syncJson();
+            } );
+        }
+
+        /* ----------------------------------------------------------------
+         * addRule — clone template, append, wire, and sync.
+         * ---------------------------------------------------------------- */
+        function addRule() {
+            var tplEl = document.getElementById( condPfx + '-rule-tpl' );
+            if ( ! tplEl ) { return; }
+            var html  = tplEl.innerHTML.replace( /__RIDX__/g, String( nextRidx ) );
+            nextRidx++;
+            var $card = $( html.trim() ).first();
+            $ruleList.append( $card );
+            initRuleCard( $card );
+            updateUI();
+            syncJson();
+        }
+
+        /* ----------------------------------------------------------------
+         * Logic radio, add-rule button, and initial state.
+         * ---------------------------------------------------------------- */
+        $wrap.on( 'change', '.sm-logic-radio', syncJson );
+        $wrap.find( '.sm-add-rule' ).on( 'click', addRule );
+
+        $ruleList.find( '.sm-rule-card' ).each( function () {
+            initRuleCard( $( this ) );
+        } );
+
+        updateUI();
         syncJson();
     }  /* end initConditions */
+
 
     /* =========================================================================
      * 2. URL manager — per-entry load conditions
@@ -354,7 +361,7 @@ jQuery( document ).ready( function ( $ ) {
             var entries = [];
             $entryList.children( '.sm-url-entry' ).each( function () {
                 var url  = String( $( this ).data( 'url' ) || '' );
-                var cond = { type: 'all', values: [] };
+                var cond = { logic: 'and', rules: [] };
                 var $cj  = $( this ).find( 'input[data-entry-cond-json]' );
                 if ( $cj.length ) {
                     try { cond = JSON.parse( $cj.val() ) || cond; } catch ( e ) { /* keep default */ }
@@ -421,7 +428,7 @@ jQuery( document ).ready( function ( $ ) {
 
             $e.attr( { 'data-url': url, 'data-index': String( idx ) } );
             $e.find( '.sm-url-entry__label' ).text( url ).attr( 'title', url );
-            $e.find( 'input[data-entry-cond-json]' ).val( JSON.stringify( { type: 'all', values: [] } ) );
+            $e.find( 'input[data-entry-cond-json]' ).val( JSON.stringify( { logic: 'and', rules: [] } ) );
 
             $entryList.append( $e );
             initEntry( $e );

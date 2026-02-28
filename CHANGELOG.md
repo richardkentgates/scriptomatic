@@ -13,7 +13,31 @@ _Nothing yet._
 
 ---
 
-## [1.10.0] – 2026-02-27
+## [1.11.0] – 2026-03-04
+
+### Added
+- **Stacked load conditions (AND / OR multi-rule).** Every conditions picker now supports building a stack of rules rather than a single condition:
+  - **AND mode** ("All rules") — the script loads only when _every_ rule in the stack matches.
+  - **OR mode** ("Any rule") — the script loads when _at least one_ rule matches.
+  - The AND/OR logic toggle is hidden when there are fewer than two rules and appears automatically once a second rule is added.
+  - A "+ Add Condition" button adds new rule cards; each card has its own type select and sub-panel (identical to the old single-condition UI).
+  - An empty stack ("no rules") means "load on all pages" — backwards-compatible with the pre-existing default behaviour.
+- `migrate_conditions_to_stack()` in `trait-renderer.php` — transparently converts stored legacy `{type, values}` data to the new `{logic, rules}` format so all existing conditions continue to work without a database migration.
+- `evaluate_single_rule()` in `trait-renderer.php` — extracted per-rule evaluation with all 11 condition-type cases.
+- `render_condition_rule_card_html()` in `trait-renderer.php` — renders a single rule card (type select + 8 sub-panels + remove button) used both for PHP server-render and the JS `<template>` clone.
+- `render_conditions_stack_ui()` in `trait-renderer.php` — renders the full stacked widget (logic row, rules list, no-conditions message, add button, hidden JSON input, and `<template>`) used by all three conditions pickers.
+- New CSS rules in `admin.css` for `.sm-rule-card`, `.sm-logic-row`, `.sm-rules-list`, `.sm-no-conditions-msg`, `.sm-add-rule`, `.sm-chicklet`/`.sm-chicklet-remove`, `.sm-chicklet-add-row`, `.sm-date-range-row`, `.sm-month-grid`.
+
+### Changed
+- **New conditions data format**: `{"logic":"and","rules":[{"type":"logged_in","values":[]},{"type":"by_month","values":[12]}]}`. Old format `{"type":"...","values":[]}` is auto-migrated; `type:"all"` becomes an empty rules array.
+- `sanitize_conditions_array()` in `trait-sanitizer.php`: rewritten to accept and validate the new `{logic, rules}` stack format; added `sanitize_single_rule()` helper. Legacy format auto-migrated on save.
+- `evaluate_conditions_object()` in `trait-renderer.php`: refactored to delegate to `migrate_conditions_to_stack()` + loop over `evaluate_single_rule()` with AND/OR short-circuit logic.
+- `render_conditions_field_for()`, `render_url_entry_html()`, and `render_file_conditions_widget()` in `trait-renderer.php`: all delegate to the new shared `render_conditions_stack_ui()` method; all inline condition panels removed from these callers.
+- `initConditions()` in `admin.js`: completely rewritten with rule-card architecture (`syncJson`, `updateUI`, `initRuleCard`, `addRule`). Old single-type approach removed.
+- `syncLinked()` default condition in `admin.js`: `{type:'all',values:[]}` → `{logic:'and',rules:[]}`.
+- Condition label in the Managed JS Files list view (`trait-pages.php`): 0 rules → "All pages"; 1 rule → the rule type label; 2+ rules → "N rules (AND/OR)".
+
+---
 
 ### Added
 - **Four new date/time condition types.** Load conditions now support date and time-based targeting in addition to the existing page/user-state types:

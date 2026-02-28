@@ -112,7 +112,148 @@
 }
 .scriptomatic-url-error { color: #dc3545; margin-top: 4px; }
 
-/* Security notice */
+/* =========================================================================
+   Stacked conditions UI (v1.11.0 — AND/OR rule cards)
+   ====================================================================== */
+
+/* Logic radio row */
+.sm-logic-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+.sm-logic-row[hidden] { display: none; }
+.sm-logic-row span { font-weight: 600; }
+.sm-logic-row label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+
+/* Rule list */
+.sm-rules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+/* Individual rule card */
+.sm-rule-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 10px 14px 14px;
+}
+.sm-rule-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.sm-rule-card__label {
+    font-weight: 600;
+    font-size: 12px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.sm-rule-remove {
+    color: #a00;
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+}
+.sm-rule-remove:hover { color: #dc3232; }
+
+/* No-conditions placeholder */
+.sm-no-conditions-msg {
+    color: #777;
+    font-style: italic;
+    font-size: 13px;
+    margin: 4px 0 10px;
+}
+
+/* Add-condition button */
+.sm-add-rule {
+    margin-top: 4px;
+}
+
+/* Chicklet row (inside rule cards) */
+.sm-chicklet-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 36px;
+    padding: 8px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    align-items: flex-start;
+    align-content: flex-start;
+    margin-bottom: 6px;
+}
+
+/* Individual chicklet tag (new class for rule cards) */
+.sm-chicklet {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px 3px 10px;
+    background: #2271b1;
+    color: #fff;
+    border-radius: 20px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+.sm-chicklet-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0 2px;
+    flex-shrink: 0;
+}
+.sm-chicklet-remove:hover { color: #fff; }
+
+/* Add-chicklet row */
+.sm-chicklet-add-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.sm-chicklet-input { flex: 1; max-width: 200px; }
+
+/* Date / datetime range row */
+.sm-date-range-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    align-items: center;
+}
+.sm-date-range-row label {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+}
+
+/* Month grid (inside rule cards) */
+.sm-month-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-top: 4px;
+}
+.sm-month-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    min-width: 56px;
+    font-size: 13px;
+}
 .scriptomatic-security-notice {
     margin-top: 12px;
     padding: 10px;

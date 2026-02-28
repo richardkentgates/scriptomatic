@@ -241,16 +241,66 @@ trait Scriptomatic_Sanitizer {
      *
      * @since  1.6.0
      * @access private
-     * @param  array $raw Decoded `{type, values}` array.
-     * @return array      Sanitised `{type, values}` array.
+     * @param  array $raw Decoded conditions array ({logic,rules} stack or legacy {type,values}).
+     * @return array      Sanitised {logic, rules} array.
      */
     private function sanitize_conditions_array( array $raw ) {
-        $allowed_types = array( 'all', 'front_page', 'singular', 'post_type', 'page_id', 'url_contains', 'logged_in', 'logged_out', 'by_date', 'by_datetime', 'week_number', 'by_month' );
-        $type          = ( isset( $raw['type'] ) && in_array( $raw['type'], $allowed_types, true ) )
-                         ? $raw['type'] : 'all';
-        $raw_values    = ( isset( $raw['values'] ) && is_array( $raw['values'] ) ) ? $raw['values'] : array();
+        // Auto-migrate legacy {type, values} single-condition format.
+        if ( ! isset( $raw['rules'] ) ) {
+            $type = isset( $raw['type'] ) ? (string) $raw['type'] : 'all';
+            if ( 'all' === $type || '' === $type ) {
+                return array( 'logic' => 'and', 'rules' => array() );
+            }
+            $raw = array(
+                'logic' => 'and',
+                'rules' => array(
+                    array(
+                        'type'   => $type,
+                        'values' => ( isset( $raw['values'] ) && is_array( $raw['values'] ) ) ? $raw['values'] : array(),
+                    ),
+                ),
+            );
+        }
 
+        $logic     = ( isset( $raw['logic'] ) && 'or' === $raw['logic'] ) ? 'or' : 'and';
+        $raw_rules = ( isset( $raw['rules'] ) && is_array( $raw['rules'] ) ) ? $raw['rules'] : array();
+
+        $clean_rules = array();
+        foreach ( $raw_rules as $rule ) {
+            if ( ! is_array( $rule ) ) {
+                continue;
+            }
+            $clean = $this->sanitize_single_rule( $rule );
+            if ( null !== $clean ) {
+                $clean_rules[] = $clean;
+            }
+        }
+
+        return array( 'logic' => $logic, 'rules' => $clean_rules );
+    }
+
+    /**
+     * Sanitise a single {type, values} condition rule object.
+     *
+     * @since  1.11.0
+     * @access private
+     * @param  array $raw Raw {type, values} rule.
+     * @return array|null Sanitised rule, or null if the type is unrecognised.
+     */
+    private function sanitize_single_rule( array $raw ) {
+        $allowed_types = array(
+            'front_page', 'singular', 'post_type', 'page_id', 'url_contains',
+            'logged_in', 'logged_out', 'by_date', 'by_datetime', 'week_number', 'by_month',
+        );
+        $type = ( isset( $raw['type'] ) && in_array( $raw['type'], $allowed_types, true ) )
+                ? $raw['type'] : null;
+        if ( null === $type ) {
+            return null;
+        }
+
+        $raw_values   = ( isset( $raw['values'] ) && is_array( $raw['values'] ) ) ? $raw['values'] : array();
         $clean_values = array();
+
         switch ( $type ) {
             case 'post_type':
                 foreach ( $raw_values as $pt ) {
