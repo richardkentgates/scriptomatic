@@ -111,39 +111,37 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'2.7.0'` |
+| `SCRIPTOMATIC_VERSION` | `'2.9.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
 
-### Option Keys — Head Scripts
+### Option Keys — Location Data
+
+Each location option stores a unified PHP array `{ script, conditions, urls }` as a serialised wp_option.
 
 | Constant | Option Name |
 |---|---|
-| `SCRIPTOMATIC_HEAD_SCRIPT` | `scriptomatic_script_content` |
-| `SCRIPTOMATIC_HEAD_LINKED` | `scriptomatic_linked_scripts` |
-| `SCRIPTOMATIC_HEAD_CONDITIONS` | `scriptomatic_head_conditions` |
-
-### Option Keys — Footer Scripts
-
-| Constant | Option Name |
-|---|---|
-| `SCRIPTOMATIC_FOOTER_SCRIPT` | `scriptomatic_footer_script` |
-| `SCRIPTOMATIC_FOOTER_LINKED` | `scriptomatic_footer_linked` |
-| `SCRIPTOMATIC_FOOTER_CONDITIONS` | `scriptomatic_footer_conditions` |
+| `SCRIPTOMATIC_LOCATION_HEAD` | `scriptomatic_head` |
+| `SCRIPTOMATIC_LOCATION_FOOTER` | `scriptomatic_footer` |
 
 ### Option Keys — Plugin Settings
 
 | Constant | Option Name |
 |---|---|
 | `SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION` | `scriptomatic_plugin_settings` |
-| `SCRIPTOMATIC_ACTIVITY_LOG_OPTION` | `scriptomatic_activity_log` |
 
 ### Option Keys — Managed JS Files
 
 | Constant | Option Name |
 |---|---|
 | `SCRIPTOMATIC_JS_FILES_OPTION` | `scriptomatic_js_files` |
+
+### Activity Log DB Table
+
+| Constant | Value | Description |
+|---|---|---|
+| `SCRIPTOMATIC_LOG_TABLE` | `scriptomatic_log` | Table base name (without DB prefix) for the custom activity log table |
 
 ### Limits & Timing
 
@@ -238,15 +236,15 @@ The WordPress Settings API invokes each sanitise callback twice per POST request
 
 **Trait name:** `Scriptomatic_History`
 
-Manages per-location revision stacks stored in `wp_options`.
+Manages revision history via the activity log DB table.
 
 **Private methods:**
 
-- `get_history( $location )` — filters the unified activity log to entries carrying a content snapshot (`action` in `save`|`rollback`) for the given location; returns a re-indexed array.
+- `get_history( $location )` — calls `get_activity_log()` with a location filter, then filters for entries carrying a content snapshot (`action` in `save`|`rollback`); returns an array.
 
 **Public AJAX handlers:**
 
-- `ajax_rollback()` — verifies the `SCRIPTOMATIC_ROLLBACK_NONCE` nonce, validates `$_POST['index']` and `$_POST['location']`, then writes the script content, URL list, and conditions **directly via `$wpdb->update()`** (bypassing `update_option()` and its registered sanitise callbacks, which would fail in an AJAX context with no `$_POST` nonce fields). Clears the options cache with `wp_cache_delete()`. Also calls `write_activity_entry()`. When the log entry contains `urls_snapshot` or `conditions_snapshot`, those fields are restored simultaneously alongside the script.
+- `ajax_rollback()` — verifies the `SCRIPTOMATIC_ROLLBACK_NONCE` nonce, validates `$_POST['id']` (DB row ID) and `$_POST['location']`, fetches the entry via `get_log_entry_by_id($id)`, validates location and action, then writes the script content, URL list, and conditions **directly via `$wpdb->update()`** (bypassing `update_option()` and its registered sanitise callbacks, which would fail in an AJAX context with no `$_POST` nonce fields). Clears the options cache with `wp_cache_delete()`. Also calls `write_activity_entry()`.
 - `ajax_get_history_content()` — same nonce check, returns the entry's combined snapshot as a formatted lightbox display string without modifying data.
 - `ajax_rollback_js_file()` — restores a managed JS file from an activity log snapshot; writes content to disk and updates metadata.
 - `ajax_get_file_activity_content()` — returns a formatted lightbox display string for a JS file activity log entry.
@@ -254,10 +252,11 @@ Manages per-location revision stacks stored in `wp_options`.
 
 **History entry structure:**
 
-Revision history is stored inside the unified activity log (`SCRIPTOMATIC_ACTIVITY_LOG_OPTION`). Entries with action `save` or `rollback` carry a `content` key and are returned by `get_history()`:
+Revision history entries are rows in the activity log DB table. Decoded entries with action `save` or `rollback` carry a `content` key and are returned by `get_history()`:
 
 ```php
 array(
+    'id'         => int,      // DB row primary key
     'content'    => string,   // Raw script content
     'timestamp'  => int,      // Unix timestamp
     'user_login' => string,   // wp_get_current_user()->user_login
@@ -280,14 +279,14 @@ array(
 
 | Group name | Page slug | Options registered |
 |---|---|---|
-| `scriptomatic_head_group` | `scriptomatic_head_page` | `HEAD_SCRIPT`, `HEAD_LINKED`, `HEAD_CONDITIONS` |
-| `scriptomatic_footer_group` | `scriptomatic_footer_page` | `FOOTER_SCRIPT`, `FOOTER_LINKED`, `FOOTER_CONDITIONS` |
+| `scriptomatic_head_group` | `scriptomatic_head_page` | `SCRIPTOMATIC_LOCATION_HEAD` |
+| `scriptomatic_footer_group` | `scriptomatic_footer_page` | `SCRIPTOMATIC_LOCATION_FOOTER` |
 | `scriptomatic_general_group` | `scriptomatic_general_page` | `SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION` |
 
 **Plugin settings CRUD:**
 
 - `get_plugin_settings()` — returns the stored settings merged with defaults via `wp_parse_args()`. Safe to call anywhere.
-- `sanitize_plugin_settings( $input )` — validates and clamps `max_log_entries` (3–1000). When the limit is reduced, immediately trims the existing activity log via `update_option()`.
+- `sanitize_plugin_settings( $input )` — validates and clamps `max_log_entries` (3–1000). When the limit is reduced, immediately prunes the activity log DB table via a direct `DELETE WHERE id < Nth_id` query.
 - `get_max_log_entries()` — convenience getter for `max_log_entries`.
 
 **Plugin settings data structure:**
@@ -302,8 +301,10 @@ array(
 
 **Activity log (write/read):**
 
-- `write_activity_entry( array $data )` — merges `$data` with `timestamp`, `user_login`, `user_id`; unshifts onto the log array; caps to `get_max_log_entries()`; calls `update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, $log )`.
-- `get_activity_log()` — reads and returns the log array from options.
+- `write_activity_entry( array $data )` — merges `$data` with `timestamp`, `user_login`, `user_id`; inserts a row into `{prefix}scriptomatic_log` via `$wpdb->insert()`; prunes oldest rows beyond the limit with a single `DELETE WHERE id < Nth_id` query.
+- `get_activity_log($limit, $offset, $location, $file_id)` — SELECT from DB with optional location/file_id filters; returns decoded entry arrays.
+- `get_log_entry_by_id($id)` — fetches a single row by primary key; returns a decoded entry array or `null`.
+- `decode_log_row($row)` — private helper; expands the JSON `snapshot` column into the flat entry shape.
 
 ---
 
@@ -549,35 +550,40 @@ Each registered `option_key` maps to one sanitise callback. The groups are used 
 
 | Group | Option registered | Sanitise callback |
 |---|---|---|
-| `scriptomatic_head_group` | `SCRIPTOMATIC_HEAD_SCRIPT` | `sanitize_head_script()` |
-| `scriptomatic_head_group` | `SCRIPTOMATIC_HEAD_LINKED` | `sanitize_head_linked()` |
-| `scriptomatic_head_group` | `SCRIPTOMATIC_HEAD_CONDITIONS` | `sanitize_head_conditions()` |
-| `scriptomatic_footer_group` | `SCRIPTOMATIC_FOOTER_SCRIPT` | `sanitize_footer_script()` |
-| `scriptomatic_footer_group` | `SCRIPTOMATIC_FOOTER_LINKED` | `sanitize_footer_linked()` |
-| `scriptomatic_footer_group` | `SCRIPTOMATIC_FOOTER_CONDITIONS` | `sanitize_footer_conditions()` |
+| `scriptomatic_head_group` | `SCRIPTOMATIC_LOCATION_HEAD` | `sanitize_head_location()` |
+| `scriptomatic_footer_group` | `SCRIPTOMATIC_LOCATION_FOOTER` | `sanitize_footer_location()` |
 | `scriptomatic_general_group` | `SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION` | `sanitize_plugin_settings()` |
 
 ---
 
 ## 9. Option Keys & Data Structures
 
-### Inline script content
-`string` — raw JavaScript, no `<script>` tags. Empty string when nothing has been saved.
+### Location data (`scriptomatic_head` / `scriptomatic_footer`)
+Each location is stored as a single serialised PHP array option:
+
+```php
+array(
+    'script'     => string,  // Raw JavaScript (no <script> tags)
+    'conditions' => array,   // { logic: 'and'|'or', rules: [...] }
+    'urls'       => array,   // [ { url: string, conditions: {...} }, ... ]
+)
+```
+
+Empty defaults: `script = ''`, `conditions = { logic: 'and', rules: [] }`, `urls = []`.
+Read via `get_location($location)`, written via `save_location($location, $data)` in `trait-settings.php`.
 
 ### Linked URLs
-`string` — JSON-encoded array of entry objects:
+Stored inside the location array’s `urls` key. Each entry:
 
 ```json
-[
-  {
-    "url": "https://example.com/script.js",
-    "conditions": { "logic": "and", "rules": [] }
-  }
-]
+{
+  "url": "https://example.com/script.js",
+  "conditions": { "logic": "and", "rules": [] }
+}
 ```
 
 ### Load conditions (inline script)
-`string` — JSON-encoded stacked conditions object:
+Stored inside the location array’s `conditions` key — a stacked conditions object:
 
 ```json
 { "logic": "and", "rules": [ { "type": "post_type", "values": ["post", "page"] } ] }
@@ -586,27 +592,30 @@ Each registered `option_key` maps to one sanitise callback. The groups are used 
 An empty `rules` array means “load on all pages”.
 
 ### Revision history
-Revision history is stored within the unified activity log (see §13 and §14). Use `get_history( $location )` in `trait-history.php` to fetch content-bearing entries.
+Revision history is stored within the activity log DB table (see §13 and §14). Use `get_history( $location )` in `trait-history.php` to fetch content-bearing entries.
 
 ### Activity log
-`array` — serialised by `update_option()`. Stored in `SCRIPTOMATIC_ACTIVITY_LOG_OPTION` (`scriptomatic_activity_log`). Entries are prepended (newest first). Example structure:
+Stored in the custom DB table `{prefix}scriptomatic_log`. Schema:
 
-```php
-array(
-    'timestamp'            => int,     // Unix timestamp
-    'user_login'           => string,
-    'user_id'              => int,
-    'action'               => string,  // see action table in §13
-    'location'             => string,  // 'head' | 'footer' | '' for cross-location events
-    'chars'                => int,     // present for content-bearing events
-    'detail'               => string,  // URL or file label for informational events
-    'content'              => string,  // snapshot for save/rollback/file events
-    'urls_snapshot'        => array,   // full URL list at time of change
-    'conditions_snapshot'  => array,   // full conditions at time of change
-    'meta'                 => array,   // file metadata for JS file events
-)
+```sql
+CREATE TABLE {prefix}scriptomatic_log (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    timestamp  INT UNSIGNED NOT NULL DEFAULT 0,
+    user_id    INT UNSIGNED NOT NULL DEFAULT 0,
+    user_login VARCHAR(60)  NOT NULL DEFAULT '',
+    action     VARCHAR(40)  NOT NULL DEFAULT '',
+    location   VARCHAR(20)  NOT NULL DEFAULT '',
+    file_id    VARCHAR(60)           DEFAULT NULL,
+    detail     TEXT         NOT NULL,
+    chars      INT UNSIGNED          DEFAULT NULL,
+    snapshot   LONGTEXT              DEFAULT NULL,
+    PRIMARY KEY (id),
+    KEY location_action (location(20), action(40)),
+    KEY file_id (file_id(60))
+);
 ```
 
+The `snapshot` column stores a JSON blob containing whichever of the following keys are relevant to the action: `content`, `conditions_snapshot`, `urls_snapshot`, `conditions`, `meta`.
 ---
 
 ## 10. Security Model
@@ -682,7 +691,7 @@ All endpoints are registered on `wp_ajax_{action}` (logged-in users only). Histo
 
 ## 13. Activity Log
 
-The activity log is a single `wp_options` row (`scriptomatic_activity_log`, constant `SCRIPTOMATIC_ACTIVITY_LOG_OPTION`) storing a serialised PHP array. Entries are prepended (newest first). When the array length exceeds `get_max_log_entries()`, the oldest entries are sliced off. Written via `write_activity_entry()` in `trait-settings.php`.
+The activity log is stored in the custom DB table `{prefix}scriptomatic_log` (constant `SCRIPTOMATIC_LOG_TABLE = 'scriptomatic_log'`). The table is created at `admin_init` via `maybe_create_log_table()` using `dbDelta()`. Rows are inserted by `write_activity_entry()` in `trait-settings.php` using `$wpdb->insert()`. After each insert, the oldest rows beyond the configured limit are pruned with a single `DELETE WHERE id < Nth_id` query. Read via `get_activity_log($limit, $offset, $location, $file_id)` (SQL-native filtering) or `get_log_entry_by_id($id)` for single-row lookup.
 
 **Events logged:**
 
@@ -697,15 +706,15 @@ The activity log is a single `wp_options` row (`scriptomatic_activity_log`, cons
 | `file_delete` | Managed JS file deleted | `content`, `meta`, `conditions`; when triggered by saving empty content, `meta.reason = 'empty_save'` |
 | `file_restored` | Deleted JS file re-created via AJAX | `meta` |
 
-The log is per-site (always uses `get_option` / `update_option`). On multisite, each site has its own log.
+The log is per-site (uses `$wpdb` with the per-site table prefix). On multisite, each site has its own log table.
 
 ---
 
 ## 14. Revision History
 
-Revision history is stored **inside the unified activity log** (`SCRIPTOMATIC_ACTIVITY_LOG_OPTION`). There are no separate per-location history option keys.
+Revision history is stored inside the activity log DB table (see §13). There are no separate per-location history option keys.
 
-`get_history( $location )` in `trait-history.php` filters the activity log to entries with action `save` or `rollback` for the given location. Because every save already records a `content` snapshot in the log, the history is always available without any additional storage.
+`get_history( $location )` in `trait-history.php` calls `get_activity_log()` with a location filter and then filters for entries with action `save` or `rollback` that have a `content` key. Because every save already records a `content` snapshot in the log, the history is always available without any additional storage.
 
 History depth is effectively bounded by the activity log limit (configurable in Preferences, 3–1000, default 200).
 
@@ -720,9 +729,9 @@ On each front-end page load, two actions fire:
 
 `inject_scripts_for( $location )`:
 
-1. Reads `$script_content` from the script option and `$linked_entries` from the linked URL option.
-2. For each linked entry, calls `evaluate_conditions_object( $entry['conditions'] )`. If it passes, appends a `<script src="…">` tag.
-3. Reads the location-level conditions option and calls `check_load_conditions( $location )`. If the inline script is non-empty and conditions pass, appends the `<script>` block.
+1. Reads the location data via `get_location( $location )` — a single `get_option()` returning `{ script, conditions, urls }`.
+2. For each linked URL entry, calls `evaluate_conditions_object( $entry['conditions'] )`. If it passes, appends a `<script src="…">` tag.
+3. Evaluates the location-level conditions via `evaluate_conditions_object( $loc_data['conditions'] )`. If the inline script is non-empty and conditions pass, appends the `<script>` block.
 4. If `$output_parts` is empty, returns without any output.
 5. Otherwise, emits the comment wrapper and all output parts.
 
@@ -767,17 +776,20 @@ Responsibilities:
 
 1. Reads `scriptomatic_plugin_settings` to check `keep_data_on_uninstall`.
 2. If `true`, returns immediately (data preserved).
-3. Otherwise, calls `delete_option()` for every option key on the current site.
+3. Otherwise, calls `delete_option()` for every option key and `scriptomatic_drop_log_table()` on the current site.
 4. On multisite, additionally iterates every blog via `switch_to_blog()` / `restore_current_blog()` and calls `delete_site_option()` for completeness.
 
 All option keys explicitly cleaned up:
 
 ```
-scriptomatic_script_content    scriptomatic_footer_script
-scriptomatic_linked_scripts    scriptomatic_footer_linked
-scriptomatic_head_conditions   scriptomatic_footer_conditions
-scriptomatic_js_files          scriptomatic_plugin_settings
-scriptomatic_activity_log
+scriptomatic_head              scriptomatic_footer
+scriptomatic_js_files         scriptomatic_plugin_settings
+```
+
+Custom DB table dropped:
+
+```sql
+DROP TABLE IF EXISTS {prefix}scriptomatic_log
 ```
 
 The uploads directory (`wp-content/uploads/scriptomatic/`) is also deleted via `scriptomatic_delete_uploads_dir()`.
@@ -793,23 +805,16 @@ Scriptomatic does not expose WordPress filters or actions for extension. The fol
 All data is in standard `wp_options`. You can read any value at any time:
 
 ```php
-// Current head inline script
-$head_script = get_option( 'scriptomatic_script_content', '' );
+// Current head location data (script, conditions, urls)
+$head = get_option( 'scriptomatic_head', array() );
+$head_script = $head['script'] ?? '';
+$head_urls   = $head['urls']   ?? [];
 
-// Current footer inline script
-$footer_script = get_option( 'scriptomatic_footer_script', '' );
-
-// External URL list (JSON — decode before use)
-$head_urls = json_decode( get_option( 'scriptomatic_linked_scripts', '[]' ), true );
-
-// Head load conditions
-$head_conditions = json_decode( get_option( 'scriptomatic_head_conditions', '{"logic":"and","rules":[]}' ), true );
+// Current footer location data
+$footer = get_option( 'scriptomatic_footer', array() );
 
 // Plugin settings
 $settings = get_option( 'scriptomatic_plugin_settings', array() );
-
-// Activity log (newest first)
-$log = get_option( 'scriptomatic_activity_log', array() );
 ```
 
 ### Hooking into injection output
@@ -850,22 +855,26 @@ The codebase uses `'head'` and `'footer'` as string identifiers throughout. To a
 
 ### Writing to the activity log from external code
 
-`write_activity_entry()` is `private` on the trait, but you can write directly to the option it uses:
+`write_activity_entry()` is `private` on the trait. To add entries from external code, use a direct `$wpdb->insert()` into `{prefix}scriptomatic_log`:
 
 ```php
-$log   = (array) get_option( 'scriptomatic_activity_log', array() );
-$entry = array(
-    'timestamp'  => time(),
-    'user_login' => wp_get_current_user()->user_login,
-    'user_id'    => get_current_user_id(),
-    'action'     => 'my_custom_action',
-    'location'   => 'head',
-    'detail'     => 'optional context string',
+global $wpdb;
+$table = $wpdb->prefix . 'scriptomatic_log';
+$wpdb->insert(
+    $table,
+    array(
+        'timestamp'  => time(),
+        'user_login' => wp_get_current_user()->user_login,
+        'user_id'    => get_current_user_id(),
+        'action'     => 'my_custom_action',
+        'location'   => 'head',
+        'detail'     => 'optional context string',
+        'snapshot'   => null,
+    ),
+    array( '%d', '%s', '%d', '%s', '%s', '%s', '%s' )
 );
-array_unshift( $log, $entry );
-update_option( 'scriptomatic_activity_log', array_slice( $log, 0, 200 ) );
 ```
 
 ---
 
-*Document version: 2.7.0 — reflects the codebase as of March 2026.*
+*Document version: 2.9.0 — reflects the codebase as of February 2026.*

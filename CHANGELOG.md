@@ -13,6 +13,69 @@ _Nothing yet._
 
 ---
 
+## [2.9.0] – 2026-02-28
+
+### Added
+- **Custom activity log DB table (`{prefix}scriptomatic_log`).**
+  Replaces the previous `wp_options`-based activity log (`scriptomatic_activity_log`).
+  Table columns: `id` (PK, auto-increment), `timestamp`, `user_id`, `user_login`,
+  `action`, `location`, `file_id`, `detail`, `chars`, `snapshot` (JSON LONGTEXT).
+  Indexed on `(location, action)` and `file_id` for efficient filtered reads.
+  Created at `admin_init` via `maybe_create_log_table()` which calls `dbDelta()`.
+- **`write_activity_entry()` now writes to DB.** Uses `$wpdb->insert()` then prunes
+  by finding the Nth most-recent row's ID and issuing `DELETE WHERE id < that_id`,
+  avoiding a full-table read on every write.
+- **`get_activity_log($limit, $offset, $location, $file_id)` now queries DB.**
+  Optional location and file_id filters are pushed into SQL — no PHP-side array
+  filtering needed. Zero limit defaults to `get_max_log_entries()`.
+- **`get_log_entry_by_id($id)` new method.** Fetches a single log row by primary
+  key; returns a decoded entry array or `null` when not found.
+- **`decode_log_row(array $row)`** new private helper. Expands the JSON `snapshot`
+  column into the flat entry shape expected by AJAX handlers and service methods.
+- Activity log and history AJAX endpoints now accept an **`id` parameter** (DB row
+  primary key) instead of `index` (array position). JavaScript updated accordingly.
+- REST API rollback endpoints (`script/rollback`, `urls/rollback`) now accept an
+  `id` parameter instead of `index`. Each validates location and action against the
+  fetched DB row to prevent cross-location restores.
+- `uninstall.php` now calls `scriptomatic_drop_log_table()` to `DROP TABLE IF EXISTS
+  {prefix}scriptomatic_log` for each site on plugin deletion.
+
+### Removed
+- **`SCRIPTOMATIC_ACTIVITY_LOG_OPTION` constant.** The legacy `scriptomatic_activity_log`
+  wp_option is no longer used; the constant has been removed.
+- **`maybe_migrate_log_to_table()` migration helper.** Removed as dead code — this
+  is a first release with no existing installs to migrate.
+- `scriptomatic_activity_log` removed from `uninstall.php` option cleanup list.
+
+---
+
+## [2.8.0] – 2026-02-28
+
+### Changed
+- **Location data consolidated into two unified option keys.**
+  Six fragmented wp_options (`scriptomatic_script_content`, `scriptomatic_linked_scripts`,
+  `scriptomatic_head_conditions`, `scriptomatic_footer_script`, `scriptomatic_footer_linked`,
+  `scriptomatic_footer_conditions`) are replaced by two PHP array options:
+  `scriptomatic_head` and `scriptomatic_footer`. Each array stores `{ script, conditions, urls }`.
+- **Two new location constants** `SCRIPTOMATIC_LOCATION_HEAD` (`scriptomatic_head`)
+  and `SCRIPTOMATIC_LOCATION_FOOTER` (`scriptomatic_footer`) replace the six individual
+  option key constants.
+- **`get_location($location)` / `save_location($location, $data)` helpers** added to
+  `trait-settings.php` as the single read/write interface for location data.
+- All sanitizer, history, injector, API, and CLI code updated to use the new helpers.
+
+### Added
+- **`maybe_migrate_to_v2_8()` one-time migration** runs at `admin_init` on first load
+  after upgrade, reading the six old options and writing the two new ones, then deleting
+  the old keys.
+
+### Removed
+- Constants: `SCRIPTOMATIC_HEAD_SCRIPT`, `SCRIPTOMATIC_HEAD_LINKED`,
+  `SCRIPTOMATIC_HEAD_CONDITIONS`, `SCRIPTOMATIC_FOOTER_SCRIPT`,
+  `SCRIPTOMATIC_FOOTER_LINKED`, `SCRIPTOMATIC_FOOTER_CONDITIONS`.
+
+---
+
 ## [2.7.0] – 2026-03-07
 
 ### Added
