@@ -306,9 +306,15 @@
     /* ── PRICING ── */
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 1.25rem;
       margin-bottom: 2.5rem;
+    }
+    @media (max-width: 860px) {
+      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .pricing-grid { grid-template-columns: 1fr; }
     }
     .pricing-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
