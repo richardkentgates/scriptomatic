@@ -272,6 +272,50 @@
     .footer-links { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
     .footer-links a { font-size: .875rem; }
 
+    /* ── PRO BADGE ── */
+    .pro-badge {
+      display: inline-block;
+      background: #7c3aed; color: #fff;
+      font-size: .65rem; font-weight: 700; letter-spacing: .5px;
+      text-transform: uppercase;
+      padding: .15rem .45rem; border-radius: 4px;
+      vertical-align: middle; margin-left: .35rem;
+      position: relative; top: -1px;
+    }
+
+    /* ── PRICING ── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+    .pricing-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.6rem 1.4rem; text-align: center;
+    }
+    .pricing-card.featured {
+      border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue);
+    }
+    .pricing-card .plan-name { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: .5rem; }
+    .pricing-card .plan-price { font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1.1; }
+    .pricing-card .plan-price span { font-size: .9rem; font-weight: 400; color: var(--muted); }
+    .pricing-card .plan-sites { font-size: .85rem; color: var(--muted); margin: .4rem 0 1.1rem; }
+    .pricing-card .plan-cta {
+      display: block; background: var(--blue); color: #fff;
+      padding: .55rem 1rem; border-radius: 6px; font-size: .875rem; font-weight: 600;
+      text-decoration: none;
+    }
+    .pricing-card .plan-cta:hover { background: var(--blue-dk); }
+    .pricing-card.free .plan-cta { background: var(--border); color: var(--text); }
+    .pricing-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+    .pricing-table th, .pricing-table td { padding: .7rem 1rem; font-size: .875rem; border-bottom: 1px solid var(--border); text-align: center; }
+    .pricing-table th { background: #f0f6fc; font-weight: 700; }
+    .pricing-table td:first-child { text-align: left; font-weight: 500; color: var(--text); }
+    .pricing-table tr:last-child td { border-bottom: none; }
+    .chk { color: var(--green); font-size: 1rem; }
+    .cross { color: #b0b5bd; font-size: 1rem; }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 640px) {
       nav { padding: 0 1rem; }
@@ -294,19 +338,23 @@
     <li><a href="#api">API</a></li>
     <li><a href="#cli">CLI</a></li>
     <li><a href="#changelog">Changelog</a></li>
+    <li><a href="#pricing" style="color:#7c3aed;font-weight:700;">⭐ Pro</a></li>
   </ul>
-  <a class="btn nav-cta" href="https://github.com/richardkentgates/scriptomatic/releases/latest">Download</a>
+  <a class="btn nav-cta" href="https://github.com/richardkentgates/scriptomatic/releases/latest">Download Free</a>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
   <img src="scriptomatic-logo.png" alt="Scriptomatic" class="hero-logo" />
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.9.0</div>
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v3.0.0 &nbsp;·&nbsp; Free + Pro</div>
   <h1>Inject custom JavaScript<br/><span>the right way.</span></h1>
-  <p>Scriptomatic gives WordPress administrators full control over custom scripts — inline JavaScript with a built-in code editor, managed JS files, and external script URLs — injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer with conditional loading, revision history, one-click rollback, and a complete activity log.</p>
+  <p>The <strong>free version</strong> gives every WordPress administrator a full inline script editor, external URL manager, revision history, and activity log. <strong>Scriptomatic Pro</strong> unlocks conditional loading, managed JS files, a full REST API, and WP-CLI — all injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer of your site.</p>
   <div class="hero-actions">
     <a class="btn btn-primary" href="https://github.com/richardkentgates/scriptomatic/releases/latest">
-      ⬇ Download Latest
+      ⬇ Download Free
+    </a>
+    <a class="btn btn-ghost" href="https://checkout.freemius.com/mode/dialog/plugin/25187/plan/" style="background:rgba(124,58,237,.35);border-color:rgba(196,167,255,.5);color:#e9d5ff;">
+      ⭐ Upgrade to Pro
     </a>
     <a class="btn btn-ghost" href="https://github.com/richardkentgates/scriptomatic">
       ★ View on GitHub
@@ -326,7 +374,7 @@
   <div class="container">
     <span class="section-label">What it does</span>
     <h2>Everything you need, nothing you don't</h2>
-    <p class="section-intro">A complete toolkit for managing custom JavaScript on any WordPress site — built for administrators who care about control and correctness.</p>
+    <p class="section-intro">The <strong>free version</strong> covers the essentials. <strong>Pro</strong> unlocks conditional loading, managed JS files, REST API, and WP-CLI. Cards marked <span class="pro-badge">Pro</span> require a licence.</p>
     <div class="feature-grid">
 
       <div class="feature-card">
@@ -343,7 +391,7 @@
 
       <div class="feature-card">
         <div class="feature-icon icon-green">🎯</div>
-        <h3>Conditional Loading</h3>
+        <h3>Conditional Loading <span class="pro-badge">Pro</span></h3>
         <p>Eleven condition types — Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, Week Number, Month — per location, independently configured.</p>
       </div>
 
@@ -379,7 +427,7 @@
 
       <div class="feature-card">
         <div class="feature-icon icon-amber">🗂️</div>
-        <h3>Managed JS Files</h3>
+        <h3>Managed JS Files <span class="pro-badge">Pro</span></h3>
         <p>Create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file gets its own Head/Footer selector and Load Conditions, and survives plugin updates.</p>
       </div>
 
@@ -397,13 +445,13 @@
 
       <div class="feature-card">
         <div class="feature-icon icon-blue">🔌</div>
-        <h3>REST API</h3>
+        <h3>REST API <span class="pro-badge">Pro</span></h3>
         <p>Full <code>scriptomatic/v1</code> REST API (13 POST endpoints) covering inline scripts, external URLs, and managed JS files — including a multipart file upload endpoint. Authenticated via WordPress Application Passwords. Optional IP allowlist in Preferences.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon icon-green">💻</div>
-        <h3>WP-CLI</h3>
+        <h3>WP-CLI <span class="pro-badge">Pro</span></h3>
         <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), and history. All commands share the same service layer as the REST API — identical validation, rate-limiting, and activity logging.</p>
       </div>
 
@@ -435,8 +483,8 @@
       </div>
       <div class="step">
         <div class="step-num">4</div>
-        <h3>Set Load Conditions</h3>
-        <p>Optionally restrict injection to specific pages, post types, URL patterns, or user state. Leave blank to load everywhere.</p>
+        <h3>Set Load Conditions <span class="pro-badge">Pro</span></h3>
+        <p>Optionally restrict injection to specific pages, post types, URL patterns, or user state. Requires a Pro licence. On free, scripts load on all pages.</p>
       </div>
       <div class="step">
         <div class="step-num">5</div>
@@ -640,14 +688,14 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
             <td>Inline JS editor, external URL manager, load conditions, Activity Log (footer entries only)</td>
           </tr>
           <tr>
-            <td>JS Files</td>
+            <td>JS Files <span class="pro-badge">Pro</span></td>
             <td>Scriptomatic → JS Files</td>
             <td>Upload a <code>.js</code> file via the <strong>Upload a JS File</strong> card; create, edit, and delete managed <code>.js</code> files; each file has its own label, slug filename, Head/Footer toggle, load conditions, and CodeMirror editor</td>
           </tr>
           <tr>
             <td>Preferences</td>
             <td>Scriptomatic → Preferences</td>
-            <td>Activity log limit (3–1000), uninstall data-retention toggle, API Allowed IPs (IPv4/IPv6/CIDR allowlist for REST API access)</td>
+            <td>Activity log limit (3–1000), uninstall data-retention toggle, API Allowed IPs <span class="pro-badge">Pro</span> (IPv4/IPv6/CIDR allowlist for REST API access)</td>
           </tr>
         </tbody>
       </table>
@@ -659,8 +707,12 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
 <section id="api">
   <div class="container">
     <span class="section-label">REST API</span>
-    <h2>Automate everything over HTTP</h2>
+    <h2>Automate everything over HTTP <span class="pro-badge" style="font-size:.75rem;">Pro</span></h2>
     <p class="section-intro">All 13 endpoints are <code>POST</code>-only. Authentication uses <strong>WordPress Application Passwords</strong> — credentials always travel in the <code>Authorization: Basic</code> header, never in the URL.</p>
+    <div class="highlight-box" style="margin-bottom:2rem;border-color:#7c3aed;background:#f5f0ff;">
+      <h4>Pro Feature</h4>
+      <p>The REST API requires an active Scriptomatic Pro licence. On free installations the <code>scriptomatic/v1</code> namespace is not registered. <a href="#pricing">View pricing →</a></p>
+    </div>
 
     <div class="highlight-box" style="margin-bottom:2rem;">
       <h4>Authentication</h4>
@@ -730,8 +782,12 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
 <section class="features-bg" id="cli">
   <div class="container">
     <span class="section-label">WP-CLI</span>
-    <h2>Manage scripts from the command line</h2>
+    <h2>Manage scripts from the command line <span class="pro-badge" style="font-size:.75rem;">Pro</span></h2>
     <p class="section-intro">The <code>wp scriptomatic</code> command group mirrors the full REST API. All write commands share the same service layer — identical validation, rate-limiting, and activity logging apply.</p>
+    <div class="highlight-box" style="margin-bottom:1.5rem;border-color:#7c3aed;background:#f5f0ff;">
+      <h4>Pro Feature</h4>
+      <p>WP-CLI commands require an active Scriptomatic Pro licence. <a href="#pricing">View pricing →</a></p>
+    </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:1.5rem;margin-top:1.25rem;">
 
@@ -823,12 +879,89 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
   </div>
 </section>
 
+<!-- PRICING -->
+<section id="pricing">
+  <div class="container">
+    <span class="section-label">Pricing</span>
+    <h2>Free to use. Pro to unlock.</h2>
+    <p class="section-intro">Scriptomatic is fully free for core features. Upgrade to Pro for conditional loading, managed JS files, REST API, and WP-CLI.</p>
+
+    <div class="pricing-grid">
+      <div class="pricing-card free">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0</div>
+        <div class="plan-sites">Unlimited sites</div>
+        <a class="plan-cta" href="https://github.com/richardkentgates/scriptomatic/releases/latest">Download Free</a>
+      </div>
+      <div class="pricing-card featured">
+        <div class="plan-name">Personal</div>
+        <div class="plan-price">$19.99<span>/yr</span></div>
+        <div class="plan-sites">1 site</div>
+        <a class="plan-cta" href="https://checkout.freemius.com/mode/dialog/plugin/25187/plan/">Get Pro</a>
+      </div>
+      <div class="pricing-card">
+        <div class="plan-name">Freelancer</div>
+        <div class="plan-price">$39.99<span>/yr</span></div>
+        <div class="plan-sites">Up to 5 sites</div>
+        <a class="plan-cta" href="https://checkout.freemius.com/mode/dialog/plugin/25187/plan/">Get Pro</a>
+      </div>
+      <div class="pricing-card">
+        <div class="plan-name">Agency</div>
+        <div class="plan-price">$79.99<span>/yr</span></div>
+        <div class="plan-sites">Up to 20 sites</div>
+        <a class="plan-cta" href="https://checkout.freemius.com/mode/dialog/plugin/25187/plan/">Get Pro</a>
+      </div>
+      <div class="pricing-card">
+        <div class="plan-name">Studio</div>
+        <div class="plan-price">$149.99<span>/yr</span></div>
+        <div class="plan-sites">Up to 100 sites</div>
+        <a class="plan-cta" href="https://checkout.freemius.com/mode/dialog/plugin/25187/plan/">Get Pro</a>
+      </div>
+      <div class="pricing-card">
+        <div class="plan-name">Unlimited</div>
+        <div class="plan-price">$299.99<span>/yr</span></div>
+        <div class="plan-sites">Unlimited sites</div>
+        <a class="plan-cta" href="https://checkout.freemius.com/mode/dialog/plugin/25187/plan/">Get Pro</a>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="pricing-table">
+        <thead>
+          <tr><th>Feature</th><th>Free</th><th>Pro</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Inline script editor (head + footer)</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td>External script URL manager</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td>Revision history &amp; one-click rollback</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td>Activity log</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td>CodeMirror editor with autocomplete</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td>Multisite compatible</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td><strong>Conditional loading</strong> (11 rule types, AND/OR)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td><strong>Managed JS Files</strong> (create / edit / upload / delete)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td><strong>REST API</strong> (13 endpoints)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td><strong>WP-CLI</strong> (<code>wp scriptomatic</code>)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td><strong>API IP Allowlist</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 <!-- CHANGELOG -->
 <section class="features-bg" id="changelog">
   <div class="container">
     <span class="section-label">Release History</span>
     <h2>Changelog</h2>
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
+
+    <div class="changelog-item">
+      <div class="clog-version" style="background:#7c3aed;">v3.0.0</div>
+      <div class="clog-body">
+        <h4>Freemius integration — freemium model, Free + Pro</h4>
+        <p>Scriptomatic is now freemium. Core features (inline scripts, external URLs, activity log with rollback) remain free and unlimited. <strong>Conditional loading, Managed JS Files, REST API, WP-CLI, and the API IP Allowlist now require a Pro licence.</strong> The Freemius SDK (<code>freemius/</code>) is bundled for licence management, in-dashboard upgrade, and uninstall feedback. Uninstall cleanup is now hooked to the Freemius <code>after_uninstall</code> action rather than a static <code>uninstall.php</code> file. Free users see contextual upgrade notices on locked features. Bug fix: <code>$conditions</code> variable shadow in <code>inject_scripts_for()</code> corrected.</p>
+      </div>
+    </div>
 
     <div class="changelog-item">
       <div class="clog-version">v2.9.0</div>
@@ -1097,9 +1230,10 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <a href="https://github.com/richardkentgates/scriptomatic/blob/main/ARCHITECTURE.md">Architecture</a>
     <a href="https://github.com/richardkentgates/scriptomatic/blob/main/SECURITY.md">Security</a>
     <a href="https://github.com/richardkentgates/scriptomatic/issues">Issues</a>
+    <a href="https://checkout.freemius.com/mode/dialog/plugin/25187/plan/" style="color:#e9d5ff;">⭐ Upgrade to Pro</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v2.9.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v3.0.0 &nbsp;·&nbsp; Free &amp; Pro &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>
