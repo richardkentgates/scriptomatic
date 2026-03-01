@@ -31,41 +31,30 @@ if ( ! function_exists( 'scriptomatic_fs' ) ) {
         global $scriptomatic_fs;
 
         if ( ! isset( $scriptomatic_fs ) ) {
-            $product_id = 'REPLACE_WITH_PRODUCT_ID'; // TODO: numeric product ID from Freemius dashboard.
-            $public_key = 'pk_REPLACE_WITH_PUBLIC_KEY'; // TODO: public key from Freemius dashboard.
-
-            // Don't attempt to initialise the SDK until real credentials are in place.
-            if ( 'REPLACE_WITH_PRODUCT_ID' === $product_id || 'pk_REPLACE_WITH_PUBLIC_KEY' === $public_key ) {
-                return null;
-            }
-
             // Include the Freemius SDK.
             require_once SCRIPTOMATIC_PLUGIN_DIR . 'freemius/start.php';
 
             $scriptomatic_fs = fs_dynamic_init( array(
-                'id'               => $product_id,
-                'slug'             => 'scriptomatic',
-                'type'             => 'plugin',
-                'public_key'       => $public_key,
-                'is_premium'       => true,
-                'premium_suffix'   => 'Pro',
-                'has_addons'       => false,
-                'has_paid_plans'   => true,
-                'trial'            => array(
-                    'days'               => 14,
-                    'is_require_payment' => false,
-                ),
-                'has_affiliation'  => false,
-                'menu'             => array(
+                'id'                  => '25187',
+                'slug'                => 'scriptomatic',
+                'type'                => 'plugin',
+                'public_key'          => 'pk_3704acdd7fcd6b01254ab6fae5a63',
+                'is_premium'          => true,
+                'premium_suffix'      => 'Pro',
+                'has_premium_version' => true,
+                'has_addons'          => false,
+                'has_paid_plans'      => true,
+                'is_org_compliant'    => true,
+                // Automatically removed in the free version. If you're not using the
+                // auto-generated free version, delete this line before uploading to wp.org.
+                'wp_org_gatekeeper'   => 'OA7#BoRiBNqdf52FvzEf!!074aRLPs8fspif$7K1#4u4Csys1fQlCecVcUTOs2mcpeVHi#C2j9d09fOTvbC0HloPT7fFee5WdS3G',
+                'menu'                => array(
                     'slug'    => 'scriptomatic',
-                    'contact' => true,
                     'support' => false,
                     'parent'  => array(
                         'slug' => 'scriptomatic',
                     ),
                 ),
-                // Set to true once the product is published in the Freemius dashboard.
-                'is_live'          => false,
             ) );
         }
 
