@@ -68,21 +68,10 @@ trait Scriptomatic_Pages {
      * @return void
      */
     private function render_activity_log( $location, $file_id = '' ) {
-        $all_log = $this->get_activity_log();
+        // Query only the entries relevant for this panel via DB (no post-processing filter needed).
+        $log = $this->get_activity_log( $this->get_max_log_entries(), 0, $location, $file_id );
 
-        // Filter to the entries relevant for this panel.
-        if ( 'file' === $location && '' !== $file_id ) {
-            $log = array_values( array_filter( $all_log, function ( $e ) use ( $file_id ) {
-                return isset( $e['location'] ) && 'file' === $e['location']
-                    && isset( $e['file_id'] )   && $e['file_id'] === $file_id;
-            } ) );
-        } else {
-            $log = array_values( array_filter( $all_log, function ( $e ) use ( $location ) {
-                return isset( $e['location'] ) && $e['location'] === $location;
-            } ) );
-        }
-
-        // Determine the admin page slug (for the clear-log URL).
+        // Determine the admin page slug (for potential clear-log link).
         if ( 'footer' === $location ) {
             $page_slug = 'scriptomatic-footer';
         } elseif ( 'file' === $location ) {
@@ -91,15 +80,9 @@ trait Scriptomatic_Pages {
             $page_slug = 'scriptomatic';
         }
 
-        // Actions that carry a content snapshot and support View + Restore.
-        $content_actions = ( 'file' === $location )
-            ? array( 'file_save', 'file_rollback' )
-            : array( 'save', 'rollback' );
-
         // Check whether any displayed entry supports View/Restore.
         $has_content_entries = false;
         foreach ( $log as $e ) {
-            $ea = isset( $e['action'] ) ? $e['action'] : '';
             if ( array_key_exists( 'content', $e )
                 || ( 'file' !== $location && array_key_exists( 'urls_snapshot', $e ) )
             ) {
@@ -138,11 +121,11 @@ trait Scriptomatic_Pages {
             </thead>
             <tbody>
             <?php
-            $content_index    = 0;
-            $file_del_index   = 0;
-            $url_index        = 0;
+            $first_code_seen = false;
+            $first_url_seen  = false;
             foreach ( $log as $entry ) :
                 if ( ! is_array( $entry ) ) { continue; }
+                $entry_id = isset( $entry['id'] ) ? (int) $entry['id'] : 0;
                 $ts       = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : 0;
                 $ulogin   = isset( $entry['user_login'] ) ? (string) $entry['user_login'] : '';
                 $uid      = isset( $entry['user_id'] )    ? (int) $entry['user_id']        : 0;
@@ -157,30 +140,20 @@ trait Scriptomatic_Pages {
                 $has_code_content = array_key_exists( 'content', $entry ) && ! $has_delete_snap;
                 $has_content      = $has_code_content || $has_delete_snap;
 
-                // Assign indices before greyed-out logic so index 0 (current
-                // state) can be used as a disable condition.
-                $this_code_index   = $has_code_content ? $content_index   : null;
-                $this_delete_index = $has_delete_snap   ? $file_del_index  : null;
-
-                if ( $has_code_content ) { $content_index++; }
-                if ( $has_delete_snap )  { $file_del_index++; }
-
-                // URL dataset entries — separate index counter.
-                $has_url_entry  = 'file' !== $location
+                // URL dataset entries.
+                $has_url_entry = 'file' !== $location
                     && in_array( $action, array( 'url_save', 'url_rollback' ), true )
                     && array_key_exists( 'urls_snapshot', $entry );
-                $this_url_index = $has_url_entry ? $url_index : null;
 
-                if ( $has_url_entry ) { $url_index++; }
-
-                // Restore is greyed for rollback actions (restoring a restore makes
-                // no sense) and for index 0 (already the current state).
+                // Restore is greyed for rollback actions and for the most recent entry
+                // of each dataset (entries are ordered newest-first, so "first seen"
+                // == the entry already representing the live state).
                 $is_rollback_action = in_array( $action, array( 'rollback', 'file_rollback' ), true );
-                $restore_greyed = $has_code_content && ( $is_rollback_action || 0 === $this_code_index );
+                $restore_greyed     = $has_code_content && ( $is_rollback_action || ! $first_code_seen );
 
                 if ( $has_code_content && $is_rollback_action ) {
                     $restore_title = __( 'This is a restore entry — nothing to restore from here.', 'scriptomatic' );
-                } elseif ( $has_code_content && 0 === $this_code_index ) {
+                } elseif ( $has_code_content && ! $first_code_seen ) {
                     $restore_title = __( 'This is the current version — nothing to restore.', 'scriptomatic' );
                 } else {
                     $restore_title = '';
@@ -192,20 +165,22 @@ trait Scriptomatic_Pages {
                 $reanimate_greyed = $has_delete_snap
                     && '' === (string) ( isset( $entry['content'] ) ? $entry['content'] : '' );
 
-                // URL Restore is greyed out when this entry IS the current state
-                // (index 0) or when the snapshot contains no URLs — restoring
-                // an empty snapshot would just wipe the list, same logic as
-                // greying inline Restore when content is ''.
+                // URL Restore is greyed when this is the most recent URL entry (current
+                // state) or when it is itself a restore action.
                 $url_restore_greyed = $has_url_entry
-                    && ( 'url_rollback' === $action || 0 === $this_url_index );
+                    && ( 'url_rollback' === $action || ! $first_url_seen );
 
                 if ( $has_url_entry && 'url_rollback' === $action ) {
                     $url_restore_title = __( 'This is a restore entry — nothing to restore from here.', 'scriptomatic' );
-                } elseif ( $has_url_entry && 0 === $this_url_index ) {
+                } elseif ( $has_url_entry && ! $first_url_seen ) {
                     $url_restore_title = __( 'Already the current state — nothing to restore.', 'scriptomatic' );
                 } else {
                     $url_restore_title = '';
                 }
+
+                // Advance first-seen flags after computing greyed state.
+                if ( $has_code_content ) { $first_code_seen = true; }
+                if ( $has_url_entry )    { $first_url_seen  = true; }
 
                 $is_file_entry = ( 'file' === ( isset( $entry['location'] ) ? $entry['location'] : '' ) );
                 // Map action keys to human-readable Event labels.
@@ -252,24 +227,24 @@ trait Scriptomatic_Pages {
                         <?php if ( $has_code_content ) : ?>
                             <?php if ( $is_file_entry ) : ?>
                             <button type="button" class="button button-small sm-file-view"
-                                data-index="<?php echo esc_attr( $this_code_index ); ?>"
+                                data-id="<?php echo esc_attr( $entry_id ); ?>"
                                 data-file-id="<?php echo esc_attr( $file_eid ); ?>"
                                 data-label="<?php echo esc_attr( $label_str ); ?>"
                             ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
                             <button type="button" class="button button-small sm-file-restore"
-                                data-index="<?php echo esc_attr( $this_code_index ); ?>"
+                                data-id="<?php echo esc_attr( $entry_id ); ?>"
                                 data-file-id="<?php echo esc_attr( $file_eid ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
                                 <?php if ( $restore_greyed ) : ?>disabled title="<?php echo esc_attr( $restore_title ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                             <?php else : ?>
                             <button type="button" class="button button-small scriptomatic-history-view"
-                                data-index="<?php echo esc_attr( $this_code_index ); ?>"
+                                data-id="<?php echo esc_attr( $entry_id ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-label="<?php echo esc_attr( $label_str ); ?>"
                             ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
                             <button type="button" class="button button-small scriptomatic-history-restore"
-                                data-index="<?php echo esc_attr( $this_code_index ); ?>"
+                                data-id="<?php echo esc_attr( $entry_id ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
                                 <?php if ( $restore_greyed ) : ?>disabled title="<?php echo esc_attr( $restore_title ); ?>"<?php endif; ?>
@@ -278,25 +253,25 @@ trait Scriptomatic_Pages {
                         <?php endif; ?>
                         <?php if ( $has_delete_snap ) : ?>
                             <button type="button" class="button button-small sm-file-view"
-                                data-index="<?php echo esc_attr( $this_delete_index ); ?>"
+                                data-id="<?php echo esc_attr( $entry_id ); ?>"
                                 data-file-id="<?php echo esc_attr( $file_eid ); ?>"
                                 data-label="<?php echo esc_attr( $label_str ); ?>"
                                 data-is-delete="1"
                             ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
                             <button type="button" class="button button-small sm-file-reanimate"
-                                data-index="<?php echo esc_attr( $this_delete_index ); ?>"
+                                data-id="<?php echo esc_attr( $entry_id ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Re-create', 'scriptomatic' ); ?>"
                                 <?php if ( $reanimate_greyed ) : ?>disabled title="<?php esc_attr_e( 'No content snapshot — nothing to restore.', 'scriptomatic' ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Re-create', 'scriptomatic' ); ?></button>
                         <?php endif; ?>
                         <?php if ( $has_url_entry ) : ?>
                             <button type="button" class="button button-small sm-url-history-view"
-                                data-index="<?php echo esc_attr( $this_url_index ); ?>"
+                                data-id="<?php echo esc_attr( $entry_id ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-label="<?php echo esc_attr( $label_str ); ?>"
                             ><?php esc_html_e( 'View', 'scriptomatic' ); ?></button>
                             <button type="button" class="button button-small sm-url-history-restore"
-                                data-index="<?php echo esc_attr( $this_url_index ); ?>"
+                                data-id="<?php echo esc_attr( $entry_id ); ?>"
                                 data-location="<?php echo esc_attr( $location ); ?>"
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
                                 <?php if ( $url_restore_greyed ) : ?>disabled title="<?php echo esc_attr( $url_restore_title ); ?>"<?php endif; ?>

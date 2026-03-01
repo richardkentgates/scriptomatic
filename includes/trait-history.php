@@ -32,11 +32,10 @@ trait Scriptomatic_History {
      * @return array  Re-indexed array; each element has at least 'content', 'timestamp', 'user_login'.
      */
     private function get_history( $location = 'head' ) {
-        $log = $this->get_activity_log();
+        $log = $this->get_activity_log( $this->get_max_log_entries(), 0, $location );
         return array_values(
-            array_filter( $log, function ( $e ) use ( $location ) {
-                return isset( $e['location'] ) && $e['location'] === $location
-                    && array_key_exists( 'content', $e )
+            array_filter( $log, function ( $e ) {
+                return array_key_exists( 'content', $e )
                     && isset( $e['action'] ) && in_array( $e['action'], array( 'save', 'rollback' ), true );
             } )
         );
@@ -63,14 +62,17 @@ trait Scriptomatic_History {
         }
 
         $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $history  = $this->get_history( $location );
+        $id       = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+        $entry    = $id > 0 ? $this->get_log_entry_by_id( $id ) : null;
 
-        if ( ! array_key_exists( $index, $history ) ) {
+        if ( ! $entry
+            || ! array_key_exists( 'content', $entry )
+            || ! isset( $entry['location'] ) || $entry['location'] !== $location
+            || ! isset( $entry['action'] )   || ! in_array( $entry['action'], array( 'save', 'rollback' ), true )
+        ) {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
         }
 
-        $entry   = $history[ $index ];
         $content = $entry['content'];
 
         // Update the stored location data using save_location() so we go through
@@ -130,14 +132,16 @@ trait Scriptomatic_History {
         }
 
         $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $history  = $this->get_history( $location );
+        $id       = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+        $entry    = $id > 0 ? $this->get_log_entry_by_id( $id ) : null;
 
-        if ( ! array_key_exists( $index, $history ) ) {
+        if ( ! $entry
+            || ! array_key_exists( 'content', $entry )
+            || ! isset( $entry['location'] ) || $entry['location'] !== $location
+            || ! isset( $entry['action'] )   || ! in_array( $entry['action'], array( 'save', 'rollback' ), true )
+        ) {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
         }
-
-        $entry = $history[ $index ];
 
         wp_send_json_success( array(
             'content' => $entry['content'],
@@ -162,22 +166,17 @@ trait Scriptomatic_History {
         }
 
         $file_id = isset( $_POST['file_id'] ) ? sanitize_key( wp_unslash( $_POST['file_id'] ) ) : '';
-        $index   = isset( $_POST['index'] )   ? absint( $_POST['index'] )                        : PHP_INT_MAX;
+        $id      = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+        $entry   = $id > 0 ? $this->get_log_entry_by_id( $id ) : null;
 
-        // Build content-bearing file history.
-        $file_history = array_values(
-            array_filter( $this->get_activity_log(), function ( $e ) use ( $file_id ) {
-                return isset( $e['file_id'] ) && $e['file_id'] === $file_id
-                    && array_key_exists( 'content', $e )
-                    && isset( $e['action'] ) && in_array( $e['action'], array( 'file_save', 'file_rollback' ), true );
-            } )
-        );
-
-        if ( ! array_key_exists( $index, $file_history ) ) {
+        if ( ! $entry
+            || ! array_key_exists( 'content', $entry )
+            || ! isset( $entry['file_id'] ) || $entry['file_id'] !== $file_id
+            || ! isset( $entry['action'] )  || ! in_array( $entry['action'], array( 'file_save', 'file_rollback' ), true )
+        ) {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
         }
 
-        $entry   = $file_history[ $index ];
         $content = $entry['content'];
 
         // Look up the file metadata.
@@ -246,24 +245,19 @@ trait Scriptomatic_History {
         }
 
         $file_id   = isset( $_POST['file_id'] )   ? sanitize_key( wp_unslash( $_POST['file_id'] ) ) : '';
-        $index     = isset( $_POST['index'] )       ? absint( $_POST['index'] )                        : PHP_INT_MAX;
+        $id        = isset( $_POST['id'] )         ? absint( $_POST['id'] )                            : 0;
         $is_delete = ! empty( $_POST['is_delete'] );
 
-        $filter_actions = $is_delete ? array( 'file_delete' ) : array( 'file_save', 'file_rollback' );
+        $allowed_actions = $is_delete ? array( 'file_delete' ) : array( 'file_save', 'file_rollback' );
+        $entry = $id > 0 ? $this->get_log_entry_by_id( $id ) : null;
 
-        $file_history = array_values(
-            array_filter( $this->get_activity_log(), function ( $e ) use ( $file_id, $filter_actions ) {
-                return isset( $e['file_id'] ) && $e['file_id'] === $file_id
-                    && array_key_exists( 'content', $e )
-                    && isset( $e['action'] ) && in_array( $e['action'], $filter_actions, true );
-            } )
-        );
-
-        if ( ! array_key_exists( $index, $file_history ) ) {
+        if ( ! $entry
+            || ! array_key_exists( 'content', $entry )
+            || ! isset( $entry['file_id'] ) || $entry['file_id'] !== $file_id
+            || ! isset( $entry['action'] )  || ! in_array( $entry['action'], $allowed_actions, true )
+        ) {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
         }
-
-        $entry = $file_history[ $index ];
 
         wp_send_json_success( array(
             'content' => $entry['content'],
@@ -287,11 +281,10 @@ trait Scriptomatic_History {
      * @return array  Re-indexed array; each element has at least 'urls_snapshot'.
      */
     private function get_url_history( $location = 'head' ) {
-        $log = $this->get_activity_log();
+        $log = $this->get_activity_log( $this->get_max_log_entries(), 0, $location );
         return array_values(
-            array_filter( $log, function ( $e ) use ( $location ) {
-                return isset( $e['location'] ) && $e['location'] === $location
-                    && array_key_exists( 'urls_snapshot', $e )
+            array_filter( $log, function ( $e ) {
+                return array_key_exists( 'urls_snapshot', $e )
                     && isset( $e['action'] ) && in_array( $e['action'], array( 'url_save', 'url_rollback' ), true );
             } )
         );
@@ -316,19 +309,22 @@ trait Scriptomatic_History {
         }
 
         $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $history  = $this->get_url_history( $location );
+        $id       = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+        $entry    = $id > 0 ? $this->get_log_entry_by_id( $id ) : null;
 
-        if ( ! array_key_exists( $index, $history ) ) {
+        if ( ! $entry
+            || ! array_key_exists( 'urls_snapshot', $entry )
+            || ! isset( $entry['location'] ) || $entry['location'] !== $location
+            || ! isset( $entry['action'] )   || ! in_array( $entry['action'], array( 'url_save', 'url_rollback' ), true )
+        ) {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
         }
 
-        $entry    = $history[ $index ];
         $snapshot = isset( $entry['urls_snapshot'] ) ? $entry['urls_snapshot'] : array();
 
         // Handle both PHP arrays (new format) and JSON strings (legacy format).
         if ( is_string( $snapshot ) ) {
-            $decoded = json_decode( $snapshot, true );
+            $decoded  = json_decode( $snapshot, true );
             $snapshot = is_array( $decoded ) ? $decoded : array();
         }
 
@@ -365,14 +361,16 @@ trait Scriptomatic_History {
         }
 
         $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $history  = $this->get_url_history( $location );
+        $id       = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+        $entry    = $id > 0 ? $this->get_log_entry_by_id( $id ) : null;
 
-        if ( ! array_key_exists( $index, $history ) ) {
+        if ( ! $entry
+            || ! array_key_exists( 'urls_snapshot', $entry )
+            || ! isset( $entry['location'] ) || $entry['location'] !== $location
+            || ! isset( $entry['action'] )   || ! in_array( $entry['action'], array( 'url_save', 'url_rollback' ), true )
+        ) {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
         }
-
-        $entry = $history[ $index ];
 
         wp_send_json_success( array(
             'display' => $this->format_entry_display( $entry ),
@@ -528,9 +526,9 @@ trait Scriptomatic_History {
      * @return array
      */
     private function get_file_delete_entries() {
-        return array_values( array_filter( $this->get_activity_log(), function ( $e ) {
-            return 'file' === ( isset( $e['location'] ) ? $e['location'] : '' )
-                && 'file_delete' === ( isset( $e['action'] ) ? $e['action'] : '' )
+        $log = $this->get_activity_log( $this->get_max_log_entries(), 0, 'file' );
+        return array_values( array_filter( $log, function ( $e ) {
+            return 'file_delete' === ( isset( $e['action'] ) ? $e['action'] : '' )
                 && array_key_exists( 'content', $e );
         } ) );
     }
@@ -557,14 +555,16 @@ trait Scriptomatic_History {
             wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
         }
 
-        $index   = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $entries = $this->get_file_delete_entries();
+        $id      = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+        $entry   = $id > 0 ? $this->get_log_entry_by_id( $id ) : null;
 
-        if ( ! array_key_exists( $index, $entries ) ) {
+        if ( ! $entry
+            || ! array_key_exists( 'content', $entry )
+            || 'file'        !== ( isset( $entry['location'] ) ? $entry['location'] : '' )
+            || 'file_delete' !== ( isset( $entry['action'] )   ? $entry['action']   : '' )
+        ) {
             wp_send_json_error( array( 'message' => __( 'Entry not found.', 'scriptomatic' ) ) );
         }
-
-        $entry    = $entries[ $index ];
         $content  = isset( $entry['content'] )    ? (string) $entry['content']    : '';
         $cond     = isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) ? $entry['conditions'] : array();
         $meta     = isset( $entry['meta'] )       && is_array( $entry['meta'] )       ? $entry['meta']       : array();

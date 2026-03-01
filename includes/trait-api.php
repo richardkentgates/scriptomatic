@@ -299,7 +299,7 @@ trait Scriptomatic_API {
     }
 
     /**
-     * Shared `location` + `index` argument definitions (rollback endpoints).
+     * Shared `location` + `id` argument definitions (rollback endpoints).
      *
      * @since  2.6.0
      * @access private
@@ -307,12 +307,12 @@ trait Scriptomatic_API {
      */
     private function api_rollback_args() {
         return array_merge( $this->api_location_args(), array(
-            'index' => array(
+            'id' => array(
                 'required'          => true,
                 'type'              => 'integer',
                 'minimum'           => 1,
                 'sanitize_callback' => 'absint',
-                'description'       => __( 'Snapshot index to restore (1 = most recent). Index 0 is the current live state and cannot be restored via this endpoint.', 'scriptomatic' ),
+                'description'       => __( 'DB row ID of the snapshot entry to restore. Obtain IDs from the GET history endpoint.', 'scriptomatic' ),
             ),
         ) );
     }
@@ -518,7 +518,7 @@ trait Scriptomatic_API {
      * @return WP_REST_Response|WP_Error
      */
     public function rest_rollback_script( WP_REST_Request $request ) {
-        $result = $this->service_rollback_script( $request['location'], (int) $request['index'] );
+        $result = $this->service_rollback_script( $request['location'], (int) $request['id'] );
         if ( is_wp_error( $result ) ) { return $result; }
         return rest_ensure_response( $result );
     }
@@ -571,7 +571,7 @@ trait Scriptomatic_API {
      * @return WP_REST_Response|WP_Error
      */
     public function rest_rollback_urls( WP_REST_Request $request ) {
-        $result = $this->service_rollback_urls( $request['location'], (int) $request['index'] );
+        $result = $this->service_rollback_urls( $request['location'], (int) $request['id'] );
         if ( is_wp_error( $result ) ) { return $result; }
         return rest_ensure_response( $result );
     }
@@ -760,22 +760,18 @@ trait Scriptomatic_API {
      *
      * @since  2.6.0
      * @param  string $location  'head'|'footer'.
-     * @param  int    $index     Snapshot index (1-based; 0 is current state).
+     * @param  int    $id        DB row ID of the snapshot entry to restore.
      * @return array|WP_Error  On success: {location, content, chars, message}.
      */
-    public function service_rollback_script( $location, $index ) {
+    public function service_rollback_script( $location, $id ) {
         $location = ( 'footer' === $location ) ? 'footer' : 'head';
-        $history  = $this->get_history( $location );
+        $entry    = $id > 0 ? $this->get_log_entry_by_id( (int) $id ) : null;
 
-        if ( 0 === $index ) {
-            return new WP_Error(
-                'current_state',
-                __( 'Index 0 is the current live state — nothing to restore. Use index 1 or higher.', 'scriptomatic' ),
-                array( 'status' => 400 )
-            );
-        }
-
-        if ( ! array_key_exists( $index, $history ) ) {
+        if ( ! $entry
+            || ! array_key_exists( 'content', $entry )
+            || ! isset( $entry['location'] ) || $entry['location'] !== $location
+            || ! isset( $entry['action'] )   || ! in_array( $entry['action'], array( 'save', 'rollback' ), true )
+        ) {
             return new WP_Error(
                 'not_found',
                 __( 'History entry not found.', 'scriptomatic' ),
@@ -783,7 +779,6 @@ trait Scriptomatic_API {
             );
         }
 
-        $entry   = $history[ $index ];
         $content = $entry['content'];
 
         // Restore script and conditions via save_location.
@@ -830,9 +825,9 @@ trait Scriptomatic_API {
         $location = ( 'footer' === $location ) ? 'footer' : 'head';
         $raw      = $this->get_history( $location );
         $entries  = array();
-        foreach ( $raw as $i => $entry ) {
+        foreach ( $raw as $entry ) {
             $entries[] = array(
-                'index'      => $i,
+                'id'         => isset( $entry['id'] )         ? (int) $entry['id']            : 0,
                 'action'     => isset( $entry['action'] )     ? $entry['action']                : '',
                 'timestamp'  => isset( $entry['timestamp'] )  ? (int) $entry['timestamp']       : 0,
                 'user'       => isset( $entry['user_login'] ) ? $entry['user_login']             : '',
@@ -913,22 +908,18 @@ trait Scriptomatic_API {
      *
      * @since  2.6.0
      * @param  string $location  'head'|'footer'.
-     * @param  int    $index     Snapshot index (1-based).
+     * @param  int    $id        DB row ID of the snapshot entry to restore.
      * @return array|WP_Error  On success: {location, urls, message}.
      */
-    public function service_rollback_urls( $location, $index ) {
+    public function service_rollback_urls( $location, $id ) {
         $location = ( 'footer' === $location ) ? 'footer' : 'head';
-        $history  = $this->get_url_history( $location );
+        $entry    = $id > 0 ? $this->get_log_entry_by_id( (int) $id ) : null;
 
-        if ( 0 === $index ) {
-            return new WP_Error(
-                'current_state',
-                __( 'Index 0 is the current live state — nothing to restore. Use index 1 or higher.', 'scriptomatic' ),
-                array( 'status' => 400 )
-            );
-        }
-
-        if ( ! array_key_exists( $index, $history ) ) {
+        if ( ! $entry
+            || ! array_key_exists( 'urls_snapshot', $entry )
+            || ! isset( $entry['location'] ) || $entry['location'] !== $location
+            || ! isset( $entry['action'] )   || ! in_array( $entry['action'], array( 'url_save', 'url_rollback' ), true )
+        ) {
             return new WP_Error(
                 'not_found',
                 __( 'URL history entry not found.', 'scriptomatic' ),
@@ -936,8 +927,7 @@ trait Scriptomatic_API {
             );
         }
 
-        $entry    = $history[ $index ];
-        $snapshot = isset( $entry['urls_snapshot'] ) ? $entry['urls_snapshot'] : array();
+        $snapshot = $entry['urls_snapshot'];
         // Handle both PHP arrays (new format) and JSON strings (legacy).
         if ( is_string( $snapshot ) ) {
             $decoded  = json_decode( $snapshot, true );
@@ -973,7 +963,7 @@ trait Scriptomatic_API {
         $location = ( 'footer' === $location ) ? 'footer' : 'head';
         $raw      = $this->get_url_history( $location );
         $entries  = array();
-        foreach ( $raw as $i => $entry ) {
+        foreach ( $raw as $entry ) {
             // urls_snapshot may be a PHP array (new format) or a JSON string (legacy).
             $raw_snap = isset( $entry['urls_snapshot'] ) ? $entry['urls_snapshot'] : array();
             if ( is_string( $raw_snap ) ) {
@@ -981,7 +971,7 @@ trait Scriptomatic_API {
             }
             $snap = is_array( $raw_snap ) ? $raw_snap : array();
             $entries[] = array(
-                'index'     => $i,
+                'id'        => isset( $entry['id'] )         ? (int) $entry['id']            : 0,
                 'action'    => isset( $entry['action'] )     ? $entry['action']          : '',
                 'timestamp' => isset( $entry['timestamp'] )  ? (int) $entry['timestamp'] : 0,
                 'user'      => isset( $entry['user_login'] ) ? $entry['user_login']       : '',

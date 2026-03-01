@@ -48,6 +48,7 @@ function scriptomatic_uninstall_cleanup() {
         delete_option( $option_key );
     }
     scriptomatic_delete_uploads_dir();
+    scriptomatic_drop_log_table();
 
     // Multisite: iterate every sub-site.
     if ( is_multisite() ) {
@@ -61,6 +62,7 @@ function scriptomatic_uninstall_cleanup() {
                 delete_option( $option_key );
             }
             scriptomatic_delete_uploads_dir();
+            scriptomatic_drop_log_table();
             restore_current_blog();
         }
 
@@ -69,6 +71,20 @@ function scriptomatic_uninstall_cleanup() {
             delete_site_option( $option_key );
         }
     }
+}
+
+/**
+ * Drop the custom activity log table for the current site.
+ *
+ * Called once per site during uninstall.
+ *
+ * @return void
+ */
+function scriptomatic_drop_log_table() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'scriptomatic_log';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    $wpdb->query( "DROP TABLE IF EXISTS `{$table}`" );
 }
 
 /**

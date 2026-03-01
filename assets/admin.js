@@ -450,14 +450,14 @@ jQuery( document ).ready( function ( $ ) {
     $( document ).on( 'click', '.scriptomatic-history-restore', function () {
         if ( ! confirm( i18n.rollbackConfirm ) ) { return; }
         var $btn     = $( this );
-        var index    = $btn.data( 'index' );
+        var id       = $btn.data( 'id' );
         var entryLoc = $btn.data( 'location' ) || loc;
         var orig     = $btn.data( 'original-text' ) || 'Restore';
         $btn.prop( 'disabled', true ).text( i18n.restoring || 'Restoring\u2026' );
         $.post( data.ajaxUrl, {
             action:   'scriptomatic_rollback',
             nonce:    data.rollbackNonce,
-            index:    index,
+            id:       id,
             location: entryLoc
         }, function ( response ) {
             if ( response.success ) {
@@ -507,17 +507,17 @@ jQuery( document ).ready( function ( $ ) {
 
         $( document ).on( 'click', '.scriptomatic-history-view', function () {
             var $btn     = $( this );
-            var index    = $btn.data( 'index' );
+            var id       = $btn.data( 'id' );
             var entryLoc = $btn.data( 'location' ) || loc;
             var label    = $btn.data( 'label' ) || '';
             var orig     = $btn.text();
 
-            $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading…' );
+            $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading\u2026' );
 
             $.post( data.ajaxUrl, {
                 action:   'scriptomatic_get_history_content',
                 nonce:    data.rollbackNonce,
-                index:    index,
+                id:       id,
                 location: entryLoc
             }, function ( response ) {
                 $btn.prop( 'disabled', false ).text( orig );
@@ -552,7 +552,7 @@ jQuery( document ).ready( function ( $ ) {
         $( document ).on( 'click', '.sm-file-restore', function () {
             if ( ! confirm( i18n.rollbackConfirm ) ) { return; }
             var $btn   = $( this );
-            var index  = $btn.data( 'index' );
+            var id     = $btn.data( 'id' );
             var fileId = $btn.data( 'file-id' );
             var orig   = $btn.data( 'original-text' ) || 'Restore';
             $btn.prop( 'disabled', true ).text( i18n.restoring || 'Restoring\u2026' );
@@ -560,7 +560,7 @@ jQuery( document ).ready( function ( $ ) {
             $.post( data.ajaxUrl, {
                 action:  'scriptomatic_rollback_js_file',
                 nonce:   data.filesNonce,
-                index:   index,
+                id:      id,
                 file_id: fileId
             }, function ( response ) {
                 if ( response.success ) {
@@ -597,7 +597,7 @@ jQuery( document ).ready( function ( $ ) {
             $.post( data.ajaxUrl, {
                 action: 'scriptomatic_restore_deleted_file',
                 nonce:  data.filesNonce,
-                index:  $btn.data( 'index' )
+                id:     $btn.data( 'id' )
             }, function ( response ) {
                 if ( response.success ) {
                     $( '<div>' ).addClass( 'notice notice-success is-dismissible' )
@@ -620,14 +620,14 @@ jQuery( document ).ready( function ( $ ) {
         $( document ).on( 'click', '.sm-url-history-restore', function () {
             if ( ! confirm( i18n.rollbackConfirm ) ) { return; }
             var $btn     = $( this );
-            var index    = $btn.data( 'index' );
+            var id       = $btn.data( 'id' );
             var entryLoc = $btn.data( 'location' ) || loc;
             var orig     = $btn.data( 'original-text' ) || 'Restore';
-            $btn.prop( 'disabled', true ).text( i18n.restoring || 'Restoring…' );
+            $btn.prop( 'disabled', true ).text( i18n.restoring || 'Restoring\u2026' );
             $.post( data.ajaxUrl, {
                 action:   'scriptomatic_rollback_urls',
                 nonce:    data.rollbackNonce,
-                index:    index,
+                id:       id,
                 location: entryLoc
             }, function ( response ) {
                 if ( response.success ) {
@@ -648,15 +648,15 @@ jQuery( document ).ready( function ( $ ) {
 
         $( document ).on( 'click', '.sm-url-history-view', function () {
             var $btn     = $( this );
-            var index    = $btn.data( 'index' );
+            var id       = $btn.data( 'id' );
             var entryLoc = $btn.data( 'location' ) || loc;
             var label    = $btn.data( 'label' ) || '';
             var orig     = $btn.text();
-            $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading…' );
+            $btn.prop( 'disabled', true ).text( i18n.loading || 'Loading\u2026' );
             $.post( data.ajaxUrl, {
                 action:   'scriptomatic_get_url_history_content',
                 nonce:    data.rollbackNonce,
-                index:    index,
+                id:       id,
                 location: entryLoc
             }, function ( response ) {
                 $btn.prop( 'disabled', false ).text( orig );
@@ -684,7 +684,7 @@ jQuery( document ).ready( function ( $ ) {
 
         $( document ).on( 'click', '.sm-file-view', function () {
             var $btn   = $( this );
-            var index  = $btn.data( 'index' );
+            var id     = $btn.data( 'id' );
             var fileId = $btn.data( 'file-id' );
             var label  = $btn.data( 'label' ) || '';
             var orig   = $btn.text();
@@ -694,7 +694,7 @@ jQuery( document ).ready( function ( $ ) {
             $.post( data.ajaxUrl, {
                 action:    'scriptomatic_get_file_activity_content',
                 nonce:     data.filesNonce,
-                index:     index,
+                id:        id,
                 file_id:   fileId,
                 is_delete: $btn.data( 'is-delete' ) ? 1 : 0
             }, function ( response ) {

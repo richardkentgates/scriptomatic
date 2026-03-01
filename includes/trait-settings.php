@@ -28,6 +28,10 @@ trait Scriptomatic_Settings {
      * @return void
      */
     public function register_settings() {
+        // Ensure the custom log table exists (idempotent via dbDelta).
+        $this->maybe_create_log_table();
+        // Migrate any data from the legacy wp_options log to the new table.
+        $this->maybe_migrate_log_to_table();
         // Migrate data from pre-v2.8 fragmented options on first load.
         $this->maybe_migrate_to_v2_8();
 
@@ -239,11 +243,16 @@ trait Scriptomatic_Settings {
         $max_log                  = isset( $input['max_log_entries'] ) ? (int) $input['max_log_entries'] : $current['max_log_entries'];
         $clean['max_log_entries'] = max( 3, min( 1000, $max_log ) );
 
-        // If the log limit was reduced, immediately trim the unified activity log.
+        // If the log limit was reduced, immediately trim the activity log table.
         if ( $clean['max_log_entries'] < $this->get_max_log_entries() ) {
-            $log = $this->get_activity_log();
-            if ( count( $log ) > $clean['max_log_entries'] ) {
-                update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, array_slice( $log, 0, $clean['max_log_entries'] ) );
+            global $wpdb;
+            $log_table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
+            $keep_id   = $wpdb->get_var( $wpdb->prepare(
+                "SELECT id FROM `{$log_table}` ORDER BY id DESC LIMIT 1 OFFSET %d",
+                $clean['max_log_entries'] - 1
+            ) );
+            if ( $keep_id ) {
+                $wpdb->query( $wpdb->prepare( "DELETE FROM `{$log_table}` WHERE id < %d", (int) $keep_id ) );
             }
         }
 
@@ -296,61 +305,278 @@ trait Scriptomatic_Settings {
     }
 
     // =========================================================================
-    // ACTIVITY LOG
+    // ACTIVITY LOG DB TABLE
     // =========================================================================
 
     /**
-     * Append an entry to the unified activity log.
+     * Create the custom activity log DB table if it does not exist.
      *
-     * Stamps the entry with the current time and acting user, prepends it to
-     * the stored array, and trims to the configured maximum.
+     * Uses dbDelta() so it is safe to call on every admin_init after a version
+     * bump and on plugin activation.
+     *
+     * Table `{prefix}scriptomatic_log`:
+     *   id         — auto-increment primary key
+     *   timestamp  — unix epoch (INT not DATETIME, consistent with WP convention)
+     *   user_id    — acting user ID
+     *   user_login — acting user login name (snapshot at write time)
+     *   action     — event type: save|rollback|url_save|url_rollback|file_save|…
+     *   location   — head|footer|file
+     *   file_id    — populated for file actions, NULL otherwise
+     *   detail     — human-readable change summary (TEXT)
+     *   chars      — byte-length of content snapshot, NULL when not applicable
+     *   snapshot   — JSON blob: {content?, conditions_snapshot?, urls_snapshot?, conditions?, meta?}
+     *
+     * @since  2.9.0
+     * @access private
+     * @return void
+     */
+    private function maybe_create_log_table() {
+        global $wpdb;
+        $table      = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE {$table} (
+            id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            timestamp  INT UNSIGNED NOT NULL DEFAULT 0,
+            user_id    INT UNSIGNED NOT NULL DEFAULT 0,
+            user_login VARCHAR(60)  NOT NULL DEFAULT '',
+            action     VARCHAR(40)  NOT NULL DEFAULT '',
+            location   VARCHAR(20)  NOT NULL DEFAULT '',
+            file_id    VARCHAR(60)           DEFAULT NULL,
+            detail     TEXT         NOT NULL,
+            chars      INT UNSIGNED          DEFAULT NULL,
+            snapshot   LONGTEXT              DEFAULT NULL,
+            PRIMARY KEY (id),
+            KEY location_action (location(20), action(40)),
+            KEY file_id (file_id(60))
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta( $sql );
+    }
+
+    /**
+     * One-time migration from the legacy `scriptomatic_activity_log` wp_option
+     * to the new custom DB table.
+     *
+     * Runs only when the option exists and is non-empty; deletes the option
+     * on completion. Safe to call repeatedly — exits immediately on second call.
+     *
+     * @since  2.9.0
+     * @access private
+     * @return void
+     */
+    private function maybe_migrate_log_to_table() {
+        global $wpdb;
+
+        $old_log = get_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, null );
+        if ( ! is_array( $old_log ) || empty( $old_log ) ) {
+            delete_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION );
+            return;
+        }
+
+        $table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
+
+        // Insert in chronological order (oldest first → lowest IDs).
+        foreach ( array_reverse( $old_log ) as $entry ) {
+            if ( ! is_array( $entry ) ) {
+                continue;
+            }
+
+            $snapshot_keys = array( 'content', 'conditions_snapshot', 'urls_snapshot', 'conditions', 'meta' );
+            $snap_data     = array();
+            foreach ( $snapshot_keys as $k ) {
+                if ( array_key_exists( $k, $entry ) ) {
+                    $snap_data[ $k ] = $entry[ $k ];
+                }
+            }
+
+            $wpdb->insert(
+                $table,
+                array(
+                    'timestamp'  => isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : time(),
+                    'user_id'    => isset( $entry['user_id'] )    ? (int) $entry['user_id']        : 0,
+                    'user_login' => isset( $entry['user_login'] ) ? (string) $entry['user_login']  : '',
+                    'action'     => isset( $entry['action'] )     ? (string) $entry['action']      : '',
+                    'location'   => isset( $entry['location'] )   ? (string) $entry['location']    : '',
+                    'file_id'    => isset( $entry['file_id'] )    ? (string) $entry['file_id']     : null,
+                    'detail'     => isset( $entry['detail'] )     ? (string) $entry['detail']      : '',
+                    'chars'      => isset( $entry['chars'] )      ? (int) $entry['chars']           : null,
+                    'snapshot'   => ! empty( $snap_data )         ? wp_json_encode( $snap_data )    : null,
+                ),
+                array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
+            );
+        }
+
+        delete_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION );
+    }
+
+    // =========================================================================
+    // ACTIVITY LOG — READ / WRITE HELPERS
+    // =========================================================================
+
+    /**
+     * Decode a raw DB row from `{prefix}scriptomatic_log` into a flat PHP array
+     * compatible with the rest of the codebase (same shape as the old option entries).
+     *
+     * @since  2.9.0
+     * @access private
+     * @param  array $row  Associative row from $wpdb->get_row() / get_results().
+     * @return array
+     */
+    private function decode_log_row( array $row ) {
+        $entry = array(
+            'id'         => (int) $row['id'],
+            'timestamp'  => (int) $row['timestamp'],
+            'user_id'    => (int) $row['user_id'],
+            'user_login' => (string) $row['user_login'],
+            'action'     => (string) $row['action'],
+            'location'   => (string) $row['location'],
+            'detail'     => (string) $row['detail'],
+        );
+        if ( null !== $row['file_id'] ) {
+            $entry['file_id'] = (string) $row['file_id'];
+        }
+        if ( null !== $row['chars'] ) {
+            $entry['chars'] = (int) $row['chars'];
+        }
+        if ( null !== $row['snapshot'] ) {
+            $snap = json_decode( $row['snapshot'], true );
+            if ( is_array( $snap ) ) {
+                foreach ( $snap as $k => $v ) {
+                    $entry[ $k ] = $v;
+                }
+            }
+        }
+        return $entry;
+    }
+
+    /**
+     * Fetch a single log entry by its primary-key ID.
+     *
+     * @since  2.9.0
+     * @access private
+     * @param  int $id  Row primary key.
+     * @return array|null  Decoded entry array, or null if not found.
+     */
+    private function get_log_entry_by_id( $id ) {
+        global $wpdb;
+        $table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
+        $row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", (int) $id ), ARRAY_A );
+        if ( ! $row ) {
+            return null;
+        }
+        return $this->decode_log_row( $row );
+    }
+
+    /**
+     * Append an entry to the custom activity log table.
+     *
+     * Stamps the entry with the current time and acting user; after inserting,
+     * prunes the oldest rows when the total count exceeds the configured maximum.
      *
      * Accepted $data keys:
-     *   action               (string) — 'save'|'rollback'|'url_save'|'url_rollback'|'file_save'|'file_rollback'|'file_delete'|'file_restored'
+     *   action               (string) — 'save'|'rollback'|'url_save'|'url_rollback'|'file_save'|…
      *   location             (string) — 'head'|'footer'|'file'
      *   content              (string) — snapshot; for save/rollback types (enables View+Restore)
      *   chars                (int)    — byte length of content
-     *   detail               (string) — human-readable summary of what changed
-     *   urls_snapshot        (string) — JSON URL list; included in combined save/rollback entries
-     *   conditions_snapshot  (string) — JSON conditions; included in combined save/rollback entries
+     *   detail               (string) — human-readable summary
+     *   urls_snapshot        (array)  — URL list snapshot
+     *   conditions_snapshot  (array)  — conditions snapshot
      *   file_id              (string) — only for file actions
      *
      * @since  1.0.0
+     * @since  2.9.0 Rewrites to INSERT into `{prefix}scriptomatic_log` instead of wp_options.
      * @access private
      * @param  array $data Entry data.
      * @return void
      */
     private function write_activity_entry( array $data ) {
+        global $wpdb;
+
+        $table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
         $user  = wp_get_current_user();
-        $entry = array_merge(
-            array(
-                'timestamp'  => time(),
-                'user_login' => $user->user_login,
-                'user_id'    => (int) $user->ID,
-            ),
-            $data
-        );
 
-        $log = $this->get_activity_log();
-
-        array_unshift( $log, $entry );
-        $max = $this->get_max_log_entries();
-        if ( count( $log ) > $max ) {
-            $log = array_slice( $log, 0, $max );
+        // Collect snapshot-only keys into the JSON blob.
+        $snapshot_keys = array( 'content', 'conditions_snapshot', 'urls_snapshot', 'conditions', 'meta' );
+        $snap_data     = array();
+        foreach ( $snapshot_keys as $k ) {
+            if ( array_key_exists( $k, $data ) ) {
+                $snap_data[ $k ] = $data[ $k ];
+            }
         }
 
-        update_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, $log );
+        $chars = ( isset( $data['chars'] ) && null !== $data['chars'] ) ? (int) $data['chars'] : null;
+
+        $wpdb->insert(
+            $table,
+            array(
+                'timestamp'  => time(),
+                'user_id'    => (int) $user->ID,
+                'user_login' => (string) $user->user_login,
+                'action'     => isset( $data['action'] )   ? (string) $data['action']   : '',
+                'location'   => isset( $data['location'] ) ? (string) $data['location'] : '',
+                'file_id'    => isset( $data['file_id'] )  ? (string) $data['file_id']  : null,
+                'detail'     => isset( $data['detail'] )   ? (string) $data['detail']   : '',
+                'chars'      => $chars,
+                'snapshot'   => ! empty( $snap_data )      ? wp_json_encode( $snap_data ) : null,
+            ),
+            array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
+        );
+
+        // Prune oldest rows when total row count exceeds the configured maximum.
+        $max     = $this->get_max_log_entries();
+        $keep_id = $wpdb->get_var( $wpdb->prepare(
+            "SELECT id FROM `{$table}` ORDER BY id DESC LIMIT 1 OFFSET %d",
+            $max - 1
+        ) );
+        if ( $keep_id ) {
+            $wpdb->query( $wpdb->prepare( "DELETE FROM `{$table}` WHERE id < %d", (int) $keep_id ) );
+        }
     }
 
     /**
-     * Return the unified activity log.
+     * Return activity log entries from the custom DB table.
      *
      * @since  1.0.0
+     * @since  2.9.0 Reads from `{prefix}scriptomatic_log` instead of wp_options.
      * @access private
-     * @return array
+     * @param int    $limit    Maximum rows to return (0 = use get_max_log_entries()).
+     * @param int    $offset   Number of rows to skip (for pagination).
+     * @param string $location Optional: filter by location ('head'|'footer'|'file'|'').
+     * @param string $file_id  Optional: further filter by file_id when non-empty.
+     * @return array  Each element is a decoded entry array (same shape as old option entries, plus 'id').
      */
-    private function get_activity_log() {
-        $log = get_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, array() );
-        return is_array( $log ) ? $log : array();
+    private function get_activity_log( $limit = 0, $offset = 0, $location = '', $file_id = '' ) {
+        global $wpdb;
+        $table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
+        if ( $limit <= 0 ) {
+            $limit = $this->get_max_log_entries();
+        }
+
+        $wheres = array( '1=1' );
+        $args   = array();
+
+        if ( '' !== $location ) {
+            $wheres[] = 'location = %s';
+            $args[]   = $location;
+        }
+        if ( '' !== $file_id ) {
+            $wheres[] = 'file_id = %s';
+            $args[]   = $file_id;
+        }
+
+        $args[] = $limit;
+        $args[] = $offset;
+
+        $sql  = 'SELECT * FROM `' . $table . '` WHERE ' . implode( ' AND ', $wheres )
+              . ' ORDER BY id DESC LIMIT %d OFFSET %d';
+        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
+
+        if ( ! is_array( $rows ) ) {
+            return array();
+        }
+
+        return array_map( array( $this, 'decode_log_row' ), $rows );
     }
 }
