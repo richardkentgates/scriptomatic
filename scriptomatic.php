@@ -38,22 +38,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ---- Core ----
-define( 'SCRIPTOMATIC_VERSION',     '2.7.0' );
+define( 'SCRIPTOMATIC_VERSION',     '2.8.0' );
 define( 'SCRIPTOMATIC_PLUGIN_FILE', __FILE__ );
 define( 'SCRIPTOMATIC_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'SCRIPTOMATIC_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 
-// ---- Option keys: head scripts ----
-define( 'SCRIPTOMATIC_HEAD_SCRIPT',  'scriptomatic_script_content' );
-define( 'SCRIPTOMATIC_HEAD_LINKED',  'scriptomatic_linked_scripts' );
-
-// ---- Option keys: footer scripts ----
-define( 'SCRIPTOMATIC_FOOTER_SCRIPT',  'scriptomatic_footer_script' );
-define( 'SCRIPTOMATIC_FOOTER_LINKED',  'scriptomatic_footer_linked' );
-
-// ---- Option keys: load conditions ----
-define( 'SCRIPTOMATIC_HEAD_CONDITIONS',   'scriptomatic_head_conditions' );
-define( 'SCRIPTOMATIC_FOOTER_CONDITIONS', 'scriptomatic_footer_conditions' );
+// ---- Option keys: location data (script + conditions + urls combined) ----
+define( 'SCRIPTOMATIC_LOCATION_HEAD',   'scriptomatic_head' );
+define( 'SCRIPTOMATIC_LOCATION_FOOTER', 'scriptomatic_footer' );
 
 // ---- Option keys: plugin settings ----
 define( 'SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION', 'scriptomatic_plugin_settings' );

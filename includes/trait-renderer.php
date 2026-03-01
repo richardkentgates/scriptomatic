@@ -133,8 +133,9 @@ trait Scriptomatic_Renderer {
      * @return void
      */
     private function render_script_field_for( $location ) {
-        $option_key     = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-        $script_content = get_option( $option_key, '' );
+        $option_key     = ( 'footer' === $location ) ? SCRIPTOMATIC_LOCATION_FOOTER : SCRIPTOMATIC_LOCATION_HEAD;
+        $loc_data       = $this->get_location( $location );
+        $script_content = $loc_data['script'];
         $char_count     = strlen( $script_content );
         $max_length     = SCRIPTOMATIC_MAX_SCRIPT_LENGTH;
         $textarea_id    = 'scriptomatic-' . $location . '-script';
@@ -143,7 +144,7 @@ trait Scriptomatic_Renderer {
         <div class="scriptomatic-code-editor-wrap">
         <textarea
             id="<?php echo esc_attr( $textarea_id ); ?>"
-            name="<?php echo esc_attr( $option_key ); ?>"
+            name="<?php echo esc_attr( $option_key ); ?>[script]"
             rows="20"
             cols="100"
             class="large-text code"
@@ -187,9 +188,8 @@ trait Scriptomatic_Renderer {
      * @return void
      */
     private function render_linked_field_for( $location ) {
-        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $raw        = get_option( $option_key, '[]' );
-        $entries    = json_decode( $raw, true );
+        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_LOCATION_FOOTER : SCRIPTOMATIC_LOCATION_HEAD;
+        $entries    = $this->get_location( $location )['urls'];
         if ( ! is_array( $entries ) ) {
             $entries = array();
         }
@@ -227,7 +227,7 @@ trait Scriptomatic_Renderer {
 
             <input type="hidden"
                 id="<?php echo esc_attr( $hidden_id ); ?>"
-                name="<?php echo esc_attr( $option_key ); ?>"
+                name="<?php echo esc_attr( $option_key ); ?>[urls]"
                 value="<?php echo esc_attr( wp_json_encode( $entries ) ); ?>">
 
             <p class="description" style="margin-top:8px;max-width:700px;">
@@ -343,14 +343,10 @@ trait Scriptomatic_Renderer {
      * @return bool
      */
     private function check_load_conditions( $location ) {
-        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-        $raw        = get_option( $option_key, '' );
-        $conditions = json_decode( $raw, true );
-
+        $conditions = $this->get_location( $location )['conditions'];
         if ( ! is_array( $conditions ) ) {
             return true;
         }
-
         return $this->evaluate_conditions_object( $conditions );
     }
 
@@ -728,11 +724,10 @@ trait Scriptomatic_Renderer {
      * @return void
      */
     private function render_conditions_field_for( $location ) {
-        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
+        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_LOCATION_FOOTER : SCRIPTOMATIC_LOCATION_HEAD;
         $pfx        = 'scriptomatic-' . $location . '-cond';
         $post_types = get_post_types( array( 'public' => true ), 'objects' );
-        $raw        = get_option( $option_key, '' );
-        $decoded    = ( is_string( $raw ) && '' !== $raw ) ? json_decode( $raw, true ) : null;
+        $decoded    = $this->get_location( $location )['conditions'];
 
         if ( ! is_array( $decoded ) ) {
             $decoded = array( 'logic' => 'and', 'rules' => array() );
@@ -741,7 +736,7 @@ trait Scriptomatic_Renderer {
         $logic = isset( $decoded['logic'] ) ? $decoded['logic'] : 'and';
         $rules = ( isset( $decoded['rules'] ) && is_array( $decoded['rules'] ) ) ? $decoded['rules'] : array();
 
-        $this->render_conditions_stack_ui( $pfx, $logic, $rules, $post_types, $option_key, false );
+        $this->render_conditions_stack_ui( $pfx, $logic, $rules, $post_types, $option_key . '[conditions]', false );
     }
 
     // =========================================================================

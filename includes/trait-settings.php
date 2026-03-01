@@ -28,69 +28,43 @@ trait Scriptomatic_Settings {
      * @return void
      */
     public function register_settings() {
-        // ---- HEAD SCRIPTS GROUP ----
-        register_setting( 'scriptomatic_head_group', SCRIPTOMATIC_HEAD_SCRIPT, array(
-            'type'              => 'string',
-            'sanitize_callback' => array( $this, 'sanitize_head_script' ),
-            'default'           => '',
-        ) );
-        register_setting( 'scriptomatic_head_group', SCRIPTOMATIC_HEAD_LINKED, array(
-            'type'              => 'string',
-            'sanitize_callback' => array( $this, 'sanitize_head_linked' ),
-            'default'           => '[]',
-        ) );
+        // Migrate data from pre-v2.8 fragmented options on first load.
+        $this->maybe_migrate_to_v2_8();
 
-        add_settings_section( 'sm_head_code',  __( 'Inline Script', 'scriptomatic' ),       array( $this, 'render_head_code_section' ),  'scriptomatic_head_page' );
+        // Default location data structure.
+        $location_default = array(
+            'script'     => '',
+            'conditions' => array( 'logic' => 'and', 'rules' => array() ),
+            'urls'       => array(),
+        );
 
-        add_settings_field( SCRIPTOMATIC_HEAD_SCRIPT, __( 'Script Content', 'scriptomatic' ),
-            array( $this, 'render_head_script_field' ), 'scriptomatic_head_page', 'sm_head_code' );
-
-        // ---- HEAD CONDITIONS ----
-        register_setting( 'scriptomatic_head_group', SCRIPTOMATIC_HEAD_CONDITIONS, array(
-            'type'              => 'string',
-            'sanitize_callback' => array( $this, 'sanitize_head_conditions' ),
-            'default'           => '{"logic":"and","rules":[]}',
-        ) );
-        add_settings_section( 'sm_head_conditions', __( 'Load Conditions', 'scriptomatic' ), array( $this, 'render_head_conditions_section' ), 'scriptomatic_head_page' );
-        add_settings_field( SCRIPTOMATIC_HEAD_CONDITIONS, __( 'When to inject', 'scriptomatic' ),
-            array( $this, 'render_head_conditions_field' ), 'scriptomatic_head_page', 'sm_head_conditions' );
-
-        add_settings_section( 'sm_head_links', __( 'External Script URLs', 'scriptomatic' ), array( $this, 'render_head_links_section' ), 'scriptomatic_head_page' );
-
-        add_settings_field( SCRIPTOMATIC_HEAD_LINKED, __( 'Script URLs', 'scriptomatic' ),
-            array( $this, 'render_head_linked_field' ), 'scriptomatic_head_page', 'sm_head_links' );
-
-        // ---- FOOTER SCRIPTS GROUP ----
-        register_setting( 'scriptomatic_footer_group', SCRIPTOMATIC_FOOTER_SCRIPT, array(
-            'type'              => 'string',
-            'sanitize_callback' => array( $this, 'sanitize_footer_script' ),
-            'default'           => '',
-        ) );
-        register_setting( 'scriptomatic_footer_group', SCRIPTOMATIC_FOOTER_LINKED, array(
-            'type'              => 'string',
-            'sanitize_callback' => array( $this, 'sanitize_footer_linked' ),
-            'default'           => '[]',
+        // ---- HEAD LOCATION ----
+        register_setting( 'scriptomatic_head_group', SCRIPTOMATIC_LOCATION_HEAD, array(
+            'type'              => 'array',
+            'sanitize_callback' => array( $this, 'sanitize_head_location' ),
+            'default'           => $location_default,
         ) );
 
-        add_settings_section( 'sm_footer_code',  __( 'Inline Script', 'scriptomatic' ),       array( $this, 'render_footer_code_section' ),  'scriptomatic_footer_page' );
+        add_settings_section( 'sm_head_code',       __( 'Inline Script', 'scriptomatic' ),       array( $this, 'render_head_code_section' ),       'scriptomatic_head_page' );
+        add_settings_field(   'sm_head_script',      __( 'Script Content', 'scriptomatic' ),       array( $this, 'render_head_script_field' ),       'scriptomatic_head_page', 'sm_head_code' );
+        add_settings_section( 'sm_head_conditions',  __( 'Load Conditions', 'scriptomatic' ),      array( $this, 'render_head_conditions_section' ), 'scriptomatic_head_page' );
+        add_settings_field(   'sm_head_conditions',  __( 'When to inject', 'scriptomatic' ),       array( $this, 'render_head_conditions_field' ),   'scriptomatic_head_page', 'sm_head_conditions' );
+        add_settings_section( 'sm_head_links',       __( 'External Script URLs', 'scriptomatic' ), array( $this, 'render_head_links_section' ),      'scriptomatic_head_page' );
+        add_settings_field(   'sm_head_linked',      __( 'Script URLs', 'scriptomatic' ),          array( $this, 'render_head_linked_field' ),       'scriptomatic_head_page', 'sm_head_links' );
 
-        add_settings_field( SCRIPTOMATIC_FOOTER_SCRIPT, __( 'Script Content', 'scriptomatic' ),
-            array( $this, 'render_footer_script_field' ), 'scriptomatic_footer_page', 'sm_footer_code' );
-
-        // ---- FOOTER CONDITIONS ----
-        register_setting( 'scriptomatic_footer_group', SCRIPTOMATIC_FOOTER_CONDITIONS, array(
-            'type'              => 'string',
-            'sanitize_callback' => array( $this, 'sanitize_footer_conditions' ),
-            'default'           => '{"logic":"and","rules":[]}',
+        // ---- FOOTER LOCATION ----
+        register_setting( 'scriptomatic_footer_group', SCRIPTOMATIC_LOCATION_FOOTER, array(
+            'type'              => 'array',
+            'sanitize_callback' => array( $this, 'sanitize_footer_location' ),
+            'default'           => $location_default,
         ) );
-        add_settings_section( 'sm_footer_conditions', __( 'Load Conditions', 'scriptomatic' ), array( $this, 'render_footer_conditions_section' ), 'scriptomatic_footer_page' );
-        add_settings_field( SCRIPTOMATIC_FOOTER_CONDITIONS, __( 'When to inject', 'scriptomatic' ),
-            array( $this, 'render_footer_conditions_field' ), 'scriptomatic_footer_page', 'sm_footer_conditions' );
 
-        add_settings_section( 'sm_footer_links', __( 'External Script URLs', 'scriptomatic' ), array( $this, 'render_footer_links_section' ), 'scriptomatic_footer_page' );
-
-        add_settings_field( SCRIPTOMATIC_FOOTER_LINKED, __( 'Script URLs', 'scriptomatic' ),
-            array( $this, 'render_footer_linked_field' ), 'scriptomatic_footer_page', 'sm_footer_links' );
+        add_settings_section( 'sm_footer_code',       __( 'Inline Script', 'scriptomatic' ),       array( $this, 'render_footer_code_section' ),       'scriptomatic_footer_page' );
+        add_settings_field(   'sm_footer_script',      __( 'Script Content', 'scriptomatic' ),       array( $this, 'render_footer_script_field' ),       'scriptomatic_footer_page', 'sm_footer_code' );
+        add_settings_section( 'sm_footer_conditions',  __( 'Load Conditions', 'scriptomatic' ),      array( $this, 'render_footer_conditions_section' ), 'scriptomatic_footer_page' );
+        add_settings_field(   'sm_footer_conditions',  __( 'When to inject', 'scriptomatic' ),       array( $this, 'render_footer_conditions_field' ),   'scriptomatic_footer_page', 'sm_footer_conditions' );
+        add_settings_section( 'sm_footer_links',       __( 'External Script URLs', 'scriptomatic' ), array( $this, 'render_footer_links_section' ),      'scriptomatic_footer_page' );
+        add_settings_field(   'sm_footer_linked',      __( 'Script URLs', 'scriptomatic' ),          array( $this, 'render_footer_linked_field' ),       'scriptomatic_footer_page', 'sm_footer_links' );
 
         // ---- GENERAL SETTINGS GROUP ----
         register_setting( 'scriptomatic_general_group', SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, array(
@@ -104,13 +78,107 @@ trait Scriptomatic_Settings {
         ) );
 
         add_settings_section( 'sm_advanced', '', array( $this, 'render_advanced_section' ), 'scriptomatic_general_page' );
-
         add_settings_field( 'scriptomatic_max_log_entries', __( 'Activity Log Limit', 'scriptomatic' ),
             array( $this, 'render_max_log_field' ), 'scriptomatic_general_page', 'sm_advanced' );
         add_settings_field( 'scriptomatic_keep_data', __( 'Data on Uninstall', 'scriptomatic' ),
             array( $this, 'render_keep_data_field' ), 'scriptomatic_general_page', 'sm_advanced' );
         add_settings_field( 'scriptomatic_api_allowed_ips', __( 'API Allowed IPs', 'scriptomatic' ),
             array( $this, 'render_api_allowed_ips_field' ), 'scriptomatic_general_page', 'sm_advanced' );
+    }
+
+    // =========================================================================
+    // LOCATION DATA HELPERS
+    // =========================================================================
+
+    /**
+     * Return the stored location data for head or footer.
+     *
+     * Always returns a complete array with 'script', 'conditions', and 'urls'
+     * keys set to sane defaults if missing from the stored value.
+     *
+     * @since  2.8.0
+     * @param  string $location 'head'|'footer'
+     * @return array { script: string, conditions: array, urls: array }
+     */
+    public function get_location( $location ) {
+        $key  = ( 'footer' === $location ) ? SCRIPTOMATIC_LOCATION_FOOTER : SCRIPTOMATIC_LOCATION_HEAD;
+        $data = get_option( $key, array() );
+        if ( ! is_array( $data ) ) {
+            $data = array();
+        }
+        return wp_parse_args( $data, array(
+            'script'     => '',
+            'conditions' => array( 'logic' => 'and', 'rules' => array() ),
+            'urls'       => array(),
+        ) );
+    }
+
+    /**
+     * Persist the location data for head or footer.
+     *
+     * @since  2.8.0
+     * @param  string $location 'head'|'footer'
+     * @param  array  $data     { script, conditions, urls }
+     * @return void
+     */
+    public function save_location( $location, array $data ) {
+        $key = ( 'footer' === $location ) ? SCRIPTOMATIC_LOCATION_FOOTER : SCRIPTOMATIC_LOCATION_HEAD;
+        update_option( $key, $data );
+    }
+
+    // =========================================================================
+    // MIGRATION — pre-v2.8 fragmented options → unified location arrays
+    // =========================================================================
+
+    /**
+     * One-time migration from the six separate pre-v2.8 options to the two
+     * unified location options.  Runs once at admin_init; no-ops on subsequent
+     * requests once the new options exist.
+     *
+     * @since  2.8.0
+     * @access private
+     * @return void
+     */
+    private function maybe_migrate_to_v2_8() {
+        // If either new option already exists, migration has already run.
+        if ( false !== get_option( SCRIPTOMATIC_LOCATION_HEAD, false ) ) {
+            return;
+        }
+
+        foreach ( array( 'head', 'footer' ) as $loc ) {
+            if ( 'footer' === $loc ) {
+                $script_opt = 'scriptomatic_footer_script';
+                $cond_opt   = 'scriptomatic_footer_conditions';
+                $urls_opt   = 'scriptomatic_footer_linked';
+            } else {
+                $script_opt = 'scriptomatic_script_content';
+                $cond_opt   = 'scriptomatic_head_conditions';
+                $urls_opt   = 'scriptomatic_linked_scripts';
+            }
+
+            $script   = (string) get_option( $script_opt, '' );
+            $cond_raw = get_option( $cond_opt, '' );
+            $cond     = is_string( $cond_raw ) && '' !== $cond_raw ? json_decode( $cond_raw, true ) : null;
+            if ( ! is_array( $cond ) ) {
+                $cond = array( 'logic' => 'and', 'rules' => array() );
+            }
+            $urls_raw = get_option( $urls_opt, '[]' );
+            $urls     = json_decode( $urls_raw, true );
+            if ( ! is_array( $urls ) ) {
+                $urls = array();
+            }
+
+            $new_key = ( 'footer' === $loc ) ? SCRIPTOMATIC_LOCATION_FOOTER : SCRIPTOMATIC_LOCATION_HEAD;
+            add_option( $new_key, array(
+                'script'     => $script,
+                'conditions' => $cond,
+                'urls'       => $urls,
+            ) );
+
+            delete_option( $script_opt );
+            delete_option( $cond_opt );
+            delete_option( $urls_opt );
+        }
     }
 
     /**

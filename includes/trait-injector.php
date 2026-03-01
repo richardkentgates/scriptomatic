@@ -62,11 +62,11 @@ trait Scriptomatic_Injector {
      * @return void
      */
     private function inject_scripts_for( $location ) {
-        $script_key     = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-        $linked_key     = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $script_content = get_option( $script_key, '' );
-        $linked_raw     = get_option( $linked_key, '[]' );
-        $linked_entries = json_decode( $linked_raw, true );
+        $loc_data       = $this->get_location( $location );
+        $script_content = $loc_data['script'];
+        $linked_entries = $loc_data['urls'];    // Already a PHP array, no json_decode needed.
+        $conditions     = $loc_data['conditions']; // Already a PHP array.
+
         if ( ! is_array( $linked_entries ) ) {
             $linked_entries = array();
         }
@@ -112,8 +112,8 @@ trait Scriptomatic_Injector {
             }
         }
 
-        // Inline script: check the location-level conditions option.
-        if ( ! empty( trim( $script_content ) ) && $this->check_load_conditions( $location ) ) {
+        // Inline script: evaluate the location-level conditions directly.
+        if ( ! empty( trim( $script_content ) ) && $this->evaluate_conditions_object( $conditions ) ) {
             $output_parts[] = '<script>';
             $output_parts[] = $script_content; // Intentionally unescaped — validated at write-time.
             $output_parts[] = '</script>';

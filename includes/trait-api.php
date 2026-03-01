@@ -486,16 +486,13 @@ trait Scriptomatic_API {
      * @return WP_REST_Response|WP_Error
      */
     public function rest_get_script( WP_REST_Request $request ) {
-        $location   = $request['location'];
-        $opt_s      = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT      : SCRIPTOMATIC_HEAD_SCRIPT;
-        $opt_c      = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS   : SCRIPTOMATIC_HEAD_CONDITIONS;
-        $content    = (string) get_option( $opt_s, '' );
-        $cond_raw   = (string) get_option( $opt_c, '' );
+        $location = $request['location'];
+        $loc_data = $this->get_location( $location );
         return rest_ensure_response( array(
             'location'   => $location,
-            'content'    => $content,
-            'chars'      => strlen( $content ),
-            'conditions' => ( '' !== $cond_raw ) ? json_decode( $cond_raw, true ) : null,
+            'content'    => $loc_data['script'],
+            'chars'      => strlen( $loc_data['script'] ),
+            'conditions' => $loc_data['conditions'],
         ) );
     }
 
@@ -546,12 +543,10 @@ trait Scriptomatic_API {
      */
     public function rest_get_urls( WP_REST_Request $request ) {
         $location = $request['location'];
-        $opt      = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $raw      = get_option( $opt, '[]' );
-        $list     = json_decode( $raw, true );
+        $loc_data = $this->get_location( $location );
         return rest_ensure_response( array(
             'location' => $location,
-            'urls'     => is_array( $list ) ? $list : array(),
+            'urls'     => $loc_data['urls'],
         ) );
     }
 
@@ -717,19 +712,9 @@ trait Scriptomatic_API {
         }
         $content = $validated;
 
-        $script_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->options,
-            array( 'option_value' => $content ),
-            array( 'option_name'  => $script_key ),
-            array( '%s' ),
-            array( '%s' )
-        );
-        wp_cache_delete( $script_key, 'options' );
-
-        // Conditions: validate and save if provided.
-        $conditions_saved = null;
+        // Conditions: validate if provided, otherwise keep existing.
+        $loc_data   = $this->get_location( $location );
+        $clean_cond = null;
         if ( null !== $cond_json && '' !== $cond_json ) {
             $cond_decoded = json_decode( $cond_json, true );
             if ( ! is_array( $cond_decoded ) ) {
@@ -739,33 +724,27 @@ trait Scriptomatic_API {
                     array( 'status' => 400 )
                 );
             }
-            $clean_cond       = $this->sanitize_conditions_array( $cond_decoded );
-            $conditions_saved = wp_json_encode( $clean_cond );
-            $cond_key         = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-            $wpdb->update(
-                $wpdb->options,
-                array( 'option_value' => $conditions_saved ),
-                array( 'option_name'  => $cond_key ),
-                array( '%s' ),
-                array( '%s' )
-            );
-            wp_cache_delete( $cond_key, 'options' );
+            $clean_cond = $this->sanitize_conditions_array( $cond_decoded );
         }
 
+        $loc_data['script'] = $content;
+        if ( null !== $clean_cond ) {
+            $loc_data['conditions'] = $clean_cond;
+        }
+        $this->save_location( $location, $loc_data );
+
         $log_entry = array(
-            'action'   => 'save',
-            'location' => $location,
-            'content'  => $content,
-            'chars'    => strlen( $content ),
-            'detail'   => sprintf(
+            'action'              => 'save',
+            'location'            => $location,
+            'content'             => $content,
+            'chars'               => strlen( $content ),
+            'conditions_snapshot' => $loc_data['conditions'],
+            'detail'              => sprintf(
                 /* translators: %s: character count */
                 __( 'API: %s chars', 'scriptomatic' ),
                 number_format( strlen( $content ) )
             ),
         );
-        if ( null !== $conditions_saved ) {
-            $log_entry['conditions_snapshot'] = $conditions_saved;
-        }
         $this->write_activity_entry( $log_entry );
         $this->record_save_timestamp( $location );
 
@@ -804,43 +783,32 @@ trait Scriptomatic_API {
             );
         }
 
-        $entry      = $history[ $index ];
-        $content    = $entry['content'];
-        $script_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
+        $entry   = $history[ $index ];
+        $content = $entry['content'];
 
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->options,
-            array( 'option_value' => $content ),
-            array( 'option_name'  => $script_key ),
-            array( '%s' ),
-            array( '%s' )
-        );
-        wp_cache_delete( $script_key, 'options' );
-
-        // Restore load conditions from the snapshot when present.
+        // Restore script and conditions via save_location.
+        $loc_data           = $this->get_location( $location );
+        $loc_data['script'] = $content;
         if ( array_key_exists( 'conditions_snapshot', $entry ) && null !== $entry['conditions_snapshot'] ) {
-            $cond_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-            $wpdb->update(
-                $wpdb->options,
-                array( 'option_value' => $entry['conditions_snapshot'] ),
-                array( 'option_name'  => $cond_key ),
-                array( '%s' ),
-                array( '%s' )
-            );
-            wp_cache_delete( $cond_key, 'options' );
+            $cond = $entry['conditions_snapshot'];
+            if ( is_string( $cond ) ) {
+                $decoded = json_decode( $cond, true );
+                if ( is_array( $decoded ) ) { $cond = $decoded; }
+            }
+            if ( is_array( $cond ) ) {
+                $loc_data['conditions'] = $cond;
+            }
         }
+        $this->save_location( $location, $loc_data );
 
         $rollback_entry = array(
-            'action'   => 'rollback',
-            'location' => $location,
-            'content'  => $content,
-            'chars'    => strlen( $content ),
-            'detail'   => __( 'Restored from snapshot via API', 'scriptomatic' ),
+            'action'              => 'rollback',
+            'location'            => $location,
+            'content'             => $content,
+            'chars'               => strlen( $content ),
+            'conditions_snapshot' => $loc_data['conditions'],
+            'detail'              => __( 'Restored from snapshot via API', 'scriptomatic' ),
         );
-        if ( array_key_exists( 'conditions_snapshot', $entry ) ) {
-            $rollback_entry['conditions_snapshot'] = $entry['conditions_snapshot'];
-        }
         $this->write_activity_entry( $rollback_entry );
 
         return array(
@@ -917,23 +885,14 @@ trait Scriptomatic_API {
             );
         }
 
-        $linked_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $new_json   = wp_json_encode( $clean );
-
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->options,
-            array( 'option_value' => $new_json ),
-            array( 'option_name'  => $linked_key ),
-            array( '%s' ),
-            array( '%s' )
-        );
-        wp_cache_delete( $linked_key, 'options' );
+        $loc_data         = $this->get_location( $location );
+        $loc_data['urls'] = $clean;
+        $this->save_location( $location, $loc_data );
 
         $this->write_activity_entry( array(
             'action'        => 'url_save',
             'location'      => $location,
-            'urls_snapshot' => $new_json,
+            'urls_snapshot' => $clean,
             'detail'        => sprintf(
                 /* translators: %d: number of URLs saved */
                 _n( 'API: %d URL saved', 'API: %d URLs saved', count( $clean ), 'scriptomatic' ),
@@ -977,30 +936,28 @@ trait Scriptomatic_API {
             );
         }
 
-        $entry      = $history[ $index ];
-        $linked_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
+        $entry    = $history[ $index ];
+        $snapshot = isset( $entry['urls_snapshot'] ) ? $entry['urls_snapshot'] : array();
+        // Handle both PHP arrays (new format) and JSON strings (legacy).
+        if ( is_string( $snapshot ) ) {
+            $decoded  = json_decode( $snapshot, true );
+            $snapshot = is_array( $decoded ) ? $decoded : array();
+        }
 
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->options,
-            array( 'option_value' => $entry['urls_snapshot'] ),
-            array( 'option_name'  => $linked_key ),
-            array( '%s' ),
-            array( '%s' )
-        );
-        wp_cache_delete( $linked_key, 'options' );
+        $loc_data         = $this->get_location( $location );
+        $loc_data['urls'] = $snapshot;
+        $this->save_location( $location, $loc_data );
 
         $this->write_activity_entry( array(
             'action'        => 'url_rollback',
             'location'      => $location,
-            'urls_snapshot' => $entry['urls_snapshot'],
+            'urls_snapshot' => $snapshot,
             'detail'        => __( 'External URLs restored from snapshot via API', 'scriptomatic' ),
         ) );
 
-        $list = json_decode( $entry['urls_snapshot'], true );
         return array(
             'location' => $location,
-            'urls'     => is_array( $list ) ? $list : array(),
+            'urls'     => $snapshot,
             'message'  => __( 'External URLs restored.', 'scriptomatic' ),
         );
     }
@@ -1017,7 +974,12 @@ trait Scriptomatic_API {
         $raw      = $this->get_url_history( $location );
         $entries  = array();
         foreach ( $raw as $i => $entry ) {
-            $snap = isset( $entry['urls_snapshot'] ) ? json_decode( $entry['urls_snapshot'], true ) : array();
+            // urls_snapshot may be a PHP array (new format) or a JSON string (legacy).
+            $raw_snap = isset( $entry['urls_snapshot'] ) ? $entry['urls_snapshot'] : array();
+            if ( is_string( $raw_snap ) ) {
+                $raw_snap = json_decode( $raw_snap, true );
+            }
+            $snap = is_array( $raw_snap ) ? $raw_snap : array();
             $entries[] = array(
                 'index'     => $i,
                 'action'    => isset( $entry['action'] )     ? $entry['action']          : '',

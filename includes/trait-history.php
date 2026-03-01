@@ -62,10 +62,9 @@ trait Scriptomatic_History {
             wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
         }
 
-        $location   = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $option_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-        $index      = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $history    = $this->get_history( $location );
+        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
+        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $history  = $this->get_history( $location );
 
         if ( ! array_key_exists( $index, $history ) ) {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
@@ -74,34 +73,26 @@ trait Scriptomatic_History {
         $entry   = $history[ $index ];
         $content = $entry['content'];
 
-        // Write directly using $wpdb to bypass the registered sanitize_callback.
-        // update_option() runs our sanitize_head/footer_script callback which
-        // performs nonce + capability checks that have no $‌_POST data in this
-        // AJAX context and would silently return the old (empty) value.
-        // The content is already validated — it came from our own stored history.
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->options,
-            array( 'option_value' => $content ),
-            array( 'option_name'  => $option_key ),
-            array( '%s' ),
-            array( '%s' )
-        );
-        wp_cache_delete( $option_key, 'options' );
+        // Update the stored location data using save_location() so we go through
+        // the normal option update path rather than direct $wpdb writes.
+        $loc_data           = $this->get_location( $location );
+        $loc_data['script'] = $content;
 
-        // Restore the inline conditions snapshot when present — script content
-        // and its load conditions are one dataset, so both are restored together.
+        // Restore the inline conditions snapshot when present.
         if ( array_key_exists( 'conditions_snapshot', $entry ) && null !== $entry['conditions_snapshot'] ) {
-            $cond_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-            $wpdb->update(
-                $wpdb->options,
-                array( 'option_value' => $entry['conditions_snapshot'] ),
-                array( 'option_name'  => $cond_key ),
-                array( '%s' ),
-                array( '%s' )
-            );
-            wp_cache_delete( $cond_key, 'options' );
+            $cond = $entry['conditions_snapshot'];
+            if ( is_string( $cond ) ) {
+                // Compatibility with older log entries that stored JSON strings.
+                $decoded = json_decode( $cond, true );
+                if ( is_array( $decoded ) ) {
+                    $cond = $decoded;
+                }
+            }
+            if ( is_array( $cond ) ) {
+                $loc_data['conditions'] = $cond;
+            }
         }
+        $this->save_location( $location, $loc_data );
 
         $rollback_entry = array(
             'action'   => 'rollback',
@@ -324,31 +315,31 @@ trait Scriptomatic_History {
             wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
         }
 
-        $location   = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
-        $linked_key = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $index      = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
-        $history    = $this->get_url_history( $location );
+        $location = isset( $_POST['location'] ) && 'footer' === $_POST['location'] ? 'footer' : 'head';
+        $index    = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : PHP_INT_MAX;
+        $history  = $this->get_url_history( $location );
 
         if ( ! array_key_exists( $index, $history ) ) {
             wp_send_json_error( array( 'message' => __( 'History entry not found.', 'scriptomatic' ) ) );
         }
 
-        $entry = $history[ $index ];
+        $entry    = $history[ $index ];
+        $snapshot = isset( $entry['urls_snapshot'] ) ? $entry['urls_snapshot'] : array();
 
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->options,
-            array( 'option_value' => $entry['urls_snapshot'] ),
-            array( 'option_name'  => $linked_key ),
-            array( '%s' ),
-            array( '%s' )
-        );
-        wp_cache_delete( $linked_key, 'options' );
+        // Handle both PHP arrays (new format) and JSON strings (legacy format).
+        if ( is_string( $snapshot ) ) {
+            $decoded = json_decode( $snapshot, true );
+            $snapshot = is_array( $decoded ) ? $decoded : array();
+        }
+
+        $loc_data         = $this->get_location( $location );
+        $loc_data['urls'] = $snapshot;
+        $this->save_location( $location, $loc_data );
 
         $this->write_activity_entry( array(
             'action'        => 'url_rollback',
             'location'      => $location,
-            'urls_snapshot' => $entry['urls_snapshot'],
+            'urls_snapshot' => $snapshot,
             'detail'        => __( 'External URLs restored from snapshot', 'scriptomatic' ),
         ) );
 

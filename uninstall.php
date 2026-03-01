@@ -28,12 +28,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
  */
 function scriptomatic_uninstall_cleanup() {
     $options = array(
-        'scriptomatic_script_content',
-        'scriptomatic_linked_scripts',
-        'scriptomatic_head_conditions',
-        'scriptomatic_footer_script',
-        'scriptomatic_footer_linked',
-        'scriptomatic_footer_conditions',
+        'scriptomatic_head',
+        'scriptomatic_footer',
         'scriptomatic_js_files',
         'scriptomatic_plugin_settings',
         'scriptomatic_activity_log',

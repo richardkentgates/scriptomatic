@@ -107,10 +107,9 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
         $location = isset( $assoc_args['location'] ) ? $assoc_args['location'] : 'head';
         $location = $this->validate_location( $location );
 
-        $opt_s    = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT    : SCRIPTOMATIC_HEAD_SCRIPT;
-        $opt_c    = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-        $content  = (string) get_option( $opt_s, '' );
-        $cond_raw = (string) get_option( $opt_c, '' );
+        $loc_data = $this->plugin->get_location( $location );
+        $content  = $loc_data['script'];
+        $cond_raw = wp_json_encode( $loc_data['conditions'] );
 
         WP_CLI::line( '' );
         WP_CLI::line( '=== Inline script (' . $location . ') ===' );
@@ -304,9 +303,7 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
         $location = $this->validate_location( $location );
         $format   = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
 
-        $opt  = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $raw  = get_option( $opt, '[]' );
-        $list = json_decode( $raw, true );
+        $list = $this->plugin->get_location( $location )['urls'];
 
         if ( ! is_array( $list ) || empty( $list ) ) {
             WP_CLI::line( 'No external URLs configured for location: ' . $location );

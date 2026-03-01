@@ -19,72 +19,59 @@ if ( ! defined( 'ABSPATH' ) ) {
 trait Scriptomatic_Sanitizer {
 
     // =========================================================================
-    // SCRIPT SANITISATION
+    // LOCATION SANITISATION  (v2.8+ unified callbacks)
     // =========================================================================
 
     /**
-     * Sanitise raw head-script content submitted from the Head Scripts form.
+     * Settings API sanitise callback for the head location option.
      *
-     * @since  1.2.0
-     * @param  mixed $input Raw value from the settings form.
-     * @return string Sanitised script, or the previously-stored value on failure.
+     * @since  2.8.0
+     * @param  mixed $input Array posted from the head settings form.
+     * @return array Sanitised location data array.
      */
-    public function sanitize_head_script( $input ) {
-        return $this->sanitize_script_for( $input, 'head' );
+    public function sanitize_head_location( $input ) {
+        return $this->sanitize_location_for( $input, 'head' );
     }
 
     /**
-     * Sanitise raw footer-script content submitted from the Footer Scripts form.
+     * Settings API sanitise callback for the footer location option.
      *
-     * @since  1.2.0
-     * @param  mixed $input Raw value from the settings form.
-     * @return string Sanitised script, or the previously-stored value on failure.
+     * @since  2.8.0
+     * @param  mixed $input Array posted from the footer settings form.
+     * @return array Sanitised location data array.
      */
-    public function sanitize_footer_script( $input ) {
-        return $this->sanitize_script_for( $input, 'footer' );
+    public function sanitize_footer_location( $input ) {
+        return $this->sanitize_location_for( $input, 'footer' );
     }
 
     /**
-     * Core sanitise-and-validate logic shared by head and footer script inputs.
+     * Core unified sanitise-and-validate logic for a single location option.
      *
-     * Security gates (executed in order before any content validation):
+     * Receives the entire location array submitted from the settings form
+     * (script textarea + conditions JSON hidden input + URLs JSON hidden input),
+     * validates each field, and returns a clean PHP array suitable for storage.
      *
-     * 1. **Capability check** — aborts if the current user does not hold
-     *    `manage_options`.  Defence-in-depth measure.
+     * Security gates (executed in order):
+     * 1. Capability check — must hold `manage_options`.
+     * 2. Secondary nonce — location-specific nonce from the form page.
+     * 3. Per-user rate limiter — transient-based save-throttle.
      *
-     * 2. **Secondary nonce** — a short-lived, location-specific nonce
-     *    (distinct from the Settings API nonce) verifies that the POST
-     *    originated from the correct page of our own admin UI.
-     *
-     * 3. **Per-user rate limiter** — a transient keyed to the current user
-     *    blocks rapid-fire save attempts.
-     *
-     * Content validation gates:
-     * UTF-8 validity, control characters, PHP tags, script-tag stripping,
-     * length cap, and dangerous-element detection.
-     *
-     * @since  1.2.0
+     * @since  2.8.0
      * @access private
-     * @param  mixed  $input    Raw value submitted from the settings form.
-     * @param  string $location `'head'` or `'footer'`.
-     * @return string Sanitised content, or the previously-stored value on any failure.
+     * @param  mixed  $input    Array submitted from the settings form:
+     *                          { script: string, conditions: JSON string, urls: JSON string }
+     * @param  string $location 'head'|'footer'.
+     * @return array  Sanitised { script: string, conditions: array, urls: array }
      */
-    private function sanitize_script_for( $input, $location ) {
-        // WordPress Settings API can invoke the sanitize callback twice per
-        // request (once for comparison, once to persist). Track which locations
-        // have already been processed in this request so the second call skips
-        // the rate limiter and duplicate log/history recording.
-        static $processed_this_request = array();
-
-        $option_key       = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-        $previous_content = get_option( $option_key, '' );
-        $nonce_action     = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_NONCE : SCRIPTOMATIC_HEAD_NONCE;
-        $nonce_field      = ( 'footer' === $location ) ? 'scriptomatic_footer_nonce' : 'scriptomatic_save_nonce';
-        $error_slug       = 'scriptomatic_' . $location . '_script';
+    private function sanitize_location_for( $input, $location ) {
+        $previous    = $this->get_location( $location );
+        $nonce_action = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_NONCE : SCRIPTOMATIC_HEAD_NONCE;
+        $nonce_field  = ( 'footer' === $location ) ? 'scriptomatic_footer_nonce' : 'scriptomatic_save_nonce';
+        $error_slug   = 'scriptomatic_' . $location . '_script';
 
         // Gate 0: Capability.
         if ( ! current_user_can( $this->get_required_cap() ) ) {
-            return $previous_content;
+            return $previous;
         }
 
         // Gate 1: Secondary nonce.
@@ -94,107 +81,124 @@ trait Scriptomatic_Sanitizer {
         if ( ! wp_verify_nonce( $secondary_nonce, $nonce_action ) ) {
             add_settings_error( $error_slug, 'nonce_invalid',
                 __( 'Security check failed. Please refresh the page and try again.', 'scriptomatic' ), 'error' );
-            return $previous_content;
+            return $previous;
         }
 
-        // Gate 2: Rate limiter — skipped on the second invocation within the
-        // same request (Settings API double-call) to avoid false positives.
-        $already_processed = isset( $processed_this_request[ $location ] );
-        if ( ! $already_processed && $this->is_rate_limited( $location ) ) {
+        // Gate 2: Rate limiter.
+        if ( $this->is_rate_limited( $location ) ) {
             add_settings_error( $error_slug, 'rate_limited',
                 sprintf(
                     /* translators: %d: seconds to wait */
                     __( 'You are saving too quickly. Please wait %d seconds before trying again.', 'scriptomatic' ),
                     SCRIPTOMATIC_RATE_LIMIT_SECONDS
                 ), 'error' );
-            return $previous_content;
+            return $previous;
         }
 
-        if ( ! is_string( $input ) ) {
+        // ---- Ensure $input is an array ----
+        if ( ! is_array( $input ) ) {
+            $input = array();
+        }
+
+        // =========================================================
+        // 1. Inline script
+        // =========================================================
+        $script_raw = isset( $input['script'] ) ? $input['script'] : '';
+
+        if ( ! is_string( $script_raw ) ) {
             add_settings_error( $error_slug, 'invalid_type',
                 __( 'Script content must be plain text.', 'scriptomatic' ), 'error' );
-            return $previous_content;
+            return $previous;
         }
 
-        $input = wp_unslash( $input );
-        $input = wp_kses_no_null( $input );
-        $input = str_replace( "\r\n", "\n", $input );
+        $script = wp_unslash( $script_raw );
+        $script = wp_kses_no_null( $script );
+        $script = str_replace( "\r\n", "\n", $script );
 
-        $validated_input = wp_check_invalid_utf8( $input, true );
-        if ( '' === $validated_input && '' !== $input ) {
+        $validated = wp_check_invalid_utf8( $script, true );
+        if ( '' === $validated && '' !== $script ) {
             add_settings_error( $error_slug, 'invalid_utf8',
                 __( 'Script content contains invalid UTF-8 characters.', 'scriptomatic' ), 'error' );
-            return $previous_content;
+            return $previous;
         }
-        $input = $validated_input;
+        $script = $validated;
 
-        if ( preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $input ) ) {
+        if ( preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $script ) ) {
             add_settings_error( $error_slug, 'control_characters_detected',
                 __( 'Script content contains disallowed control characters.', 'scriptomatic' ), 'error' );
-            return $previous_content;
+            return $previous;
         }
 
-        if ( preg_match( '/<\?(php|=)?/i', $input ) ) {
+        if ( preg_match( '/<\?(php|=)?/i', $script ) ) {
             add_settings_error( $error_slug, 'php_tags_detected',
                 __( 'PHP tags are not allowed in script content.', 'scriptomatic' ), 'error' );
-            return $previous_content;
+            return $previous;
         }
 
-        if ( preg_match( '/<\s*script[^>]*>(.*?)<\s*\/\s*script\s*>/is', $input ) ) {
-            $input = preg_replace( '/<\s*script[^>]*>(.*?)<\s*\/\s*script\s*>/is', '$1', $input );
+        if ( preg_match( '/<\s*script[^>]*>(.*?)<\s*\/\s*script\s*>/is', $script ) ) {
+            $script = preg_replace( '/<\s*script[^>]*>(.*?)<\s*\/\s*script\s*>/is', '$1', $script );
             add_settings_error( $error_slug, 'script_tags_removed',
                 __( 'Script tags were removed automatically. Enter JavaScript only.', 'scriptomatic' ), 'warning' );
         }
 
-        if ( strlen( $input ) > SCRIPTOMATIC_MAX_SCRIPT_LENGTH ) {
+        if ( strlen( $script ) > SCRIPTOMATIC_MAX_SCRIPT_LENGTH ) {
             add_settings_error( $error_slug, 'script_too_long',
                 sprintf(
                     /* translators: %s: maximum script length in characters */
                     __( 'Script content exceeds maximum length of %s characters.', 'scriptomatic' ),
                     number_format( SCRIPTOMATIC_MAX_SCRIPT_LENGTH )
                 ), 'error' );
-            return $previous_content;
+            return $previous;
         }
 
         foreach ( array( '/<\s*iframe/i', '/<\s*object/i', '/<\s*embed/i', '/<\s*link/i', '/<\s*style/i', '/<\s*meta/i' ) as $pattern ) {
-            if ( preg_match( $pattern, $input ) ) {
+            if ( preg_match( $pattern, $script ) ) {
                 add_settings_error( $error_slug, 'dangerous_content',
                     __( 'Script content contains potentially dangerous HTML tags. Please use JavaScript only.', 'scriptomatic' ), 'warning' );
             }
         }
 
-        $input = trim( $input );
+        $script = trim( $script );
 
-        // Only log, record history, and stamp the rate-limit transient once per
-        // request — guards against the Settings API double-call.
-        if ( ! $already_processed ) {
-            // Contribute the script snapshot to the combined pending-save entry.
-            // The entry is flushed once at shutdown after all three callbacks
-            // (script, urls, conditions) have contributed their pieces.
-            $old_content  = get_option( $option_key, '' );
-            // When the script is being cleared (saved as empty), snapshot the
-            // OLD content so View shows what was removed and Restore brings it
-            // back. The 'content' key is what the log entry stores/restores.
-            $snap_content = ( '' === $input && '' !== $old_content ) ? $old_content : $input;
-            $pending_data = array(
-                'content' => $snap_content,
-                'chars'   => strlen( $input ),
-            );
-            if ( $old_content !== $input ) {
-                $pending_data['script_changed'] = true;
-            }
-            $this->contribute_to_pending_save( $location, $pending_data );
-            $this->record_save_timestamp( $location );
-            $processed_this_request[ $location ] = true;
-            add_settings_error(
-                $error_slug,
-                'settings_saved',
-                __( 'Settings saved.', 'scriptomatic' ),
-                'updated'
-            );
+        // =========================================================
+        // 2. Conditions (JSON string → decoded PHP array)
+        // =========================================================
+        $cond_raw = isset( $input['conditions'] ) ? $input['conditions'] : '';
+        if ( is_string( $cond_raw ) && '' !== $cond_raw ) {
+            $decoded_cond = json_decode( wp_unslash( $cond_raw ), true );
+        } else {
+            $decoded_cond = null;
         }
+        if ( ! is_array( $decoded_cond ) ) {
+            $decoded_cond = array( 'logic' => 'and', 'rules' => array() );
+        }
+        $conditions = $this->sanitize_conditions_array( $decoded_cond );
 
-        return $input;
+        // =========================================================
+        // 3. External URLs (JSON string → decoded PHP array)
+        // =========================================================
+        $urls_raw = isset( $input['urls'] ) ? $input['urls'] : '';
+        if ( is_string( $urls_raw ) && '' !== $urls_raw ) {
+            $decoded_urls = json_decode( wp_unslash( $urls_raw ), true );
+        } else {
+            $decoded_urls = null;
+        }
+        $urls = $this->sanitize_url_entries( is_array( $decoded_urls ) ? $decoded_urls : array() );
+
+        // =========================================================
+        // 4. Log the save and stamp the rate-limit transient
+        // =========================================================
+        $this->log_location_save( $location, $previous, $script, $conditions, $urls );
+        $this->record_save_timestamp( $location );
+
+        add_settings_error( $error_slug, 'settings_saved',
+            __( 'Settings saved.', 'scriptomatic' ), 'updated' );
+
+        return array(
+            'script'     => $script,
+            'conditions' => $conditions,
+            'urls'       => $urls,
+        );
     }
 
     // =========================================================================
@@ -230,36 +234,49 @@ trait Scriptomatic_Sanitizer {
     }
 
     // =========================================================================
-    // LINKED-URL SANITISATION
+    // URL AND CONDITIONS HELPERS
     // =========================================================================
 
     /**
-     * Sanitise linked-script URLs for the head location.
+     * Sanitise an already-decoded array of URL entry objects.
      *
-     * @since  1.2.0
-     * @param  mixed $input Raw JSON string from the form.
-     * @return string JSON-encoded array of sanitised URLs.
+     * Called by {@see sanitize_location_for()} after JSON-decoding the urls
+     * field. Returns a clean PHP array — no JSON encoding.
+     *
+     * @since  2.8.0
+     * @access private
+     * @param  array $decoded Raw decoded array of {url, conditions} objects.
+     * @return array          Sanitised array of {url, conditions} objects.
      */
-    public function sanitize_head_linked( $input ) {
-        return $this->sanitize_linked_for( $input, 'head' );
-    }
+    private function sanitize_url_entries( array $decoded ) {
+        $clean = array();
+        foreach ( $decoded as $entry ) {
+            if ( ! is_array( $entry ) ) {
+                continue;
+            }
 
-    /**
-     * Sanitise linked-script URLs for the footer location.
-     *
-     * @since  1.2.0
-     * @param  mixed $input Raw JSON string from the form.
-     * @return string JSON-encoded array of sanitised URLs.
-     */
-    public function sanitize_footer_linked( $input ) {
-        return $this->sanitize_linked_for( $input, 'footer' );
+            $url = isset( $entry['url'] ) ? esc_url_raw( trim( (string) $entry['url'] ) ) : '';
+            if ( empty( $url ) || ! preg_match( '/^https?:\/\//i', $url ) ) {
+                continue;
+            }
+
+            $raw_cond = ( isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
+                        ? $entry['conditions']
+                        : array();
+
+            $clean[] = array(
+                'url'        => $url,
+                'conditions' => $this->sanitize_conditions_array( $raw_cond ),
+            );
+        }
+        return $clean;
     }
 
     /**
      * Sanitise a decoded load-conditions array.
      *
-     * Shared by {@see sanitize_conditions_for()} (inline-script conditions) and
-     * {@see sanitize_linked_for()} (per-URL conditions embedded in every entry).
+     * Shared by {@see sanitize_location_for()} (inline-script conditions) and
+     * {@see sanitize_url_entries()} (per-URL conditions embedded in every entry).
      *
      * @since  1.0.0
      * @access private
@@ -267,6 +284,7 @@ trait Scriptomatic_Sanitizer {
      * @return array      Sanitised {logic, rules} array.
      */
     private function sanitize_conditions_array( array $raw ) {
+
         $logic     = ( isset( $raw['logic'] ) && 'or' === $raw['logic'] ) ? 'or' : 'and';
         $raw_rules = ( isset( $raw['rules'] ) && is_array( $raw['rules'] ) ) ? $raw['rules'] : array();
 
@@ -372,384 +390,100 @@ trait Scriptomatic_Sanitizer {
         return array( 'type' => $type, 'values' => $clean_values );
     }
 
-    /**
-     * Core sanitisation logic for linked-script entries with per-URL conditions.
-     *
-     * Validates each URL and sanitises each entry's conditions object via
-     * {@see sanitize_conditions_array()}.
-     *
-     * Diffs the incoming URL list against the stored list and writes an audit
-     * log entry for every URL that was added or removed.
-     *
-     * @since  1.0.0
-     * @access private
-     * @param  mixed  $input    Raw value (expected JSON string).
-     * @param  string $location `'head'` or `'footer'`.
-     * @return string JSON-encoded array of `{url, conditions}` objects.
-     */
-    private function sanitize_linked_for( $input, $location ) {
-        // Guard against the Settings API double-call (same as sanitize_script_for).
-        static $logged_this_request = array();
-
-        $option_key   = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_LINKED : SCRIPTOMATIC_HEAD_LINKED;
-        $nonce_action = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_NONCE  : SCRIPTOMATIC_HEAD_NONCE;
-        $nonce_field  = ( 'footer' === $location ) ? 'scriptomatic_footer_nonce' : 'scriptomatic_save_nonce';
-
-        // Gate 0: Capability.
-        if ( ! current_user_can( $this->get_required_cap() ) ) {
-            return get_option( $option_key, '[]' );
-        }
-
-        // Gate 1: Secondary nonce (present on Settings API form submissions).
-        if ( isset( $_POST[ $nonce_field ] ) ) {
-            $nonce = sanitize_text_field( wp_unslash( $_POST[ $nonce_field ] ) );
-            if ( ! wp_verify_nonce( $nonce, $nonce_action ) ) {
-                return get_option( $option_key, '[]' );
-            }
-        }
-
-        if ( empty( $input ) ) {
-            return '[]';
-        }
-
-        $decoded = json_decode( wp_unslash( $input ), true );
-        if ( ! is_array( $decoded ) ) {
-            return get_option( $option_key, '[]' );
-        }
-
-        $clean = array();
-        foreach ( $decoded as $entry ) {
-            if ( ! is_array( $entry ) ) {
-                continue;
-            }
-
-            $url = isset( $entry['url'] ) ? esc_url_raw( trim( (string) $entry['url'] ) ) : '';
-            if ( empty( $url ) || ! preg_match( '/^https?:\/\//i', $url ) ) {
-                continue;
-            }
-
-            $raw_cond = ( isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
-                        ? $entry['conditions']
-                        : array();
-
-            $clean[] = array(
-                'url'        => $url,
-                'conditions' => $this->sanitize_conditions_array( $raw_cond ),
-            );
-        }
-
-        // Diff old vs new URL lists and audit-log each addition and removal.
-        // Skipped on the second invocation within the same request.
-        if ( ! isset( $logged_this_request[ $location ] ) ) {
-            $logged_this_request[ $location ] = true;
-
-            $old_raw     = get_option( $option_key, '[]' );
-            $old_decoded = json_decode( $old_raw, true );
-            $old_urls    = array();
-            if ( is_array( $old_decoded ) ) {
-                foreach ( $old_decoded as $e ) {
-                    $u = isset( $e['url'] ) ? (string) $e['url'] : '';
-                    if ( '' !== $u ) {
-                        $old_urls[] = $u;
-                    }
-                }
-            }
-
-            $new_urls = array_column( $clean, 'url' );
-
-            $new_urls_json = wp_json_encode( $clean );
-
-            $added_urls   = array_diff( $new_urls, $old_urls );
-            $removed_urls = array_diff( $old_urls, $new_urls );
-
-            // Contribute the URL snapshot and change counts to the pending-save
-            // accumulator so a separate URL dataset entry can be written at shutdown.
-            // When URLs are removed (and none added), snapshot the OLD list so
-            // View shows what was removed and Restore brings it back.
-            $snapshot_for_log = ( count( $removed_urls ) > 0 && count( $added_urls ) === 0 )
-                ? $old_raw
-                : $new_urls_json;
-            $pending_data = array( 'urls_snapshot' => $snapshot_for_log );
-            if ( $old_raw !== $new_urls_json ) {
-                // Any change to the list including per-URL conditions.
-                $pending_data['url_list_changed'] = true;
-            }
-            if ( count( $added_urls ) > 0 ) {
-                $pending_data['urls_added'] = count( $added_urls );
-            }
-            if ( count( $removed_urls ) > 0 ) {
-                $pending_data['urls_removed'] = count( $removed_urls );
-            }
-            $this->contribute_to_pending_save( $location, $pending_data );
-        }
-
-        return wp_json_encode( $clean );
-    }
-
-    // =========================================================================
-    // CONDITIONS SANITISATION
+// =========================================================================
+    // ACTIVITY LOG HELPERS
     // =========================================================================
 
     /**
-     * Sanitise load-conditions JSON for the head location.
+     * Write the activity log entry (or entries) for a successful location save.
      *
-     * @since  1.3.0
-     * @param  mixed $input Raw JSON string from the form.
-     * @return string JSON-encoded conditions object.
-     */
-    public function sanitize_head_conditions( $input ) {
-        return $this->sanitize_conditions_for( $input, 'head' );
-    }
-
-    /**
-     * Sanitise load-conditions JSON for the footer location.
+     * Compares the incoming sanitised data against the previously-stored data
+     * and writes:
+     *  - One 'save' (or 'conditions_save') entry when the inline script OR its
+     *    conditions changed.
+     *  - One 'url_save' entry when the external URL list changed.
      *
-     * @since  1.3.0
-     * @param  mixed $input Raw JSON string from the form.
-     * @return string JSON-encoded conditions object.
-     */
-    public function sanitize_footer_conditions( $input ) {
-        return $this->sanitize_conditions_for( $input, 'footer' );
-    }
-
-    /**
-     * Core conditions sanitise logic shared by head and footer.
+     * Each dataset is recorded independently so they can be viewed and restored
+     * independently via the history panel.
      *
-     * Only whitelisted condition types are accepted; values are sanitised
-     * per-type (post-type slugs, integer IDs, or plain-text URL substrings).
-     *
-     * @since  1.3.0
-     * @access private
-     * @param  mixed  $input    Raw JSON string.
-     * @param  string $location `'head'` or `'footer'`.
-     * @return string JSON-encoded array: `{type: string, values: array}`.
-     */
-    private function sanitize_conditions_for( $input, $location ) {
-        // Guard against the Settings API double-call (same as sanitize_script_for / sanitize_linked_for).
-        static $logged_this_request = array();
-
-        $option_key   = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_CONDITIONS : SCRIPTOMATIC_HEAD_CONDITIONS;
-        $nonce_action = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_NONCE       : SCRIPTOMATIC_HEAD_NONCE;
-        $nonce_field  = ( 'footer' === $location ) ? 'scriptomatic_footer_nonce'     : 'scriptomatic_save_nonce';
-        $default      = wp_json_encode( array( 'logic' => 'and', 'rules' => array() ) );
-
-        // Gate 0: Capability.
-        if ( ! current_user_can( $this->get_required_cap() ) ) {
-            return get_option( $option_key, $default );
-        }
-
-        // Gate 1: Secondary nonce (present on Settings API form submissions).
-        if ( isset( $_POST[ $nonce_field ] ) ) {
-            $nonce = sanitize_text_field( wp_unslash( $_POST[ $nonce_field ] ) );
-            if ( ! wp_verify_nonce( $nonce, $nonce_action ) ) {
-                return get_option( $option_key, $default );
-            }
-        }
-
-        if ( empty( $input ) ) {
-            return $default;
-        }
-
-        $decoded = json_decode( wp_unslash( $input ), true );
-        if ( ! is_array( $decoded ) ) {
-            return get_option( $option_key, $default );
-        }
-
-        $new_conditions = $this->sanitize_conditions_array( $decoded );
-        $new_json       = wp_json_encode( $new_conditions );
-        $old_json       = get_option( $option_key, $default );
-
-        if ( ! isset( $logged_this_request[ $location ] ) ) {
-            $logged_this_request[ $location ] = true;
-
-            // Always contribute the conditions snapshot so the combined entry
-            // can fully restore all three fields regardless of what changed.
-            $pending_data = array( 'conditions_snapshot' => $new_json );
-
-            if ( $old_json !== $new_json ) {
-                // Derive a short human-readable summary for the Changes column.
-                $ctype_labels = array(
-                    'front_page'   => __( 'Front page only', 'scriptomatic' ),
-                    'singular'     => __( 'Any singular post/page', 'scriptomatic' ),
-                    'post_type'    => __( 'Specific post types', 'scriptomatic' ),
-                    'page_id'      => __( 'Specific page IDs', 'scriptomatic' ),
-                    'url_contains' => __( 'URL contains', 'scriptomatic' ),
-                    'logged_in'    => __( 'Logged-in users only', 'scriptomatic' ),
-                    'logged_out'   => __( 'Logged-out visitors only', 'scriptomatic' ),
-                    'by_date'      => __( 'Date range', 'scriptomatic' ),
-                    'by_datetime'  => __( 'Date & time range', 'scriptomatic' ),
-                    'week_number'  => __( 'Specific week numbers', 'scriptomatic' ),
-                    'by_month'     => __( 'Specific months', 'scriptomatic' ),
-                );
-                if ( isset( $new_conditions['rules'] ) && is_array( $new_conditions['rules'] ) ) {
-                    $stack_rules  = $new_conditions['rules'];
-                    $stack_logic  = isset( $new_conditions['logic'] ) ? strtoupper( $new_conditions['logic'] ) : 'AND';
-                } else {
-                    $stack_rules = array();
-                    $stack_logic = 'AND';
-                }
-                $rcount = count( $stack_rules );
-                if ( 0 === $rcount ) {
-                    $cond_detail = __( 'All pages', 'scriptomatic' );
-                } elseif ( 1 === $rcount ) {
-                    $rt          = isset( $stack_rules[0]['type'] ) ? $stack_rules[0]['type'] : '';
-                    $cond_detail = isset( $ctype_labels[ $rt ] ) ? $ctype_labels[ $rt ] : $rt;
-                } else {
-                    $cond_detail = sprintf( '%d rules (%s)', $rcount, $stack_logic );
-                }
-
-                $pending_data['conditions_changed'] = true;
-                $pending_data['conditions_detail']  = $cond_detail;
-            }
-
-            $this->contribute_to_pending_save( $location, $pending_data );
-        }
-
-        return $new_json;
-    }
-
-    // =========================================================================
-    // COMBINED SAVE ENTRY ACCUMULATOR
-    // =========================================================================
-
-    /**
-     * Accumulate data from each Settings API sanitize callback into a single
-     * pending-save record, then flush it as one combined log entry at shutdown.
-     *
-     * The WordPress Settings API fires a separate sanitize callback for every
-     * registered option in the group. For a Head/Footer Save click that means
-     * three separate invocations: script, linked URLs, and conditions. Rather
-     * than write three partial entries, each callback contributes its piece
-     * here and one combined snapshot entry is written once at shutdown.
-     *
-     * @since  2.5.0
-     * @access private
-     * @param  string $location 'head'|'footer'.
-     * @param  array  $data     Data fragment to merge into the pending entry.
-     * @return void
-     */
-    private function contribute_to_pending_save( $location, array $data ) {
-        static $pending = array();
-        static $hooked  = array();
-
-        $pending[ $location ] = isset( $pending[ $location ] )
-            ? array_merge( $pending[ $location ], $data )
-            : $data;
-
-        if ( empty( $hooked[ $location ] ) ) {
-            $hooked[ $location ] = true;
-
-            // Bind the flush closure to $this so it can access private methods.
-            $bound = Closure::bind(
-                function () use ( $location, &$pending ) {
-                    if ( ! empty( $pending[ $location ] ) ) {
-                        $this->flush_pending_save_entry( $location, $pending[ $location ] );
-                    }
-                },
-                $this,
-                get_class( $this )
-            );
-            add_action( 'shutdown', $bound );
-        }
-    }
-
-    /**
-     * Write the combined save entry assembled from all three sanitize callbacks.
-     *
-     * Called once per location at PHP shutdown, after the Settings API has
-     * finished invoking all callbacks. Builds the entry from the accumulated
-     * data, derives a human-readable "Changes" summary, and persists it via
-     * {@see write_activity_entry()}.
-     *
-     * @since  2.5.0
+     * @since  2.8.0
      * @access private
      * @param  string $location   'head'|'footer'.
-     * @param  array  $accumulated Merged data contributed by the three callbacks.
+     * @param  array  $previous   Previous location data from get_location().
+     * @param  string $script     New sanitised script content.
+     * @param  array  $conditions New sanitised conditions array.
+     * @param  array  $urls       New sanitised URL entries array.
      * @return void
      */
-    private function flush_pending_save_entry( $location, array $accumulated ) {
-        // === INLINE SCRIPT DATASET ENTRY ===
-        // Script content + its load conditions are one dataset. Write one entry
-        // only when the script OR its conditions actually changed. Never includes
-        // URL list data so each dataset can be viewed and restored independently.
-        $inline_changed = ! empty( $accumulated['script_changed'] )
-                       || ! empty( $accumulated['conditions_changed'] );
+    private function log_location_save( $location, array $previous, $script, array $conditions, array $urls ) {
+        $old_script     = isset( $previous['script'] )     ? (string) $previous['script']     : '';
+        $old_conditions = isset( $previous['conditions'] ) && is_array( $previous['conditions'] )
+                          ? $previous['conditions'] : array( 'logic' => 'and', 'rules' => array() );
+        $old_urls       = isset( $previous['urls'] )       && is_array( $previous['urls'] )
+                          ? $previous['urls'] : array();
 
-        if ( $inline_changed ) {
-            // When only conditions changed (no script edit), use 'conditions_save'
-            // so this entry is NOT counted in the content-restore index and does
-            // not bump the most recent real save/rollback off index 0.  The
-            // 'conditions_save' label is already defined in the action_label_map.
-            $script_actually_changed = ! empty( $accumulated['script_changed'] );
-            $inline_entry = array(
-                'action'   => $script_actually_changed ? 'save' : 'conditions_save',
-                'location' => $location,
-            );
+        $script_changed     = ( $old_script !== $script );
+        $conditions_changed = ( wp_json_encode( $old_conditions ) !== wp_json_encode( $conditions ) );
+        $urls_changed       = ( wp_json_encode( $old_urls ) !== wp_json_encode( $urls ) );
 
-            // Always snapshot the script content so the entry represents a
-            // complete, restorable inline dataset even when only conditions
-            // changed (in which case the script sanitizer never ran and
-            // 'content' was never contributed to $accumulated).
-            if ( array_key_exists( 'content', $accumulated ) ) {
-                $snap_content = $accumulated['content'];
-            } else {
-                $script_key   = ( 'footer' === $location ) ? SCRIPTOMATIC_FOOTER_SCRIPT : SCRIPTOMATIC_HEAD_SCRIPT;
-                $snap_content = (string) get_option( $script_key, '' );
-            }
-            $inline_entry['content'] = $snap_content;
-            $inline_entry['chars']   = isset( $accumulated['chars'] )
-                ? (int) $accumulated['chars']
-                : strlen( $snap_content );
+        // ---- Inline script dataset entry ----
+        if ( $script_changed || $conditions_changed ) {
+            $action = $script_changed ? 'save' : 'conditions_save';
 
-            // Snapshot the current inline conditions alongside the script so
-            // a single Restore brings back the full inline dataset at once.
-            if ( array_key_exists( 'conditions_snapshot', $accumulated ) ) {
-                $inline_entry['conditions_snapshot'] = $accumulated['conditions_snapshot'];
-            }
+            // When script is cleared, snapshot the OLD content so View shows what
+            // was removed and Restore brings it back.
+            $snap_content = ( '' === $script && '' !== $old_script ) ? $old_script : $script;
 
             $detail_parts = array();
-            if ( ! empty( $accumulated['script_changed'] ) ) {
-                $chars          = isset( $inline_entry['chars'] ) ? (int) $inline_entry['chars'] : 0;
+            if ( $script_changed ) {
                 $detail_parts[] = sprintf(
                     /* translators: %s: character count */
                     __( 'Script: %s chars', 'scriptomatic' ),
-                    number_format( $chars )
+                    number_format( strlen( $script ) )
                 );
             }
-            if ( ! empty( $accumulated['conditions_changed'] ) && ! empty( $accumulated['conditions_detail'] ) ) {
+            if ( $conditions_changed ) {
                 $detail_parts[] = sprintf(
                     /* translators: %s: conditions summary label */
                     __( 'Conditions: %s', 'scriptomatic' ),
-                    $accumulated['conditions_detail']
+                    $this->conditions_summary( $conditions )
                 );
             }
 
-            $inline_entry['detail'] = implode( ' · ', $detail_parts );
-            $this->write_activity_entry( $inline_entry );
+            $this->write_activity_entry( array(
+                'action'             => $action,
+                'location'           => $location,
+                'content'            => $snap_content,
+                'chars'              => strlen( $script ),
+                'conditions_snapshot' => $conditions,
+                'detail'             => implode( ' · ', $detail_parts ),
+            ) );
         }
 
-        // === URL DATASET ENTRY ===
-        // External URL list + per-URL conditions are a separate dataset. Write
-        // one entry only when the list actually changed. Never combined with the
-        // inline entry so each dataset can be viewed and restored independently.
-        if ( ! empty( $accumulated['url_list_changed'] ) && array_key_exists( 'urls_snapshot', $accumulated ) ) {
-            $url_entry = array(
-                'action'        => 'url_save',
-                'location'      => $location,
-                'urls_snapshot' => $accumulated['urls_snapshot'],
-            );
+        // ---- URL dataset entry ----
+        if ( $urls_changed ) {
+            $old_url_list = array_column( $old_urls, 'url' );
+            $new_url_list = array_column( $urls, 'url' );
+            $added_urls   = array_diff( $new_url_list, $old_url_list );
+            $removed_urls = array_diff( $old_url_list, $new_url_list );
+
+            // When URLs are removed (and none added), snapshot OLD list so
+            // Restore brings it back.
+            $urls_snapshot = ( count( $removed_urls ) > 0 && count( $added_urls ) === 0 )
+                ? $old_urls
+                : $urls;
 
             $detail_parts = array();
-            if ( ! empty( $accumulated['urls_added'] ) ) {
-                $n              = (int) $accumulated['urls_added'];
+            if ( count( $added_urls ) > 0 ) {
+                $n              = count( $added_urls );
                 $detail_parts[] = sprintf(
                     /* translators: %d: number of URLs added */
                     _n( '%d URL added', '%d URLs added', $n, 'scriptomatic' ),
                     $n
                 );
             }
-            if ( ! empty( $accumulated['urls_removed'] ) ) {
-                $n              = (int) $accumulated['urls_removed'];
+            if ( count( $removed_urls ) > 0 ) {
+                $n              = count( $removed_urls );
                 $detail_parts[] = sprintf(
                     /* translators: %d: number of URLs removed */
                     _n( '%d URL removed', '%d URLs removed', $n, 'scriptomatic' ),
@@ -757,12 +491,52 @@ trait Scriptomatic_Sanitizer {
                 );
             }
             if ( empty( $detail_parts ) ) {
-                // Per-URL conditions changed without adding or removing a URL.
                 $detail_parts[] = __( 'URL conditions updated', 'scriptomatic' );
             }
 
-            $url_entry['detail'] = implode( ' · ', $detail_parts );
-            $this->write_activity_entry( $url_entry );
+            $this->write_activity_entry( array(
+                'action'        => 'url_save',
+                'location'      => $location,
+                'urls_snapshot' => $urls_snapshot,
+                'detail'        => implode( ' · ', $detail_parts ),
+            ) );
         }
+    }
+
+    /**
+     * Build a short human-readable summary of a conditions object.
+     *
+     * @since  2.8.0
+     * @access private
+     * @param  array $conditions Sanitised { logic, rules } array.
+     * @return string
+     */
+    private function conditions_summary( array $conditions ) {
+        $ctype_labels = array(
+            'front_page'   => __( 'Front page only', 'scriptomatic' ),
+            'singular'     => __( 'Any singular post/page', 'scriptomatic' ),
+            'post_type'    => __( 'Specific post types', 'scriptomatic' ),
+            'page_id'      => __( 'Specific page IDs', 'scriptomatic' ),
+            'url_contains' => __( 'URL contains', 'scriptomatic' ),
+            'logged_in'    => __( 'Logged-in users only', 'scriptomatic' ),
+            'logged_out'   => __( 'Logged-out visitors only', 'scriptomatic' ),
+            'by_date'      => __( 'Date range', 'scriptomatic' ),
+            'by_datetime'  => __( 'Date & time range', 'scriptomatic' ),
+            'week_number'  => __( 'Specific week numbers', 'scriptomatic' ),
+            'by_month'     => __( 'Specific months', 'scriptomatic' ),
+        );
+
+        $rules  = ( isset( $conditions['rules'] ) && is_array( $conditions['rules'] ) ) ? $conditions['rules'] : array();
+        $logic  = isset( $conditions['logic'] ) ? strtoupper( $conditions['logic'] ) : 'AND';
+        $rcount = count( $rules );
+
+        if ( 0 === $rcount ) {
+            return __( 'All pages', 'scriptomatic' );
+        }
+        if ( 1 === $rcount ) {
+            $rt = isset( $rules[0]['type'] ) ? $rules[0]['type'] : '';
+            return isset( $ctype_labels[ $rt ] ) ? $ctype_labels[ $rt ] : $rt;
+        }
+        return sprintf( '%d rules (%s)', $rcount, $logic );
     }
 }
