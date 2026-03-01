@@ -44,6 +44,7 @@ if ( ! function_exists( 'scriptomatic_fs' ) ) {
                 'has_premium_version' => true,
                 'has_addons'          => false,
                 'has_paid_plans'      => true,
+                'is_live'             => true,
                 'is_org_compliant'    => true,
                 // Automatically removed in the free version. If you're not using the
                 // auto-generated free version, delete this line before uploading to wp.org.
