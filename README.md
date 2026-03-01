@@ -311,7 +311,7 @@ Scriptomatic is built with security as a top priority:
 - On multisite, uninstall iterates every sub-site and removes per-site option data, then cleans network-level options
 - Multisite-aware data handling
 - No external dependencies or API calls
-- No raw SQL from user input (options API only)
+- No raw SQL from user input — options API and `$wpdb` prepared statements only
 
 ## 🛠️ Best Practices
 

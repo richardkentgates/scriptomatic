@@ -356,7 +356,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-amber">📋</div>
         <h3>Activity Log</h3>
-        <p>All saves, rollbacks, and JS file events are recorded with timestamp, username, action type, and a human-readable summary of what changed. Every save entry is a complete snapshot; Restore brings everything back at once. Configurable limit of 3–1000 entries (default 200), with oldest entries discarded automatically.</p>
+        <p>All saves, rollbacks, and JS file events are recorded with timestamp, username, action type, and a human-readable summary of what changed. Inline script entries and external URL entries are written independently &mdash; each with its own View and Restore buttons; restoring one never touches the other. Configurable limit of 3&ndash;1000 entries (default 200), with oldest entries discarded automatically.</p>
       </div>
 
       <div class="feature-card">
@@ -374,7 +374,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-green">🌐</div>
         <h3>Multisite Compatible</h3>
-        <p>Fully per-site within a network. Install and activate network-wide. Uninstall iterates every sub-site to clean up option data correctly.</p>
+        <p>Fully per-site within a network. Install and activate network-wide. Uninstall iterates every sub-site to clean up option data and drops the shared <code>{prefix}scriptomatic_log</code> activity log table.</p>
       </div>
 
       <div class="feature-card">

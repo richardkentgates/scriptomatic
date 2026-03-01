@@ -3,7 +3,7 @@
  * Trait: Revision history management for Scriptomatic.
  *
  * Provides push/get/rollback of per-location script revision history,
- * stored as serialised arrays in `wp_options`.
+ * stored in the `{prefix}scriptomatic_log` custom DB table.
  *
  * @package  Scriptomatic
  * @since    1.2.0
@@ -48,10 +48,11 @@ trait Scriptomatic_History {
      * External URLs are a separate dataset and are never touched here —
      * use {@see ajax_rollback_urls()} to restore the URL list independently.
      *
-     * Expects POST fields: `nonce`, `index` (int), `location` ('head'|'footer').
+     * Expects POST fields: `nonce`, `id` (DB row ID), `location` ('head'|'footer').
      *
      * @since  1.2.0
      * @since  2.5.1 Inline script and external URLs are restored independently.
+     * @since  2.9.0 Uses `id` (DB row primary key) instead of `index`.
      * @return void  Sends a JSON response and exits.
      */
     public function ajax_rollback() {
@@ -119,9 +120,10 @@ trait Scriptomatic_History {
     /**
      * AJAX handler — return the raw content of a single history entry.
      *
-     * Expects POST fields: `nonce`, `index` (int), `location` ('head'|'footer').
+     * Expects POST fields: `nonce`, `id` (DB row ID), `location` ('head'|'footer').
      *
      * @since  1.7.1
+     * @since  2.9.0 Uses `id` (DB row primary key) instead of `index`.
      * @return void  Sends a JSON response and exits.
      */
     public function ajax_get_history_content() {
@@ -152,10 +154,10 @@ trait Scriptomatic_History {
     /**
      * AJAX handler — restore a JS file from a saved activity-log snapshot.
      *
-     * Expects POST fields: `nonce`, `file_id`, `index` (0-based position within
-     * the file's content-bearing history entries).
+     * Expects POST fields: `nonce`, `file_id`, `id` (DB row ID).
      *
      * @since  1.9.0
+     * @since  2.9.0 Uses `id` (DB row primary key) instead of `index`.
      * @return void  Sends a JSON response and exits.
      */
     public function ajax_rollback_js_file() {
@@ -232,9 +234,10 @@ trait Scriptomatic_History {
     /**
      * AJAX handler — return the raw content of a JS-file activity-log entry.
      *
-     * Expects POST fields: `nonce`, `file_id`, `index`.
+     * Expects POST fields: `nonce`, `file_id`, `id` (DB row ID).
      *
      * @since  1.9.0
+     * @since  2.9.0 Uses `id` (DB row primary key) instead of `index`.
      * @return void  Sends a JSON response and exits.
      */
     public function ajax_get_file_activity_content() {
@@ -296,9 +299,10 @@ trait Scriptomatic_History {
      * Restores only the external URL list. Inline script and its conditions
      * are untouched — each dataset is restored independently.
      *
-     * Expects POST fields: `nonce`, `index` (int), `location` ('head'|'footer').
+     * Expects POST fields: `nonce`, `id` (DB row ID), `location` ('head'|'footer').
      *
      * @since  2.5.1
+     * @since  2.9.0 Uses `id` (DB row primary key) instead of `index`.
      * @return void  Sends a JSON response and exits.
      */
     public function ajax_rollback_urls() {
@@ -348,9 +352,10 @@ trait Scriptomatic_History {
     /**
      * AJAX handler — return the display content of a URL-list history entry.
      *
-     * Expects POST fields: `nonce`, `index` (int), `location` ('head'|'footer').
+     * Expects POST fields: `nonce`, `id` (DB row ID), `location` ('head'|'footer').
      *
      * @since  2.5.1
+     * @since  2.9.0 Uses `id` (DB row primary key) instead of `index`.
      * @return void  Sends a JSON response and exits.
      */
     public function ajax_get_url_history_content() {
@@ -543,9 +548,10 @@ trait Scriptomatic_History {
      * Writes the file back to disk and re-inserts the metadata stored in the
      * snapshot taken at the time of deletion.
      *
-     * Expects POST fields: `nonce`, `index` (int).
+     * Expects POST fields: `nonce`, `id` (DB row ID).
      *
      * @since  1.12.0
+     * @since  2.9.0 Uses `id` (DB row primary key) instead of `index`.
      * @return void
      */
     public function ajax_restore_deleted_file() {
