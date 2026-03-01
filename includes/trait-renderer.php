@@ -909,7 +909,8 @@ trait Scriptomatic_Renderer {
      * @return void
      */
     public function render_pro_upgrade_notice( $feature_title, $feature_desc ) {
-        $upgrade_url = function_exists( 'scriptomatic_fs' ) ? esc_url( scriptomatic_fs()->get_upgrade_url() ) : '#';
+        $fs          = function_exists( 'scriptomatic_fs' ) ? scriptomatic_fs() : null;
+        $upgrade_url = ( $fs && method_exists( $fs, 'get_upgrade_url' ) ) ? esc_url( $fs->get_upgrade_url() ) : '#';
         ?>
         <div class="notice notice-info sm-pro-notice" style="padding:1.25rem 1.5rem;display:flex;gap:1rem;align-items:flex-start;max-width:800px;margin:8px 0;">
             <span class="dashicons dashicons-lock" style="font-size:1.75rem;width:1.75rem;height:1.75rem;flex-shrink:0;color:#2271b1;margin-top:2px;"></span>
