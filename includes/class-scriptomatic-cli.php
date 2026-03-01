@@ -12,7 +12,7 @@
  *   # Inline script
  *   wp scriptomatic script get --location=<head|footer>
  *   wp scriptomatic script set --location=<head|footer> [--content=<js>] [--file=<path>] [--conditions=<json>]
- *   wp scriptomatic script rollback --location=<head|footer> --index=<n>
+ *   wp scriptomatic script rollback --location=<head|footer> --id=<id>
  *
  *   # Inline script history
  *   wp scriptomatic history --location=<head|footer>
@@ -20,7 +20,7 @@
  *   # External URL lists
  *   wp scriptomatic urls get --location=<head|footer>
  *   wp scriptomatic urls set --location=<head|footer> (--urls=<json> | --file=<path>)
- *   wp scriptomatic urls rollback --location=<head|footer> --index=<n>
+ *   wp scriptomatic urls rollback --location=<head|footer> --id=<id>
  *   wp scriptomatic urls history --location=<head|footer>
  *
  *   # Managed JS files
@@ -177,20 +177,19 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
     /**
      * Roll back the inline script to a previous snapshot.
      *
-     * Index 1 is the most recent snapshot. Index 0 is the current live state
-     * and cannot be rolled back to.
+     * Use the history subcommand to list available IDs.
      *
      * ## OPTIONS
      *
      * [--location=<location>]
      * : The injection location. Accepts 'head' or 'footer'. Default: head.
      *
-     * --index=<n>
-     * : Snapshot index to restore (1-based).
+     * --id=<id>
+     * : DB row ID of the snapshot to restore (obtain from the history command).
      *
      * ## EXAMPLES
      *
-     *   wp scriptomatic script rollback --location=head --index=1
+     *   wp scriptomatic script rollback --location=head --id=42
      *
      * @since  2.6.0
      * @param  array $args
@@ -199,13 +198,13 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
     public function script_rollback( $args, $assoc_args ) {
         $location = isset( $assoc_args['location'] ) ? $assoc_args['location'] : 'head';
         $location = $this->validate_location( $location );
-        $index    = isset( $assoc_args['index'] ) ? (int) $assoc_args['index'] : 0;
+        $id       = isset( $assoc_args['id'] ) ? (int) $assoc_args['id'] : 0;
 
-        if ( $index < 1 ) {
-            WP_CLI::error( 'The --index must be 1 or higher. Index 0 is the current live state and cannot be restored.' );
+        if ( $id < 1 ) {
+            WP_CLI::error( '--id is required and must be a positive integer. Use `wp scriptomatic history` to list available IDs.' );
         }
 
-        $result = $this->plugin->service_rollback_script( $location, $index );
+        $result = $this->plugin->service_rollback_script( $location, $id );
         $this->handle_result( $result );
     }
 
@@ -248,7 +247,7 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
         $rows = array();
         foreach ( $data['entries'] as $entry ) {
             $rows[] = array(
-                'Index'      => $entry['index'],
+                'ID'         => $entry['id'],
                 'Action'     => $entry['action'],
                 'Date'       => $entry['timestamp'] > 0 ? date( 'Y-m-d H:i:s', $entry['timestamp'] ) : '—',
                 'User'       => $entry['user'],
@@ -257,7 +256,7 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
             );
         }
 
-        WP_CLI\Utils\format_items( $format, $rows, array( 'Index', 'Action', 'Date', 'User', 'Chars', 'Detail' ) );
+        WP_CLI\Utils\format_items( $format, $rows, array( 'ID', 'Action', 'Date', 'User', 'Chars', 'Detail' ) );
     }
 
     // =========================================================================
@@ -377,12 +376,12 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
      * [--location=<location>]
      * : The injection location. Accepts 'head' or 'footer'. Default: head.
      *
-     * --index=<n>
-     * : Snapshot index to restore (1-based).
+     * --id=<id>
+     * : DB row ID of the snapshot to restore (obtain from the urls history command).
      *
      * ## EXAMPLES
      *
-     *   wp scriptomatic urls rollback --location=head --index=1
+     *   wp scriptomatic urls rollback --location=head --id=42
      *
      * @since  2.6.0
      * @param  array $args
@@ -391,13 +390,13 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
     public function urls_rollback( $args, $assoc_args ) {
         $location = isset( $assoc_args['location'] ) ? $assoc_args['location'] : 'head';
         $location = $this->validate_location( $location );
-        $index    = isset( $assoc_args['index'] ) ? (int) $assoc_args['index'] : 0;
+        $id       = isset( $assoc_args['id'] ) ? (int) $assoc_args['id'] : 0;
 
-        if ( $index < 1 ) {
-            WP_CLI::error( 'The --index must be 1 or higher.' );
+        if ( $id < 1 ) {
+            WP_CLI::error( '--id is required and must be a positive integer. Use `wp scriptomatic urls history` to list available IDs.' );
         }
 
-        $result = $this->plugin->service_rollback_urls( $location, $index );
+        $result = $this->plugin->service_rollback_urls( $location, $id );
         $this->handle_result( $result );
     }
 
@@ -435,7 +434,7 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
         $rows = array();
         foreach ( $data['entries'] as $entry ) {
             $rows[] = array(
-                'Index'   => $entry['index'],
+                'ID'      => $entry['id'],
                 'Action'  => $entry['action'],
                 'Date'    => $entry['timestamp'] > 0 ? date( 'Y-m-d H:i:s', $entry['timestamp'] ) : '—',
                 'User'    => $entry['user'],
@@ -444,7 +443,7 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
             );
         }
 
-        WP_CLI\Utils\format_items( $format, $rows, array( 'Index', 'Action', 'Date', 'User', 'URLs', 'Detail' ) );
+        WP_CLI\Utils\format_items( $format, $rows, array( 'ID', 'Action', 'Date', 'User', 'URLs', 'Detail' ) );
     }
 
     // =========================================================================

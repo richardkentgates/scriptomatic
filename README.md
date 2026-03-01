@@ -177,11 +177,11 @@ An optional **API Allowed IPs** allowlist in **Preferences** restricts REST acce
 |---|---|---|---|
 | `/script` | `location` | — | Get current inline script |
 | `/script/set` | `location`, `content` | `conditions` (JSON) | Save inline script |
-| `/script/rollback` | `location`, `index` (≥ 1) | — | Restore script snapshot |
+| `/script/rollback` | `location`, `id` (DB row ID) | — | Restore script snapshot |
 | `/history` | `location` | — | List inline script history |
 | `/urls` | `location` | — | Get external URL list |
 | `/urls/set` | `location`, `urls` (JSON array) | — | Replace external URL list |
-| `/urls/rollback` | `location`, `index` (≥ 1) | — | Restore URL snapshot |
+| `/urls/rollback` | `location`, `id` (DB row ID) | — | Restore URL snapshot |
 | `/urls/history` | `location` | — | List URL history |
 | `/files` | — | — | List all managed JS files |
 | `/files/get` | `file_id` | — | Get file content + metadata |
@@ -189,7 +189,7 @@ An optional **API Allowed IPs** allowlist in **Preferences** restricts REST acce
 | `/files/delete` | `file_id` | — | Delete a managed JS file |
 | `/files/upload` | multipart `file` field | `label`, `file_id`, `location`, `conditions` | Upload a `.js` file |
 
-`location` is `"head"` or `"footer"`. `index` is 1-based (0 = current state, cannot restore). All write operations share the same service layer as the admin UI — identical validation, rate-limiting, and activity logging apply.
+`location` is `"head"` or `"footer"`. `id` is the DB row primary key of the snapshot to restore — obtain IDs from the history endpoints. All write operations share the same service layer as the admin UI — identical validation, rate-limiting, and activity logging apply.
 
 ```bash
 # Example: get current head script
@@ -221,8 +221,8 @@ wp scriptomatic script get --location=<head|footer>
 # Set inline script (from string or file)
 wp scriptomatic script set --location=<head|footer> [--content=<js>] [--file=<path>] [--conditions=<json>]
 
-# Rollback to a snapshot (index 1-based)
-wp scriptomatic script rollback --location=<head|footer> --index=<n>
+# Rollback to a snapshot (use `wp scriptomatic history` to get the ID)
+wp scriptomatic script rollback --location=<head|footer> --id=<id>
 
 # List inline script history
 wp scriptomatic history --location=<head|footer> [--format=<table|json|csv|yaml|count>]
@@ -237,8 +237,8 @@ wp scriptomatic urls get --location=<head|footer> [--format=<format>]
 # Replace external URL list (JSON array of {url, conditions} objects)
 wp scriptomatic urls set --location=<head|footer> (--urls=<json> | --file=<path>)
 
-# Rollback URL list to a snapshot
-wp scriptomatic urls rollback --location=<head|footer> --index=<n>
+# Rollback URL list to a snapshot (use `wp scriptomatic urls history` to get the ID)
+wp scriptomatic urls rollback --location=<head|footer> --id=<id>
 
 # List URL history
 wp scriptomatic urls history --location=<head|footer> [--format=<format>]
@@ -266,7 +266,7 @@ wp scriptomatic files delete --id=<file-id> [--yes]
 ```
 
 `--conditions` accepts a JSON string: `'{"logic":"and","rules":[{"type":"front_page","values":[]}]}'`
-`--format` defaults to `table`. `--index` is 1-based.
+`--format` defaults to `table`. Use the history commands to look up `--id` values for rollback.
 
 ---
 

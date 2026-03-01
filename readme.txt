@@ -4,7 +4,7 @@ Tags: javascript, script injection, code manager, head scripts, footer scripts, 
 Requires at least: 5.3
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 2.7.0
+Stable tag: 2.9.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,15 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 
 == Changelog ==
 
+= 2.9.0 =
+* **Changed**: Activity log moved from a `wp_options` row to a custom `{prefix}scriptomatic_log` DB table with indexed columns for efficient filtered reads.
+* **Changed**: All rollback AJAX handlers and REST API rollback endpoints now accept an `id` parameter (DB row primary key) instead of `index` (array position).
+* **Changed**: WP-CLI rollback commands now use `--id=<id>` (DB row primary key) instead of `--index=<n>`. Use the history commands to look up IDs.
+* **Added**: `DROP TABLE IF EXISTS {prefix}scriptomatic_log` on plugin deletion.
+
+= 2.8.0 =
+* **Changed**: Location data (inline script, external URLs, load conditions) consolidated from six separate `wp_options` into two unified options (`scriptomatic_head` and `scriptomatic_footer`), each storing a PHP array `{ script, conditions, urls }`. Existing data is automatically migrated on first admin load.
+
 = 2.7.0 =
 * **Added**: JS file upload from the **JS Files list page** — a new "Upload a JS File" card with a file picker and an "Upload & Edit" button. Submitting the form performs a real server-side upload and redirects to the edit page so you can review and configure before saving. No browser FileReader involved. Validated server-side for `.js` extension, MIME type, and file size.
 * **Added**: REST API IP allowlist — the Preferences page has a new "API Allowed IPs" field accepting one IPv4 address, IPv6 address, or IPv4 CIDR range per line. Leave empty to allow all IPs (default). The restriction applies only to the REST API; it does not affect the admin interface.
@@ -133,6 +142,12 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 * All internal development backward-compatibility code removed.
 
 == Upgrade Notice ==
+
+= 2.9.0 =
+Activity log data is now stored in a custom DB table (`{prefix}scriptomatic_log`). REST API and WP-CLI rollback endpoints now take an `id` parameter (DB row primary key) instead of `index`. Update any custom API clients or automation scripts that call the rollback endpoints.
+
+= 2.8.0 =
+Location data consolidated internally — no user-facing changes. Existing scripts, URLs, and conditions are automatically migrated on first admin load.
 
 = 2.7.0 =
 Adds JS file upload in the admin UI, REST API file upload endpoint (`POST /files/upload`), `wp scriptomatic files upload` WP-CLI command, and a REST API IP allowlist in Preferences. No breaking changes; existing data and settings are unaffected.

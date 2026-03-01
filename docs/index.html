@@ -301,7 +301,7 @@
 <!-- HERO -->
 <section class="hero">
   <img src="scriptomatic-logo.png" alt="Scriptomatic" class="hero-logo" />
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.7.0</div>
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v2.9.0</div>
   <h1>Inject custom JavaScript<br/><span>the right way.</span></h1>
   <p>Scriptomatic gives WordPress administrators full control over custom scripts — inline JavaScript with a built-in code editor, managed JS files, and external script URLs — injected into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer with conditional loading, revision history, one-click rollback, and a complete activity log.</p>
   <div class="hero-actions">
@@ -685,11 +685,11 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
         <tbody>
           <tr><td><code>POST /script</code></td><td><code>location</code></td><td>—</td><td>Get current inline script</td></tr>
           <tr><td><code>POST /script/set</code></td><td><code>location</code>, <code>content</code></td><td><code>conditions</code></td><td>Save inline script</td></tr>
-          <tr><td><code>POST /script/rollback</code></td><td><code>location</code>, <code>index</code> (≥ 1)</td><td>—</td><td>Restore inline script snapshot</td></tr>
+          <tr><td><code>POST /script/rollback</code></td><td><code>location</code>, <code>id</code> (DB row ID)</td><td>—</td><td>Restore inline script snapshot</td></tr>
           <tr><td><code>POST /history</code></td><td><code>location</code></td><td>—</td><td>List inline script history</td></tr>
           <tr><td><code>POST /urls</code></td><td><code>location</code></td><td>—</td><td>Get external URL list</td></tr>
           <tr><td><code>POST /urls/set</code></td><td><code>location</code>, <code>urls</code> (JSON array)</td><td>—</td><td>Replace external URL list</td></tr>
-          <tr><td><code>POST /urls/rollback</code></td><td><code>location</code>, <code>index</code> (≥ 1)</td><td>—</td><td>Restore URL snapshot</td></tr>
+          <tr><td><code>POST /urls/rollback</code></td><td><code>location</code>, <code>id</code> (DB row ID)</td><td>—</td><td>Restore URL snapshot</td></tr>
           <tr><td><code>POST /urls/history</code></td><td><code>location</code></td><td>—</td><td>List URL history</td></tr>
           <tr><td><code>POST /files</code></td><td>—</td><td>—</td><td>List all managed JS files</td></tr>
           <tr><td><code>POST /files/get</code></td><td><code>file_id</code></td><td>—</td><td>Get file content + metadata</td></tr>
@@ -703,7 +703,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     <p style="margin-top:1rem;font-size:.875rem;color:var(--muted);">
       Base URL: <code>/wp-json/scriptomatic/v1/</code> &nbsp;·&nbsp;
       <code>location</code> = <code>"head"</code> or <code>"footer"</code> &nbsp;·&nbsp;
-      <code>index</code> is 1-based (0 = current state, cannot restore)
+      <code>id</code> is the DB row primary key of the snapshot to restore &mdash; obtain IDs from the history endpoints
     </p>
 
     <div class="code-bg" style="background:var(--code-bg);border-radius:var(--radius);padding:1.5rem;margin-top:1.75rem;">
@@ -740,7 +740,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
         <div class="shell">
 <span class="prompt">$ </span>wp scriptomatic script get --location=head
 <span class="prompt">$ </span>wp scriptomatic script set --location=head --file=script.js
-<span class="prompt">$ </span>wp scriptomatic script rollback --location=head --index=2
+<span class="prompt">$ </span>wp scriptomatic script rollback --location=head --id=42
 <span class="prompt">$ </span>wp scriptomatic history --location=head --format=table</div>
       </div>
 
@@ -749,7 +749,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
         <div class="shell">
 <span class="prompt">$ </span>wp scriptomatic urls get --location=footer
 <span class="prompt">$ </span>wp scriptomatic urls set --location=footer --urls='[{"url":"https://cdn.example.com/lib.js","conditions":{"logic":"and","rules":[]}}]'
-<span class="prompt">$ </span>wp scriptomatic urls rollback --location=footer --index=1
+<span class="prompt">$ </span>wp scriptomatic urls rollback --location=footer --id=37
 <span class="prompt">$ </span>wp scriptomatic urls history --location=footer</div>
       </div>
 
@@ -767,7 +767,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
 
     <p style="margin-top:1.25rem;font-size:.875rem;color:var(--muted);">
       <code>--format</code> defaults to <code>table</code>; accepts <code>table</code>, <code>json</code>, <code>csv</code>, <code>yaml</code>, <code>count</code>. &nbsp;
-      <code>--index</code> is 1-based. &nbsp;
+      Use the history commands to look up <code>--id</code> values for rollback. &nbsp;
       <code>--conditions</code> accepts a JSON <code>{logic, rules}</code> object.
     </p>
   </div>
@@ -829,6 +829,22 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <span class="section-label">Release History</span>
     <h2>Changelog</h2>
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
+
+    <div class="changelog-item">
+      <div class="clog-version">v2.9.0</div>
+      <div class="clog-body">
+        <h4>Custom DB log table; rollback by row ID</h4>
+        <p>The activity log is now stored in a dedicated <code>{prefix}scriptomatic_log</code> database table with indexed columns for fast, filtered reads &mdash; it no longer occupies a WordPress options row. All rollback paths (admin AJAX, REST API, WP-CLI) now identify a snapshot by its DB row <code>id</code> integer rather than a 1-based array position. Obtain IDs from the history endpoints before calling rollback. The table is dropped cleanly on plugin deletion.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v2.8.0</div>
+      <div class="clog-body">
+        <h4>Unified location options</h4>
+        <p>The six per-location <code>wp_options</code> rows (separate keys for script content, URL list, and conditions for each of head and footer) have been consolidated into two unified options &mdash; <code>scriptomatic_head</code> and <code>scriptomatic_footer</code>. Each stores a single PHP array containing <code>script</code>, <code>conditions</code>, and <code>urls</code>. Existing data is automatically migrated on first admin load; no manual action is required.</p>
+      </div>
+    </div>
 
     <div class="changelog-item">
       <div class="clog-version">v2.7.0</div>
@@ -1083,7 +1099,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <a href="https://github.com/richardkentgates/scriptomatic/issues">Issues</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v2.7.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v2.9.0 &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>
