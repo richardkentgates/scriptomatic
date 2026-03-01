@@ -50,14 +50,16 @@ The plugin uses a modular PHP-trait structure:
 
 ```
 scriptomatic/
-├── scriptomatic.php              # Entry point: header, constants, require_once, bootstrap
-├── uninstall.php                 # Multisite-aware cleanup; honours keep_data setting
+├── scriptomatic.php              # Entry point: header, constants, Freemius set_basename(), bootstrap
+├── freemius/                     # Freemius SDK (bundled); do not edit
 ├── assets/
 │   ├── admin.css                 # Admin stylesheet (enqueued via wp_enqueue_style)
 │   └── admin.js                  # Admin JS (enqueued via wp_enqueue_script + wp_localize_script)
 └── includes/
+    ├── freemius-init.php         # Freemius SDK bootstrap; scriptomatic_fs() + scriptomatic_is_premium()
+    │                             #   helpers; uninstall cleanup hooked to Freemius after_uninstall
     ├── class-scriptomatic.php    # Singleton class — uses all nine traits, registers hooks
-    ├── class-scriptomatic-cli.php# WP-CLI command class (loaded only when WP_CLI is defined)
+    ├── class-scriptomatic-cli.php# WP-CLI command class (loaded only when WP_CLI is defined) [Pro]
     ├── trait-menus.php           # Admin menu & submenu registration; help-tab hooks
     ├── trait-sanitizer.php       # Input validation and sanitisation
     ├── trait-history.php         # Revision history storage and AJAX rollback
@@ -66,8 +68,8 @@ scriptomatic/
     ├── trait-pages.php           # Page renderers, Activity Log, JS Files pages, help tabs, action links
     ├── trait-enqueue.php         # Admin-asset enqueuing
     ├── trait-injector.php        # Front-end HTML injection
-    ├── trait-files.php           # Managed JS files: CRUD, disk I/O, save + delete handlers
-    └── trait-api.php             # REST API route registration, permission callbacks, service layer
+    ├── trait-files.php           # Managed JS files: CRUD, disk I/O, save + delete handlers [Pro]
+    └── trait-api.php             # REST API route registration, permission callbacks, service layer [Pro]
 ```
 
 All traits are `use`d by `class Scriptomatic`, so cross-trait `$this->method()` calls work correctly.
@@ -103,7 +105,7 @@ Then activate via WordPress admin.
 
 1. Navigate to **Scriptomatic → Head Scripts** (or **Footer Scripts**) in your WordPress admin
 2. Enter your inline JavaScript in the textarea **or** add external script URLs via the URL manager
-3. Optionally configure **Load Conditions** to restrict the script to specific pages, post types, URL patterns, user login state, date ranges, datetime windows, week numbers, or months
+3. Optionally configure **Load Conditions** _(Pro)_ to restrict the script to specific pages, post types, URL patterns, user login state, date ranges, datetime windows, week numbers, or months
 4. Click **Save Head Scripts** (or **Save Footer Scripts**)
 5. Your code will be automatically injected into the `<head>` or just before `</body>` depending on which page you used
 
@@ -113,8 +115,8 @@ Then activate via WordPress admin.
 |------|------|---------|
 | Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>`; includes Activity Log |
 | Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>`; includes Activity Log |
-| JS Files | Scriptomatic → JS Files | Create, edit, and delete managed `.js` files; each file has its own Head/Footer toggle, load conditions, and CodeMirror editor; list view and edit view each include an Activity Log panel |
-| Preferences | Scriptomatic → Preferences | Activity log limit (3–1000), uninstall data retention, API Allowed IPs (IPv4/IPv6/CIDR allowlist for REST API) |
+| JS Files _(Pro)_ | Scriptomatic → JS Files | Create, edit, and delete managed `.js` files; each file has its own Head/Footer toggle, load conditions, and CodeMirror editor; list view and edit view each include an Activity Log panel |
+| Preferences | Scriptomatic → Preferences | Activity log limit (3–1000), uninstall data retention, API Allowed IPs _(Pro)_ (IPv4/IPv6/CIDR allowlist for REST API) |
 
 ### Important Notes
 
@@ -176,7 +178,9 @@ All endpoints are `POST`. Authentication uses **WordPress Application Passwords*
 
 **Base URL:** `/wp-json/scriptomatic/v1/`
 
-An optional **API Allowed IPs** allowlist in **Preferences** restricts REST access to specific IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges (one per line). Leave empty to allow all IPs. Blocked requests receive `403 rest_ip_forbidden`.
+> **Pro feature.** REST API access requires an active Scriptomatic Pro licence. A 14-day free trial is available — no payment required.
+
+An optional **API Allowed IPs** allowlist _(Pro)_ in **Preferences** restricts REST access to specific IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges (one per line). Leave empty to allow all IPs. Blocked requests receive `403 rest_ip_forbidden`.
 
 | Endpoint | Required params | Optional params | Description |
 |---|---|---|---|
@@ -214,6 +218,8 @@ curl -X POST https://example.com/wp-json/scriptomatic/v1/files/upload \
 ---
 
 ## 💻 WP-CLI Reference
+
+> **Pro feature.** WP-CLI commands require an active Scriptomatic Pro licence. A 14-day free trial is available — no payment required.
 
 All commands are in the `wp scriptomatic` group. Write commands share the same service layer as the REST API and admin UI.
 
@@ -313,6 +319,7 @@ Scriptomatic is built with security as a top priority:
 
 ### Data Protection
 - Uninstall behaviour is controlled by the **Keep data on uninstall** setting in Preferences; data is removed by default unless the setting is enabled
+- Uninstall cleanup is hooked to Freemius's `after_uninstall` action, ensuring opt-out feedback is reported before data is removed
 - On multisite, uninstall iterates every sub-site and removes per-site option data, then cleans network-level options
 - Multisite-aware data handling
 - No external dependencies or API calls
@@ -463,6 +470,7 @@ If you find this plugin helpful, please:
 - **Plugin Homepage**: [https://github.com/richardkentgates/scriptomatic](https://github.com/richardkentgates/scriptomatic)
 - **Issue Tracker**: [https://github.com/richardkentgates/scriptomatic/issues](https://github.com/richardkentgates/scriptomatic/issues)
 - **Documentation**: [README.md](README.md)
+- **Upgrade to Pro**: [https://checkout.freemius.com/mode/dialog/plugin/25187/plan/](https://checkout.freemius.com/mode/dialog/plugin/25187/plan/)
 
 ## 📊 Changelog
 

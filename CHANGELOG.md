@@ -20,9 +20,12 @@ _Nothing yet._
   `includes/freemius-init.php` bootstraps the SDK via `fs_dynamic_init()` and exposes two
   global helpers: `scriptomatic_fs()` (Freemius singleton) and `scriptomatic_is_premium()`
   (returns `true` when a valid Pro licence or active trial is present, `false` on free).
-  Placeholder product ID and public key are included; replace after creating the product at
-  [dashboard.freemius.com](https://dashboard.freemius.com/) and set `'is_live' => true`.
+  Product ID `25187`; `is_live => true` (production).
 - **14-day free trial** (no payment required) configured in the SDK initialisation.
+- **Freemius `after_uninstall` hook** registered in `freemius-init.php`.
+  `scriptomatic_fs_uninstall_cleanup()`, `scriptomatic_drop_log_table()`, and
+  `scriptomatic_delete_uploads_dir()` are now called via the Freemius uninstall action,
+  which fires *after* opt-out feedback is reported to the Freemius servers.
 
 ### Changed
 - **Freemium feature split:**
@@ -55,8 +58,14 @@ _Nothing yet._
 - **Bug fix in `inject_scripts_for()`:** The local `$conditions` variable was being
   overwritten by each URL entry's conditions inside the loop, causing the inline script
   to be evaluated against the last URL entry's conditions instead of the location-level
-  conditions.  Renamed to `$entry_conditions` (loop) and `$loc_conditions` (location
+  conditions. Renamed to `$entry_conditions` (loop) and `$loc_conditions` (location
   level) to fix the shadow.
+
+### Removed
+- **`uninstall.php` deleted.** Static `register_uninstall_hook()` / `uninstall.php`
+  patterns conflict with Freemius's uninstall tracking. All cleanup logic has been moved
+  into functions inside `includes/freemius-init.php` and hooked to
+  `scriptomatic_fs()->add_action('after_uninstall', ...)`.
 - **Version bumped to 3.0.0.**
 
 ---
