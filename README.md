@@ -10,11 +10,35 @@
 [![Freemium](https://img.shields.io/badge/Model-Free%20%2B%20Pro-orange)]()
 [![Maintained](https://img.shields.io/badge/Maintained-Yes-brightgreen)]()
 
-A secure and production-ready WordPress plugin for injecting custom JavaScript into the `<head>` and footer of your WordPress site. Available as a **free plugin** with core features, and a **Pro upgrade** that unlocks conditional loading, managed JS files, REST API, WP-CLI, and more.
+A secure and production-ready WordPress plugin for injecting custom JavaScript into the `<head>` and footer of your WordPress site.
+
+---
+
+## 🆓 Free &nbsp;·&nbsp; ⭐ Pro
+
+| Feature | Free | Pro |
+|---------|:----:|:---:|
+| Inline script editor (head + footer) | ✅ | ✅ |
+| External script URL manager | ✅ | ✅ |
+| Revision history & one-click rollback | ✅ | ✅ |
+| Activity log | ✅ | ✅ |
+| CodeMirror editor with autocomplete | ✅ | ✅ |
+| Multisite compatible | ✅ | ✅ |
+| **Conditional loading** (11 rule types, AND/OR) | ❌ | ✅ |
+| **Managed JS Files** (create / edit / upload / delete) | ❌ | ✅ |
+| **REST API** (`scriptomatic/v1`, 13 endpoints) | ❌ | ✅ |
+| **WP-CLI** (`wp scriptomatic`) | ❌ | ✅ |
+| **API IP Allowlist** (IPv4/IPv6/CIDR) | ❌ | ✅ |
+
+<p align="center">
+  <a href="https://checkout.freemius.com/mode/dialog/plugin/25187/plan/"><strong>⭐ Upgrade to Scriptomatic Pro →</strong></a>
+</p>
+
+---
 
 ## 🚀 Features
 
-### Free (included)
+### 🆓 Free — included with every install
 
 - **🔒 Security First**: Comprehensive input validation, sanitization, secondary nonce system, rate limiting, and audit logging
 - **👤 Capability Checks**: Only administrators with `manage_options` can modify scripts
@@ -27,7 +51,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **🌐 Multisite Compatible**: All script management is per-site; install/activate/deactivate network-wide; uninstall iterates every sub-site
 - **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion; fully multisite-aware
 
-### Pro (requires licence)
+### ⭐ Pro — requires a licence
 
 - **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or months — per inline script and per external URL (11 condition types, AND/OR stacked rules)
 - **🗂️ Managed JS Files**: Create, edit, upload, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`; each file has its own Head/Footer selector, load conditions, and CodeMirror editor; files survive plugin updates
