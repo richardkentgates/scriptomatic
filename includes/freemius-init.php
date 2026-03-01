@@ -48,7 +48,7 @@ if ( ! function_exists( 'scriptomatic_fs' ) ) {
                 'is_org_compliant'    => true,
                 'trial'               => array(
                     'days'               => 3,
-                    'is_require_payment' => false,
+                    'is_require_payment' => true,
                 ),
                 // Automatically removed in the free version. If you're not using the
                 // auto-generated free version, delete this line before uploading to wp.org.

@@ -918,7 +918,7 @@ trait Scriptomatic_Renderer {
                 <h3 style="margin:0 0 .4rem;font-size:1rem;"><?php echo esc_html( $feature_title ); ?></h3>
                 <p style="margin:0 0 .875rem;color:#50575e;"><?php echo esc_html( $feature_desc ); ?></p>
                 <a href="<?php echo $upgrade_url; ?>" class="button button-primary"><?php esc_html_e( 'Upgrade to Scriptomatic Pro', 'scriptomatic' ); ?></a>
-                <a href="<?php echo $upgrade_url; ?>" style="margin-left:.75rem;color:#2271b1;"><?php esc_html_e( 'Upgrade to Pro — 3-day free trial', 'scriptomatic' ); ?></a>
+                <a href="<?php echo $upgrade_url; ?>" style="margin-left:.75rem;color:#2271b1;"><?php esc_html_e( 'Upgrade to Pro — 3-day trial', 'scriptomatic' ); ?></a>
             </div>
         </div>
         <?php

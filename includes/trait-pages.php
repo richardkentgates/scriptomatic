@@ -786,7 +786,7 @@ trait Scriptomatic_Pages {
                 '<p>' . __( '<strong>JS Files</strong> <em>(Pro)</em> — create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file has its own Head/Footer selector and Load Conditions, and persists across plugin updates.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( '<strong>REST API</strong> <em>(Pro)</em> — full <code>scriptomatic/v1</code> REST API (WordPress Application Passwords). <strong>WP-CLI</strong> <em>(Pro)</em> — <code>wp scriptomatic</code> command group. Both share the same validation, rate limiting, and activity logging as the admin UI. REST API access can be restricted to specific IP addresses in <em>Preferences</em>.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The inline-script editor and JS Files editor both use <strong>CodeMirror</strong> — a full JavaScript code editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea when syntax highlighting is disabled in your WordPress profile.', 'scriptomatic' ) . '</p>' .
-                '<p>' . __( 'A <strong>3-day free trial</strong> (no payment required) is available for all Pro features. Visit <em>Scriptomatic &rarr; Account</em> to start a trial or upgrade.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( 'A <strong>3-day trial</strong> is available for all Pro features (credit card or PayPal required). Visit <em>Scriptomatic &rarr; Account</em> to start a trial or upgrade.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, an activity log with revision rollback, and conditional loading.', 'scriptomatic' ) . '</p>',
         ) );
 
@@ -899,7 +899,7 @@ trait Scriptomatic_Pages {
             $upgrade_sidebar =
                 '<p><strong>' . __( 'Go Pro:', 'scriptomatic' ) . '</strong></p>' .
             '<p><a href="' . $upgrade_url . '" target="_blank" rel="noopener noreferrer">' . __( '⭐ Upgrade to Pro', 'scriptomatic' ) . '</a></p>' .
-            '<p class="description">' . __( '3-day free trial — no payment required. Unlock conditional loading, managed JS files, REST API, and WP-CLI.', 'scriptomatic' ) . '</p>';
+            '<p class="description">' . __( '3-day trial available. Unlock conditional loading, managed JS files, REST API, and WP-CLI.', 'scriptomatic' ) . '</p>';
         }
 
         $screen->set_help_sidebar(
