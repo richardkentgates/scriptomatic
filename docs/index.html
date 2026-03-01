@@ -336,6 +336,28 @@
     .chk { color: var(--green); font-size: 1rem; }
     .cross { color: #b0b5bd; font-size: 1rem; }
 
+    /* ── BILLING TOGGLE ── */
+    .billing-toggle {
+      display: inline-flex; align-items: center;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 30px;
+      padding: .25rem; gap: 0; margin-bottom: 2rem;
+    }
+    .billing-toggle button {
+      background: none; border: none; cursor: pointer;
+      padding: .45rem 1.2rem; border-radius: 26px;
+      font-size: .875rem; font-weight: 600; color: var(--muted);
+      transition: background .15s, color .15s;
+    }
+    .billing-toggle button.active {
+      background: var(--blue); color: #fff;
+    }
+    .billing-badge {
+      display: inline-block; background: var(--green); color: #fff;
+      font-size: .7rem; font-weight: 700; letter-spacing: .3px;
+      padding: .1rem .45rem; border-radius: 10px; margin-left: .4rem;
+      vertical-align: middle; position: relative; top: -1px;
+    }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 640px) {
       nav { padding: 0 1rem; }
@@ -380,7 +402,7 @@
           {
             "@type": "Offer",
             "name": "Scriptomatic Pro — Personal",
-            "description": "Pro licence for 1 WordPress site. Includes conditional loading, managed JS files, REST API, and WP-CLI.",
+            "description": "Pro licence for 1 WordPress site. Includes conditional loading, managed JS files, REST API, and WP-CLI. $19.99/yr or $1.99/mo.",
             "price": "19.99",
             "priceCurrency": "USD",
             "url": "https://richardkentgates.com/scriptomatic"
@@ -388,7 +410,7 @@
           {
             "@type": "Offer",
             "name": "Scriptomatic Pro — Freelancer",
-            "description": "Pro licence for up to 5 WordPress sites.",
+            "description": "Pro licence for up to 5 WordPress sites. $39.99/yr or $3.99/mo.",
             "price": "39.99",
             "priceCurrency": "USD",
             "url": "https://richardkentgates.com/scriptomatic"
@@ -396,7 +418,7 @@
           {
             "@type": "Offer",
             "name": "Scriptomatic Pro — Agency",
-            "description": "Pro licence for up to 20 WordPress sites.",
+            "description": "Pro licence for up to 20 WordPress sites. $79.99/yr or $7.99/mo.",
             "price": "79.99",
             "priceCurrency": "USD",
             "url": "https://richardkentgates.com/scriptomatic"
@@ -404,7 +426,7 @@
           {
             "@type": "Offer",
             "name": "Scriptomatic Pro — Studio",
-            "description": "Pro licence for up to 100 WordPress sites.",
+            "description": "Pro licence for up to 100 WordPress sites. $149.99/yr or $14.99/mo.",
             "price": "149.99",
             "priceCurrency": "USD",
             "url": "https://richardkentgates.com/scriptomatic"
@@ -412,7 +434,7 @@
           {
             "@type": "Offer",
             "name": "Scriptomatic Pro — Unlimited",
-            "description": "Pro licence for unlimited WordPress sites.",
+            "description": "Pro licence for unlimited WordPress sites. $299.99/yr or $29.99/mo.",
             "price": "299.99",
             "priceCurrency": "USD",
             "url": "https://richardkentgates.com/scriptomatic"
@@ -995,6 +1017,11 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <h2>Free to use. Pro to unlock.</h2>
     <p class="section-intro">Scriptomatic is fully free for core WordPress JavaScript injection features. Upgrade to <strong>Scriptomatic Pro</strong> to unlock conditional loading, managed JS files, REST API, and WP-CLI. Start with a <strong>3-day free trial</strong> — credit card or PayPal required.</p>
 
+    <div class="billing-toggle">
+      <button id="toggle-annual" class="active" onclick="setBilling('annual')">Annual <span class="billing-badge">Save 17%</span></button>
+      <button id="toggle-monthly" onclick="setBilling('monthly')">Monthly</button>
+    </div>
+
     <div class="pricing-grid">
       <div class="pricing-card free">
         <div class="plan-name">Free</div>
@@ -1004,31 +1031,31 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
       </div>
       <div class="pricing-card featured">
         <div class="plan-name">Personal</div>
-        <div class="plan-price">$19.99<span>/yr</span></div>
+        <div class="plan-price" data-annual="$19.99<span>/yr</span>" data-monthly="$1.99<span>/mo</span>">$19.99<span>/yr</span></div>
         <div class="plan-sites">1 site</div>
         <a class="plan-cta" href="https://richardkentgates.com/scriptomatic">Start 3-Day Trial</a>
       </div>
       <div class="pricing-card">
         <div class="plan-name">Freelancer</div>
-        <div class="plan-price">$39.99<span>/yr</span></div>
+        <div class="plan-price" data-annual="$39.99<span>/yr</span>" data-monthly="$3.99<span>/mo</span>">$39.99<span>/yr</span></div>
         <div class="plan-sites">Up to 5 sites</div>
         <a class="plan-cta" href="https://richardkentgates.com/scriptomatic">Start 3-Day Trial</a>
       </div>
       <div class="pricing-card">
         <div class="plan-name">Agency</div>
-        <div class="plan-price">$79.99<span>/yr</span></div>
+        <div class="plan-price" data-annual="$79.99<span>/yr</span>" data-monthly="$7.99<span>/mo</span>">$79.99<span>/yr</span></div>
         <div class="plan-sites">Up to 20 sites</div>
         <a class="plan-cta" href="https://richardkentgates.com/scriptomatic">Start 3-Day Trial</a>
       </div>
       <div class="pricing-card">
         <div class="plan-name">Studio</div>
-        <div class="plan-price">$149.99<span>/yr</span></div>
+        <div class="plan-price" data-annual="$149.99<span>/yr</span>" data-monthly="$14.99<span>/mo</span>">$149.99<span>/yr</span></div>
         <div class="plan-sites">Up to 100 sites</div>
         <a class="plan-cta" href="https://richardkentgates.com/scriptomatic">Start 3-Day Trial</a>
       </div>
       <div class="pricing-card">
         <div class="plan-name">Unlimited</div>
-        <div class="plan-price">$299.99<span>/yr</span></div>
+        <div class="plan-price" data-annual="$299.99<span>/yr</span>" data-monthly="$29.99<span>/mo</span>">$299.99<span>/yr</span></div>
         <div class="plan-sites">Unlimited sites</div>
         <a class="plan-cta" href="https://richardkentgates.com/scriptomatic">Start 3-Day Trial</a>
       </div>
@@ -1353,6 +1380,14 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     document.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
     document.getElementById('tab-' + id).classList.add('active');
     event.currentTarget.classList.add('active');
+  }
+
+  function setBilling(type) {
+    document.getElementById('toggle-annual').classList.toggle('active', type === 'annual');
+    document.getElementById('toggle-monthly').classList.toggle('active', type === 'monthly');
+    document.querySelectorAll('.plan-price[data-annual]').forEach(function(el) {
+      el.innerHTML = el.dataset[type];
+    });
   }
 </script>
 </body>
