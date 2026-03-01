@@ -30,8 +30,6 @@ trait Scriptomatic_Settings {
     public function register_settings() {
         // Ensure the custom log table exists (idempotent via dbDelta).
         $this->maybe_create_log_table();
-        // Migrate any data from the legacy wp_options log to the new table.
-        $this->maybe_migrate_log_to_table();
         // Migrate data from pre-v2.8 fragmented options on first load.
         $this->maybe_migrate_to_v2_8();
 
@@ -353,62 +351,6 @@ trait Scriptomatic_Settings {
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
-    }
-
-    /**
-     * One-time migration from the legacy `scriptomatic_activity_log` wp_option
-     * to the new custom DB table.
-     *
-     * Runs only when the option exists and is non-empty; deletes the option
-     * on completion. Safe to call repeatedly — exits immediately on second call.
-     *
-     * @since  2.9.0
-     * @access private
-     * @return void
-     */
-    private function maybe_migrate_log_to_table() {
-        global $wpdb;
-
-        $old_log = get_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION, null );
-        if ( ! is_array( $old_log ) || empty( $old_log ) ) {
-            delete_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION );
-            return;
-        }
-
-        $table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
-
-        // Insert in chronological order (oldest first → lowest IDs).
-        foreach ( array_reverse( $old_log ) as $entry ) {
-            if ( ! is_array( $entry ) ) {
-                continue;
-            }
-
-            $snapshot_keys = array( 'content', 'conditions_snapshot', 'urls_snapshot', 'conditions', 'meta' );
-            $snap_data     = array();
-            foreach ( $snapshot_keys as $k ) {
-                if ( array_key_exists( $k, $entry ) ) {
-                    $snap_data[ $k ] = $entry[ $k ];
-                }
-            }
-
-            $wpdb->insert(
-                $table,
-                array(
-                    'timestamp'  => isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : time(),
-                    'user_id'    => isset( $entry['user_id'] )    ? (int) $entry['user_id']        : 0,
-                    'user_login' => isset( $entry['user_login'] ) ? (string) $entry['user_login']  : '',
-                    'action'     => isset( $entry['action'] )     ? (string) $entry['action']      : '',
-                    'location'   => isset( $entry['location'] )   ? (string) $entry['location']    : '',
-                    'file_id'    => isset( $entry['file_id'] )    ? (string) $entry['file_id']     : null,
-                    'detail'     => isset( $entry['detail'] )     ? (string) $entry['detail']      : '',
-                    'chars'      => isset( $entry['chars'] )      ? (int) $entry['chars']           : null,
-                    'snapshot'   => ! empty( $snap_data )         ? wp_json_encode( $snap_data )    : null,
-                ),
-                array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
-            );
-        }
-
-        delete_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION );
     }
 
     // =========================================================================

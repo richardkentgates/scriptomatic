@@ -32,7 +32,6 @@ function scriptomatic_uninstall_cleanup() {
         'scriptomatic_footer',
         'scriptomatic_js_files',
         'scriptomatic_plugin_settings',
-        'scriptomatic_activity_log',
     );
 
     // Read the plugin settings BEFORE deciding whether to delete anything.
