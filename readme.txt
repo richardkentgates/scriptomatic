@@ -1,32 +1,40 @@
 === Scriptomatic ===
 Contributors: richardkentgates
-Tags: javascript, script injection, code manager, head scripts, footer scripts, conditional loading, js files, activity log
+Tags: javascript, script injection, code manager, head scripts, footer scripts, conditional loading, js files, activity log, freemium
 Requires at least: 5.3
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 2.9.0
+Stable tag: 3.0.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Inject custom JavaScript into your WordPress head and footer with conditional loading, managed JS files, CodeMirror editor, and full activity logging.
+Inject custom JavaScript into your WordPress head and footer with a built-in CodeMirror editor, activity log, and revision rollback — free. Upgrade to Pro for conditional loading, managed JS files, REST API, WP-CLI, and more.
 
 == Description ==
 
 Scriptomatic is a secure, production-ready WordPress plugin for injecting custom JavaScript into the `<head>` and footer of your site.
 
-= Core Features =
+= Free Features =
 
 * **Inline Script Editor** — full CodeMirror JavaScript editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back gracefully to a plain textarea.
-* **External Script URLs** — manage multiple remote `<script src>` URLs per location with a chicklet UI; each URL has its own independent load conditions.
-* **Managed JS Files** — create, edit, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`. Each file has its own Head/Footer selector, load conditions, and CodeMirror editor. Files survive plugin updates.
-* **Conditional Loading** — 11 condition types per location: Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, ISO Week Number, and Month. AND/OR stacked rules with short-circuit evaluation.
-* **Revision History &amp; Rollback** — every save writes a complete snapshot (inline script + URL list + load conditions). Click Restore to bring all three back simultaneously via AJAX — no further Save needed.
-* **Activity Log** — all saves, rollbacks, and JS file events are recorded in a persistent log embedded at the bottom of each admin page. Configurable limit of 3–1,000 entries (default 200).
-* **Security First** — dual nonce verification, `manage_options` capability gate, transient-based rate limiting (10-second cooldown per user per location), UTF-8 and control-character rejection, 100 KB content cap for inline scripts (JS files are limited by the server's upload setting), PHP-tag detection, dangerous-HTML-tag warning, REST API IP allowlist (restrict to specific IPs/CIDRs), and uploaded-file validation (extension, MIME type, size).
+* **External Script URLs** — manage multiple remote `<script src>` URLs per location with a chicklet UI.
+* **Revision History &amp; Rollback** — every save writes a complete snapshot. Click Restore to roll back via AJAX — no further Save needed.
+* **Activity Log** — all saves and rollbacks are recorded in a persistent log embedded at the bottom of each admin page. Configurable limit of 3–1,000 entries (default 200).
+* **Security First** — dual nonce verification, `manage_options` capability gate, transient-based rate limiting, UTF-8 and control-character rejection, 100 KB content cap, PHP-tag detection, and dangerous-HTML-tag warning.
+* All free features are **fully unlimited** — no quantity caps.
+
+= Pro Features (licence required) =
+
+* **Conditional Loading** — 11 condition types: Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, ISO Week Number, and Month. AND/OR stacked rules. Applied per inline script and per external URL.
+* **Managed JS Files** — create, edit, upload, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`. Each file has its own Head/Footer selector, load conditions, and CodeMirror editor. Files survive plugin updates.
+* **REST API** — full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Thirteen endpoints for inline scripts, external URLs, and managed JS files including a multipart file-upload endpoint.
+* **API IP Allowlist** — restrict REST API access to specific IPv4/IPv6 addresses or CIDR ranges.
+* **WP-CLI** — `wp scriptomatic` command group for inline scripts, external URLs, managed JS files, and history.
+* **14-day free trial** — no payment required to try all Pro features.
 
 = Architecture =
 
-Nine PHP traits in separate files, a singleton class, and static `assets/admin.css` / `assets/admin.js`. REST API under `scriptomatic/v1` (all POST, WordPress Application Passwords). WP-CLI command group `wp scriptomatic`. No external dependencies, no autoloader, no external API calls.
+Nine PHP traits in separate files, a singleton class, and static `assets/admin.css` / `assets/admin.js`. Freemius SDK for licence management. No external API calls beyond licence verification.
 
 = Multisite =
 
@@ -93,6 +101,12 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 
 == Changelog ==
 
+= 3.0.0 =
+* **Added**: Freemius SDK integration for freemium licence management. Free tier: inline script editor, external URLs, activity log/rollback (fully unlimited). Pro tier: conditional loading, managed JS files, REST API, WP-CLI, API IP allowlist.
+* **Added**: 14-day free Pro trial (no payment required).
+* **Added**: Upgrade-to-Pro notice shown in place of gated UI elements for free users.
+* **Fixed**: `$conditions` variable shadow in `inject_scripts_for()` — loop variable was overwriting the location-level conditions used for the inline-script check.
+
 = 2.9.0 =
 * **Changed**: Activity log moved from a `wp_options` row to a custom `{prefix}scriptomatic_log` DB table with indexed columns for efficient filtered reads.
 * **Changed**: All rollback AJAX handlers and REST API rollback endpoints now accept an `id` parameter (DB row primary key) instead of `index` (array position).
@@ -142,6 +156,9 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 * All internal development backward-compatibility code removed.
 
 == Upgrade Notice ==
+
+= 3.0.0 =
+Introduces a freemium model powered by Freemius. Core features (inline scripts, external URLs, activity log) remain free and unlimited. Conditional loading, managed JS files, REST API, WP-CLI, and the API IP allowlist now require a Pro licence. A 14-day free trial is available with no payment required.
 
 = 2.9.0 =
 Activity log data is now stored in a custom DB table (`{prefix}scriptomatic_log`). REST API and WP-CLI rollback endpoints now take an `id` parameter (DB row primary key) instead of `index`. Update any custom API clients or automation scripts that call the rollback endpoints.

@@ -7,31 +7,36 @@
 [![WordPress Plugin](https://img.shields.io/badge/WordPress-5.3%2B-blue)](https://wordpress.org/)
 [![PHP Version](https://img.shields.io/badge/PHP-7.2%2B-purple)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-green)](LICENSE)
+[![Freemium](https://img.shields.io/badge/Model-Free%20%2B%20Pro-orange)]()
 [![Maintained](https://img.shields.io/badge/Maintained-Yes-brightgreen)]()
 
-A secure and production-ready WordPress plugin for injecting custom JavaScript into the `<head>` and footer of your WordPress site, with conditional per-page loading, external script URL management, managed JS files, a persistent activity log with revision rollback, and a modular trait-based architecture.
+A secure and production-ready WordPress plugin for injecting custom JavaScript into the `<head>` and footer of your WordPress site. Available as a **free plugin** with core features, and a **Pro upgrade** that unlocks conditional loading, managed JS files, REST API, WP-CLI, and more.
 
 ## 🚀 Features
 
+### Free (included)
+
 - **🔒 Security First**: Comprehensive input validation, sanitization, secondary nonce system, rate limiting, and audit logging
 - **👤 Capability Checks**: Only administrators with `manage_options` can modify scripts
-- **📝 Rich Admin Interface**: Clean, intuitive settings pages with live character counter (colour-coded at 75 % and 90 % of the 100 KB inline-script limit)
-- **🗂️ Managed JS Files**: Create, edit, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`; each file has its own Head/Footer selector and Load Conditions; managed files survive plugin updates
-- **💻 Built-in Code Editor**: Inline scripts and managed JS files use a full CodeMirror JavaScript editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete hints (`wp.ajax`, `wp.hooks`, `jQuery`, `ajaxurl`, and more). Falls back to a plain textarea if syntax highlighting is disabled in the user profile.
-- **📚 Contextual Help**: Built-in help tabs with detailed documentation on the Head Scripts, Footer Scripts, and Preferences admin pages
-- **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months — or leave it on all pages (11 condition types)
-- **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
+- **📝 Inline Script Editor**: Full CodeMirror JavaScript editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea if syntax highlighting is disabled in the user profile.
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
-- **📋 Activity Log**: All script saves, rollbacks, and JS file events are recorded in a persistent **Activity Log** embedded at the bottom of each admin page. Inline script + conditions changes and external URL changes are recorded as **separate independent entries**, each with its own **View** and **Restore** buttons. Restoring an inline entry writes the script content and load conditions back; restoring a URL entry writes back the external URLs as they were at that moment — the two never interfere with each other. The Restore button is disabled on the most recent entry of each dataset (already the live state). File deletion events are informational only. Log limit is configurable in Preferences (3–1000, default 200); oldest entries are discarded automatically once the cap is reached.
-- **⚡ Performance Optimized**: Minimal overhead; front-end injection only on pages matching load conditions
-- **🌐 Multisite Compatible**: Works in multisite networks; all script management is per-site. Install, activate, and deactivate can be performed network-wide. Uninstall iterates every sub-site.
+- **🔁 Revision History & Rollback**: Every save stores a timestamped revision; restore any prior version in one AJAX click with no page reload
+- **📋 Activity Log**: All script saves, rollbacks, and JS file events are recorded in a persistent **Activity Log** embedded at the bottom of each admin page. Inline script + conditions changes and external URL changes are recorded as **separate independent entries**, each with its own **View** and **Restore** buttons — the two never interfere with each other. Log limit is configurable in Preferences (3–1000, default 200).
+- **📚 Contextual Help**: Built-in help tabs with detailed documentation on every admin page
 - **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
-- **🎨 WordPress Standards**: WP CS formatting, `esc_*()`, `sanitize_*()`, `wp_*()` throughout
+- **🌐 Multisite Compatible**: All script management is per-site; install/activate/deactivate network-wide; uninstall iterates every sub-site
 - **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion; fully multisite-aware
-- **🏗️ Modular Architecture**: Nine PHP traits in separate files; static `assets/admin.css` and `assets/admin.js` enqueued via `wp_enqueue_style` / `wp_enqueue_script`
-- **🔌 REST API**: Full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Thirteen endpoints cover inline scripts, external URL lists, and managed JS files — including a multipart file upload endpoint. An optional IP allowlist in Preferences restricts API access to specific IPv4/IPv6 addresses or CIDR ranges.
+
+### Pro (requires licence)
+
+- **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or months — per inline script and per external URL (11 condition types, AND/OR stacked rules)
+- **🗂️ Managed JS Files**: Create, edit, upload, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`; each file has its own Head/Footer selector, load conditions, and CodeMirror editor; files survive plugin updates
+- **🔌 REST API**: Full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Thirteen endpoints cover inline scripts, external URL lists, and managed JS files — including a multipart file upload endpoint
+- **🛡️ API IP Allowlist**: Restrict REST API access to specific IPv4/IPv6 addresses or CIDR ranges from the Preferences page
 - **💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), and history. All commands share the same service layer as the REST API.
-- **📤 JS File Upload**: Upload a local `.js` file from the **JS Files list page**, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`. The file is validated for extension, MIME type, and size before being accepted.
+- **📤 JS File Upload**: Upload a local `.js` file from the **JS Files list page**, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`
+
+> 💡 A **14-day free trial** (no payment required) is available for all Pro features.
 
 ## 📋 Requirements
 
@@ -413,7 +418,9 @@ eval(someUntrustedString); // Never use eval!
 
 ## 📜 License
 
-This plugin is licensed under the GNU General Public License v2 or later.
+### Source Code — GPL v2+
+
+The plugin source code is licensed under the GNU General Public License v2 or later.
 
 ```
 Copyright (C) 2026 Richard Kent Gates
@@ -430,6 +437,10 @@ GNU General Public License for more details.
 ```
 
 See [LICENSE](LICENSE) file for full license text.
+
+### Pro Features — Commercial Licence
+
+Pro features (conditional loading, managed JS files, REST API, WP-CLI, IP allowlist) require a separate commercial licence purchased through [Freemius](https://freemius.com). The commercial licence grants access to Pro functionality, automatic updates, and support. It does not alter the GPL v2+ terms that apply to the source code.
 
 ## 👨‍💻 Author
 
