@@ -21,7 +21,7 @@ _Nothing yet._
   global helpers: `scriptomatic_fs()` (Freemius singleton) and `scriptomatic_is_premium()`
   (returns `true` when a valid Pro licence or active trial is present, `false` on free).
   Product ID `25187`; `is_live => true` (production).
-- **3-day trial** — requires credit card or PayPal. Configured via the `trial` key in `fs_dynamic_init()`.
+- **3-day free trial** — credit card or PayPal required. Configured via the `trial` key in `fs_dynamic_init()`.
 - **Freemius `after_uninstall` hook** registered in `freemius-init.php`.
   `scriptomatic_fs_uninstall_cleanup()`, `scriptomatic_drop_log_table()`, and
   `scriptomatic_delete_uploads_dir()` are now called via the Freemius uninstall action,

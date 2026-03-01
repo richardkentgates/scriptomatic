@@ -25,7 +25,7 @@ Scriptomatic is a secure, production-ready WordPress plugin for injecting custom
 
 = Pro Features (licence required) =
 
-* **3-day trial** — credit card or PayPal required.
+* **3-day free trial** — credit card or PayPal required.
 
 * **Conditional Loading** — 11 condition types: Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, ISO Week Number, and Month. AND/OR stacked rules. Applied per inline script and per external URL.
 * **Managed JS Files** — create, edit, upload, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`. Each file has its own Head/Footer selector, load conditions, and CodeMirror editor. Files survive plugin updates.
@@ -158,7 +158,7 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 == Upgrade Notice ==
 
 = 3.0.0 =
-Introduces a freemium model powered by Freemius. Core features (inline scripts, external URLs, activity log) remain free and unlimited. Conditional loading, managed JS files, REST API, WP-CLI, and the API IP allowlist now require a Pro licence. A 3-day trial is available (credit card or PayPal required).
+Introduces a freemium model powered by Freemius. Core features (inline scripts, external URLs, activity log) remain free and unlimited. Conditional loading, managed JS files, REST API, WP-CLI, and the API IP allowlist now require a Pro licence. A 3-day free trial is available (credit card or PayPal required).
 
 = 2.9.0 =
 Activity log data is now stored in a custom DB table (`{prefix}scriptomatic_log`). REST API and WP-CLI rollback endpoints now take an `id` parameter (DB row primary key) instead of `index`. Update any custom API clients or automation scripts that call the rollback endpoints.
