@@ -71,22 +71,30 @@ define( 'SCRIPTOMATIC_MAX_LOG_ENTRIES', 200 );                // Default maximum
 define( 'SCRIPTOMATIC_FILES_NONCE', 'scriptomatic_save_js_file' );    // File edit form + AJAX delete nonce
 
 // Initialise Freemius (defines scriptomatic_fs() and scriptomatic_is_premium()).
-require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/freemius-init.php';
+// The set_basename() call enables auto-deactivation of the free version when
+// the Pro version is activated.
+if ( function_exists( 'scriptomatic_fs' ) ) {
+    scriptomatic_fs()->set_basename( true, __FILE__ );
+} else {
 
-// Load the main class (also requires all trait files).
-require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/class-scriptomatic.php';
+    require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/freemius-init.php';
 
-/**
- * Bootstrap the plugin by returning (and, on first call, creating) the
- * singleton {@see Scriptomatic} instance.
- *
- * Hooked on {@see 'plugins_loaded'} so that all WordPress APIs are available
- * before any plugin logic runs.
- *
- * @since  1.0.0
- * @return Scriptomatic
- */
-function scriptomatic_init() {
-    return Scriptomatic::get_instance();
+    // Load the main class (also requires all trait files).
+    require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/class-scriptomatic.php';
+
+    /**
+     * Bootstrap the plugin by returning (and, on first call, creating) the
+     * singleton {@see Scriptomatic} instance.
+     *
+     * Hooked on {@see 'plugins_loaded'} so that all WordPress APIs are available
+     * before any plugin logic runs.
+     *
+     * @since  1.0.0
+     * @return Scriptomatic
+     */
+    function scriptomatic_init() {
+        return Scriptomatic::get_instance();
+    }
+    add_action( 'plugins_loaded', 'scriptomatic_init' );
+
 }
-add_action( 'plugins_loaded', 'scriptomatic_init' );
