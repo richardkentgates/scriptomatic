@@ -308,6 +308,9 @@ trait Scriptomatic_Pages {
                                 <?php if ( $url_restore_greyed ) : ?>disabled title="<?php echo esc_attr( $url_restore_title ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
                         <?php endif; ?>
+                        <?php if ( ! $has_code_content && ! $has_delete_snap && ! $has_url_entry ) : ?>
+                            —
+                        <?php endif; ?>
                     </td>
                     <?php endif; ?>
                 </tr>
