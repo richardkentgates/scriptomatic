@@ -172,8 +172,12 @@ trait Scriptomatic_Sanitizer {
             // The entry is flushed once at shutdown after all three callbacks
             // (script, urls, conditions) have contributed their pieces.
             $old_content  = get_option( $option_key, '' );
+            // When the script is being cleared (saved as empty), snapshot the
+            // OLD content so View shows what was removed and Restore brings it
+            // back. The 'content' key is what the log entry stores/restores.
+            $snap_content = ( '' === $input && '' !== $old_content ) ? $old_content : $input;
             $pending_data = array(
-                'content' => $input,
+                'content' => $snap_content,
                 'chars'   => strlen( $input ),
             );
             if ( $old_content !== $input ) {
@@ -460,7 +464,12 @@ trait Scriptomatic_Sanitizer {
 
             // Contribute the URL snapshot and change counts to the pending-save
             // accumulator so a separate URL dataset entry can be written at shutdown.
-            $pending_data = array( 'urls_snapshot' => $new_urls_json );
+            // When URLs are removed (and none added), snapshot the OLD list so
+            // View shows what was removed and Restore brings it back.
+            $snapshot_for_log = ( count( $removed_urls ) > 0 && count( $added_urls ) === 0 )
+                ? $old_raw
+                : $new_urls_json;
+            $pending_data = array( 'urls_snapshot' => $snapshot_for_log );
             if ( $old_raw !== $new_urls_json ) {
                 // Any change to the list including per-URL conditions.
                 $pending_data['url_list_changed'] = true;
