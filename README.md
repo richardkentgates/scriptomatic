@@ -36,7 +36,6 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), and history. All commands share the same service layer as the REST API.
 - **📤 JS File Upload**: Upload a local `.js` file from the **JS Files list page**, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`
 
-> 💡 A **14-day free trial** (no payment required) is available for all Pro features.
 
 ## 📋 Requirements
 
@@ -178,7 +177,7 @@ All endpoints are `POST`. Authentication uses **WordPress Application Passwords*
 
 **Base URL:** `/wp-json/scriptomatic/v1/`
 
-> **Pro feature.** REST API access requires an active Scriptomatic Pro licence. A 14-day free trial is available — no payment required.
+> **Pro feature.** REST API access requires an active Scriptomatic Pro licence.
 
 An optional **API Allowed IPs** allowlist _(Pro)_ in **Preferences** restricts REST access to specific IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges (one per line). Leave empty to allow all IPs. Blocked requests receive `403 rest_ip_forbidden`.
 
@@ -219,7 +218,7 @@ curl -X POST https://example.com/wp-json/scriptomatic/v1/files/upload \
 
 ## 💻 WP-CLI Reference
 
-> **Pro feature.** WP-CLI commands require an active Scriptomatic Pro licence. A 14-day free trial is available — no payment required.
+> **Pro feature.** WP-CLI commands require an active Scriptomatic Pro licence.
 
 All commands are in the `wp scriptomatic` group. Write commands share the same service layer as the REST API and admin UI.
 

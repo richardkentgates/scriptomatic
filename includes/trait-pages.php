@@ -786,7 +786,6 @@ trait Scriptomatic_Pages {
                 '<p>' . __( '<strong>JS Files</strong> <em>(Pro)</em> — create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file has its own Head/Footer selector and Load Conditions, and persists across plugin updates.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( '<strong>REST API</strong> <em>(Pro)</em> — full <code>scriptomatic/v1</code> REST API (WordPress Application Passwords). <strong>WP-CLI</strong> <em>(Pro)</em> — <code>wp scriptomatic</code> command group. Both share the same validation, rate limiting, and activity logging as the admin UI. REST API access can be restricted to specific IP addresses in <em>Preferences</em>.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The inline-script editor and JS Files editor both use <strong>CodeMirror</strong> — a full JavaScript code editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea when syntax highlighting is disabled in your WordPress profile.', 'scriptomatic' ) . '</p>' .
-                '<p>' . __( 'A <strong>14-day free trial</strong> (no payment required) is available for all Pro features. Visit <em>Scriptomatic &rarr; Account</em> to start a trial or upgrade.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, an activity log with revision rollback, and conditional loading.', 'scriptomatic' ) . '</p>',
         ) );
 
@@ -799,12 +798,12 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Choose a location:', 'scriptomatic' ) . '</strong> ' . __( 'Use <em>Head Scripts</em> for early-loading code (analytics, pixels) or <em>Footer Scripts</em> for deferred code.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Add Your Code:', 'scriptomatic' ) . '</strong> ' . __( 'Write or paste your JavaScript into the <strong>CodeMirror editor</strong>. Do not include &lt;script&gt; tags — they are added automatically. Use Ctrl-Space for WordPress/jQuery autocomplete hints.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Add external URLs (optional):', 'scriptomatic' ) . '</strong> ' . __( 'Enter remote script URLs in the External Script URLs section. They load before the inline block.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Set Load Conditions (optional, Pro):', 'scriptomatic' ) . '</strong> ' . __( 'Use the Load Conditions panel to restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months. Supports 11 condition types with AND/OR logic stacking. Defaults to all pages. Requires a Pro licence or active trial.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Set Load Conditions (optional, Pro):', 'scriptomatic' ) . '</strong> ' . __( 'Use the Load Conditions panel to restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or specific months. Supports 11 condition types with AND/OR logic stacking. Defaults to all pages. Requires a Pro licence.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Save Changes:', 'scriptomatic' ) . '</strong> ' . __( 'Click the Save button at the bottom of the page.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Verify &amp; Test:', 'scriptomatic' ) . '</strong> ' . __( 'View your page source to confirm the script is injected in the correct location, then test your site to ensure it behaves as expected.', 'scriptomatic' ) . '</li>' .
                 '</ol>' .
-                '<p><strong>' . __( 'Managed JS Files (Pro):', 'scriptomatic' ) . '</strong> ' . __( 'Use <em>Scriptomatic &rarr; JS Files</em> to create and manage standalone <code>.js</code> files. Each file has its own label, filename, Head/Footer selector, Load Conditions, and CodeMirror editor. Files are stored in <code>wp-content/uploads/scriptomatic/</code> and survive plugin updates. Requires a Pro licence or active trial.', 'scriptomatic' ) . '</p>' .
-                '<p><strong>' . __( 'File Upload (Pro):', 'scriptomatic' ) . '</strong> ' . __( 'On the <strong>JS Files</strong> page, use the <strong>Upload a JS File</strong> form to import a local .js file directly from your computer. The REST API (<code>POST /wp-json/scriptomatic/v1/files/upload</code>) and WP-CLI (<code>wp scriptomatic files upload --path=&lt;file&gt;</code>) also support file uploads. Requires a Pro licence or active trial.', 'scriptomatic' ) . '</p>' .
+                '<p><strong>' . __( 'Managed JS Files (Pro):', 'scriptomatic' ) . '</strong> ' . __( 'Use <em>Scriptomatic &rarr; JS Files</em> to create and manage standalone <code>.js</code> files. Each file has its own label, filename, Head/Footer selector, Load Conditions, and CodeMirror editor. Files are stored in <code>wp-content/uploads/scriptomatic/</code> and survive plugin updates. Requires a Pro licence.', 'scriptomatic' ) . '</p>' .
+                '<p><strong>' . __( 'File Upload (Pro):', 'scriptomatic' ) . '</strong> ' . __( 'On the <strong>JS Files</strong> page, use the <strong>Upload a JS File</strong> form to import a local .js file directly from your computer. The REST API (<code>POST /wp-json/scriptomatic/v1/files/upload</code>) and WP-CLI (<code>wp scriptomatic files upload --path=&lt;file&gt;</code>) also support file uploads. Requires a Pro licence.', 'scriptomatic' ) . '</p>' .
                 '<p><strong>' . __( 'Example:', 'scriptomatic' ) . '</strong></p>' .
                 '<pre>console.log("Hello from Scriptomatic!");\n' .
                 'var myCustomVar = "Hello World";</pre>',
@@ -886,7 +885,7 @@ trait Scriptomatic_Pages {
                 '</ul>' .
                 '<h4>' . __( 'REST API returns 403:', 'scriptomatic' ) . '</h4>' .
                 '<ul>' .
-                '<li>' . __( 'The REST API requires a <strong>Pro licence or active trial</strong>. On free installations the REST API is not registered and will return a 404, not 403.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'The REST API requires a <strong>Pro licence</strong>. On free installations the REST API is not registered and will return a 404, not 403.', 'scriptomatic' ) . '</li>' .
                 '<li>' . __( 'If the <strong>API Allowed IPs</strong> list in Preferences is populated, requests from unlisted IP addresses are blocked. Add your IP or clear the list to allow access from any address.', 'scriptomatic' ) . '</li>' .
                 '<li>' . __( 'Authenticate using a WordPress <strong>Application Password</strong> (Users &rarr; Profile) passed as <code>Authorization: Basic base64(username:app-password)</code>.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
@@ -898,7 +897,7 @@ trait Scriptomatic_Pages {
             $upgrade_url = ( $fs && method_exists( $fs, 'get_upgrade_url' ) ) ? esc_url( $fs->get_upgrade_url() ) : '#';
             $upgrade_sidebar =
                 '<p><strong>' . __( 'Go Pro:', 'scriptomatic' ) . '</strong></p>' .
-                '<p><a href="' . $upgrade_url . '" target="_blank" rel="noopener noreferrer">' . __( '✨ Start Free 14-Day Trial', 'scriptomatic' ) . '</a></p>' .
+            '<p><a href="' . $upgrade_url . '" target="_blank" rel="noopener noreferrer">' . __( '⭐ Upgrade to Pro', 'scriptomatic' ) . '</a></p>' .
                 '<p class="description">' . __( 'Unlock conditional loading, managed JS files, REST API, and WP-CLI.', 'scriptomatic' ) . '</p>';
         }
 

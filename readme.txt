@@ -30,7 +30,6 @@ Scriptomatic is a secure, production-ready WordPress plugin for injecting custom
 * **REST API** — full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Thirteen endpoints for inline scripts, external URLs, and managed JS files including a multipart file-upload endpoint.
 * **API IP Allowlist** — restrict REST API access to specific IPv4/IPv6 addresses or CIDR ranges.
 * **WP-CLI** — `wp scriptomatic` command group for inline scripts, external URLs, managed JS files, and history.
-* **14-day free trial** — no payment required to try all Pro features.
 
 = Architecture =
 
@@ -103,7 +102,6 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 
 = 3.0.0 =
 * **Added**: Freemius SDK integration for freemium licence management. Free tier: inline script editor, external URLs, activity log/rollback (fully unlimited). Pro tier: conditional loading, managed JS files, REST API, WP-CLI, API IP allowlist.
-* **Added**: 14-day free Pro trial (no payment required).
 * **Added**: Upgrade-to-Pro notice shown in place of gated UI elements for free users.
 * **Fixed**: `$conditions` variable shadow in `inject_scripts_for()` — loop variable was overwriting the location-level conditions used for the inline-script check.
 
@@ -158,7 +156,7 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 == Upgrade Notice ==
 
 = 3.0.0 =
-Introduces a freemium model powered by Freemius. Core features (inline scripts, external URLs, activity log) remain free and unlimited. Conditional loading, managed JS files, REST API, WP-CLI, and the API IP allowlist now require a Pro licence. A 14-day free trial is available with no payment required.
+Introduces a freemium model powered by Freemius. Core features (inline scripts, external URLs, activity log) remain free and unlimited. Conditional loading, managed JS files, REST API, WP-CLI, and the API IP allowlist now require a Pro licence.
 
 = 2.9.0 =
 Activity log data is now stored in a custom DB table (`{prefix}scriptomatic_log`). REST API and WP-CLI rollback endpoints now take an `id` parameter (DB row primary key) instead of `index`. Update any custom API clients or automation scripts that call the rollback endpoints.
