@@ -31,14 +31,22 @@ if ( ! function_exists( 'scriptomatic_fs' ) ) {
         global $scriptomatic_fs;
 
         if ( ! isset( $scriptomatic_fs ) ) {
+            $product_id = 'REPLACE_WITH_PRODUCT_ID'; // TODO: numeric product ID from Freemius dashboard.
+            $public_key = 'pk_REPLACE_WITH_PUBLIC_KEY'; // TODO: public key from Freemius dashboard.
+
+            // Don't attempt to initialise the SDK until real credentials are in place.
+            if ( 'REPLACE_WITH_PRODUCT_ID' === $product_id || 'pk_REPLACE_WITH_PUBLIC_KEY' === $public_key ) {
+                return null;
+            }
+
             // Include the Freemius SDK.
             require_once SCRIPTOMATIC_PLUGIN_DIR . 'freemius/start.php';
 
             $scriptomatic_fs = fs_dynamic_init( array(
-                'id'               => 'REPLACE_WITH_PRODUCT_ID',       // TODO: numeric product ID from Freemius dashboard.
+                'id'               => $product_id,
                 'slug'             => 'scriptomatic',
                 'type'             => 'plugin',
-                'public_key'       => 'pk_REPLACE_WITH_PUBLIC_KEY',    // TODO: public key from Freemius dashboard.
+                'public_key'       => $public_key,
                 'is_premium'       => true,
                 'premium_suffix'   => 'Pro',
                 'has_addons'       => false,
@@ -87,7 +95,8 @@ function scriptomatic_is_premium() {
         return false;
     }
     try {
-        return scriptomatic_fs()->can_use_premium_code();
+        $fs = scriptomatic_fs();
+        return $fs ? $fs->can_use_premium_code() : false;
     } catch ( Exception $e ) {
         return false;
     }
