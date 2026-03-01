@@ -100,9 +100,8 @@ trait Scriptomatic_Pages {
         $has_content_entries = false;
         foreach ( $log as $e ) {
             $ea = isset( $e['action'] ) ? $e['action'] : '';
-            if ( ( array_key_exists( 'content', $e ) && in_array( $ea, $content_actions, true ) )
-                || ( 'file_delete' === $ea && array_key_exists( 'content', $e ) )
-                || ( 'file' !== $location && in_array( $ea, array( 'url_save', 'url_rollback' ), true ) && array_key_exists( 'urls_snapshot', $e ) )
+            if ( array_key_exists( 'content', $e )
+                || ( 'file' !== $location && array_key_exists( 'urls_snapshot', $e ) )
             ) {
                 $has_content_entries = true;
                 break;
@@ -153,10 +152,9 @@ trait Scriptomatic_Pages {
                 $file_eid = isset( $entry['file_id'] )    ? (string) $entry['file_id']     : '';
 
                 // Determine whether this row gets View/Restore.
-                $has_code_content = array_key_exists( 'content', $entry )
-                    && in_array( $action, $content_actions, true );
                 $has_delete_snap  = ( 'file_delete' === $action )
                     && array_key_exists( 'content', $entry );
+                $has_code_content = array_key_exists( 'content', $entry ) && ! $has_delete_snap;
                 $has_content      = $has_code_content || $has_delete_snap;
 
                 // Assign indices before greyed-out logic so index 0 (current
@@ -175,16 +173,13 @@ trait Scriptomatic_Pages {
 
                 if ( $has_url_entry ) { $url_index++; }
 
-                // Restore is greyed out when: script is empty, file was deleted,
-                // or this entry IS the current state (index 0 — nothing to restore).
-                $restore_greyed = ( $has_code_content && '' === (string) $entry['content'] )
-                    || ( 'file_delete' === $action )
-                    || ( ( $has_code_content ) && 0 === $this_code_index );
+                // Restore is greyed for rollback actions (restoring a restore makes
+                // no sense) and for index 0 (already the current state).
+                $is_rollback_action = in_array( $action, array( 'rollback', 'file_rollback' ), true );
+                $restore_greyed = $has_code_content && ( $is_rollback_action || 0 === $this_code_index );
 
-                if ( $has_code_content && '' === (string) $entry['content'] ) {
-                    $restore_title = __( 'Script is empty — nothing to restore. Find an earlier Save entry to restore content.', 'scriptomatic' );
-                } elseif ( 'file_delete' === $action ) {
-                    $restore_title = __( 'File was deleted. Use the Re-create button on an earlier File Save entry.', 'scriptomatic' );
+                if ( $has_code_content && $is_rollback_action ) {
+                    $restore_title = __( 'This is a restore entry — nothing to restore from here.', 'scriptomatic' );
                 } elseif ( $has_code_content && 0 === $this_code_index ) {
                     $restore_title = __( 'This is the current version — nothing to restore.', 'scriptomatic' );
                 } else {
@@ -201,14 +196,13 @@ trait Scriptomatic_Pages {
                 // (index 0) or when the snapshot contains no URLs — restoring
                 // an empty snapshot would just wipe the list, same logic as
                 // greying inline Restore when content is ''.
-                $url_snap_empty     = $has_url_entry
-                    && '[]' === trim( (string) ( $entry['urls_snapshot'] ?? '' ) );
-                $url_restore_greyed = $has_url_entry && ( 0 === $this_url_index || $url_snap_empty );
+                $url_restore_greyed = $has_url_entry
+                    && ( 'url_rollback' === $action || 0 === $this_url_index );
 
-                if ( $has_url_entry && 0 === $this_url_index ) {
+                if ( $has_url_entry && 'url_rollback' === $action ) {
+                    $url_restore_title = __( 'This is a restore entry — nothing to restore from here.', 'scriptomatic' );
+                } elseif ( $has_url_entry && 0 === $this_url_index ) {
                     $url_restore_title = __( 'Already the current state — nothing to restore.', 'scriptomatic' );
-                } elseif ( $url_snap_empty ) {
-                    $url_restore_title = __( 'No external URLs in this snapshot — nothing to restore.', 'scriptomatic' );
                 } else {
                     $url_restore_title = '';
                 }
@@ -307,9 +301,6 @@ trait Scriptomatic_Pages {
                                 data-original-text="<?php esc_attr_e( 'Restore', 'scriptomatic' ); ?>"
                                 <?php if ( $url_restore_greyed ) : ?>disabled title="<?php echo esc_attr( $url_restore_title ); ?>"<?php endif; ?>
                             ><?php esc_html_e( 'Restore', 'scriptomatic' ); ?></button>
-                        <?php endif; ?>
-                        <?php if ( ! $has_code_content && ! $has_delete_snap && ! $has_url_entry ) : ?>
-                            —
                         <?php endif; ?>
                     </td>
                     <?php endif; ?>
