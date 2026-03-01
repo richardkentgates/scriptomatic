@@ -13,6 +13,54 @@ _Nothing yet._
 
 ---
 
+## [3.0.0] – 2026-03-01
+
+### Added
+- **Freemius SDK integration (`freemius/` subfolder).**
+  `includes/freemius-init.php` bootstraps the SDK via `fs_dynamic_init()` and exposes two
+  global helpers: `scriptomatic_fs()` (Freemius singleton) and `scriptomatic_is_premium()`
+  (returns `true` when a valid Pro licence or active trial is present, `false` on free).
+  Placeholder product ID and public key are included; replace after creating the product at
+  [dashboard.freemius.com](https://dashboard.freemius.com/) and set `'is_live' => true`.
+- **14-day free trial** (no payment required) configured in the SDK initialisation.
+
+### Changed
+- **Freemium feature split:**
+  - **Free** — Inline script editor (head + footer), External URL manager, Activity log
+    with rollback. All free features are fully unlimited with no quantity caps.
+  - **Pro** — Conditional loading rules (head/footer inline + per-URL conditions),
+    Managed JS Files (create/edit/upload/delete), REST API (`scriptomatic/v1`),
+    WP-CLI (`wp scriptomatic`), IP allowlist for REST API access.
+- **Conditional loading (`Load Conditions`) is now Pro-only.**
+  - Head/footer conditions fields render a styled upgrade notice for free users.
+  - Per-URL condition pickers in the External URLs editor are replaced by a lock
+    indicator for free users; existing conditions data is preserved in a hidden
+    input so it survives a free → Pro upgrade without additional saves.
+  - Front-end injector always loads scripts on free (no conditions evaluated).
+    On Pro, per-URL, per-file, and inline-script conditions are all evaluated.
+- **Managed JS Files page is now Pro-only.**
+  - Free users see a `render_js_files_upgrade_page()` with an upgrade CTA instead
+    of the file list and editor.
+  - All JS file AJAX endpoints (`rollback_js_file`, `get_file_activity_content`,
+    `delete_js_file`, `restore_deleted_file`) and the `admin_post` save handler are
+    only registered when `scriptomatic_is_premium()` returns true.
+  - JS file injection block in `inject_scripts_for()` is skipped on free.
+- **REST API is now Pro-only.**
+  `rest_api_init` hook for `register_rest_routes()` only fires on Pro.
+- **WP-CLI is now Pro-only.**
+  `WP_CLI::add_command( 'scriptomatic', ... )` only registers on Pro.
+- **IP allowlist (API Allowed IPs) is now Pro-only.**
+  The settings field is only registered in the Preferences page on Pro.
+  `api_permission_check()` skips the IP check on free (REST API not registered anyway).
+- **Bug fix in `inject_scripts_for()`:** The local `$conditions` variable was being
+  overwritten by each URL entry's conditions inside the loop, causing the inline script
+  to be evaluated against the last URL entry's conditions instead of the location-level
+  conditions.  Renamed to `$entry_conditions` (loop) and `$loc_conditions` (location
+  level) to fix the shadow.
+- **Version bumped to 3.0.0.**
+
+---
+
 ## [2.9.0] – 2026-02-28
 
 ### Added

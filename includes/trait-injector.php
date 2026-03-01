@@ -64,56 +64,62 @@ trait Scriptomatic_Injector {
     private function inject_scripts_for( $location ) {
         $loc_data       = $this->get_location( $location );
         $script_content = $loc_data['script'];
-        $linked_entries = $loc_data['urls'];    // Already a PHP array, no json_decode needed.
-        $conditions     = $loc_data['conditions']; // Already a PHP array.
+        $linked_entries = $loc_data['urls'];       // Already a PHP array.
+        $loc_conditions = $loc_data['conditions']; // Location-level inline-script conditions.
 
         if ( ! is_array( $linked_entries ) ) {
             $linked_entries = array();
         }
 
-        // Collect output, evaluating conditions per item.
+        $is_premium   = scriptomatic_is_premium();
         $output_parts = array();
 
+        // External URLs.  Free tier: load on every page (no conditions).
+        // Pro tier: evaluate each URL's own conditions object.
         foreach ( $linked_entries as $entry ) {
             if ( ! is_array( $entry ) ) {
                 continue;
             }
 
-            $url        = isset( $entry['url'] ) ? (string) $entry['url'] : '';
-            $conditions = ( isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
-                          ? $entry['conditions']
-                          : array( 'logic' => 'and', 'rules' => array() );
+            $url             = isset( $entry['url'] ) ? (string) $entry['url'] : '';
+            $entry_conditions = ( isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
+                                ? $entry['conditions']
+                                : array( 'logic' => 'and', 'rules' => array() );
 
             if ( '' === $url ) {
                 continue;
             }
 
-            if ( $this->evaluate_conditions_object( $conditions ) ) {
+            if ( ! $is_premium || $this->evaluate_conditions_object( $entry_conditions ) ) {
                 $output_parts[] = '<script src="' . esc_url( $url ) . '"></script>';
             }
         }
 
-        // Managed JS files targeted at this location.
-        $js_files = $this->get_js_files_meta();
-        foreach ( $js_files as $file ) {
-            if ( ! isset( $file['location'] ) || $file['location'] !== $location ) {
-                continue;
-            }
-            if ( empty( $file['filename'] ) ) {
-                continue;
-            }
-            $conditions = ( isset( $file['conditions'] ) && is_array( $file['conditions'] ) )
-                ? $file['conditions']
-                : array( 'logic' => 'and', 'rules' => array() );
+        // Managed JS files: Pro feature only.
+        if ( $is_premium ) {
+            $js_files = $this->get_js_files_meta();
+            foreach ( $js_files as $file ) {
+                if ( ! isset( $file['location'] ) || $file['location'] !== $location ) {
+                    continue;
+                }
+                if ( empty( $file['filename'] ) ) {
+                    continue;
+                }
+                $file_conditions = ( isset( $file['conditions'] ) && is_array( $file['conditions'] ) )
+                    ? $file['conditions']
+                    : array( 'logic' => 'and', 'rules' => array() );
 
-            if ( $this->evaluate_conditions_object( $conditions ) ) {
-                $file_url       = $this->get_js_files_url() . $file['filename'];
-                $output_parts[] = '<script src="' . esc_url( $file_url ) . '"></script>';
+                if ( $this->evaluate_conditions_object( $file_conditions ) ) {
+                    $file_url       = $this->get_js_files_url() . $file['filename'];
+                    $output_parts[] = '<script src="' . esc_url( $file_url ) . '"></script>';
+                }
             }
         }
 
-        // Inline script: evaluate the location-level conditions directly.
-        if ( ! empty( trim( $script_content ) ) && $this->evaluate_conditions_object( $conditions ) ) {
+        // Inline script.  Free tier: load on every page.
+        // Pro tier: evaluate location-level conditions.
+        $inline_passes = ! $is_premium || $this->evaluate_conditions_object( $loc_conditions );
+        if ( ! empty( trim( $script_content ) ) && $inline_passes ) {
             $output_parts[] = '<script>';
             $output_parts[] = $script_content; // Intentionally unescaped — validated at write-time.
             $output_parts[] = '</script>';

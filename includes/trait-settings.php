@@ -84,8 +84,12 @@ trait Scriptomatic_Settings {
             array( $this, 'render_max_log_field' ), 'scriptomatic_general_page', 'sm_advanced' );
         add_settings_field( 'scriptomatic_keep_data', __( 'Data on Uninstall', 'scriptomatic' ),
             array( $this, 'render_keep_data_field' ), 'scriptomatic_general_page', 'sm_advanced' );
-        add_settings_field( 'scriptomatic_api_allowed_ips', __( 'API Allowed IPs', 'scriptomatic' ),
-            array( $this, 'render_api_allowed_ips_field' ), 'scriptomatic_general_page', 'sm_advanced' );
+
+        // API IP allowlist: Pro feature.
+        if ( scriptomatic_is_premium() ) {
+            add_settings_field( 'scriptomatic_api_allowed_ips', __( 'API Allowed IPs', 'scriptomatic' ),
+                array( $this, 'render_api_allowed_ips_field' ), 'scriptomatic_general_page', 'sm_advanced' );
+        }
     }
 
     // =========================================================================

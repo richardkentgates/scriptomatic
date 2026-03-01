@@ -376,6 +376,29 @@ trait Scriptomatic_Pages {
     // =========================================================================
 
     /**
+     * Render the JS Files upgrade notice page shown to free-tier users.
+     *
+     * @since  3.0.0
+     * @return void
+     */
+    public function render_js_files_upgrade_page() {
+        if ( ! current_user_can( $this->get_required_cap() ) ) {
+            wp_die( esc_html__( 'You do not have permission to access this page.', 'scriptomatic' ) );
+        }
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e( 'JS Files', 'scriptomatic' ); ?></h1>
+            <?php
+            $this->render_pro_upgrade_notice(
+                __( 'JS Files is a Pro feature', 'scriptomatic' ),
+                __( 'Create, upload, and manage standalone .js files stored in wp-content/uploads/scriptomatic/. Each file has its own code editor, Head/Footer selector, and load conditions, and persists across plugin updates.', 'scriptomatic' )
+            );
+            ?>
+        </div><!-- .wrap -->
+        <?php
+    }
+
+    /**
      * Render the JS Files admin page.
      *
      * Dispatches to the list view or the edit/new-file view based on the

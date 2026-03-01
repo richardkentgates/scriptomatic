@@ -65,14 +65,14 @@ trait Scriptomatic_Menus {
             array( $this, 'render_footer_page' )
         );
 
-        // Sub-page: JS Files.
+        // Sub-page: JS Files (Pro feature — free users see an upgrade notice).
         $files_hook = add_submenu_page(
             'scriptomatic',
             __( 'JS Files — Scriptomatic', 'scriptomatic' ),
             __( 'JS Files', 'scriptomatic' ),
             $cap,
             'scriptomatic-files',
-            array( $this, 'render_js_files_page' )
+            array( $this, scriptomatic_is_premium() ? 'render_js_files_page' : 'render_js_files_upgrade_page' )
         );
 
         // Sub-page: Preferences.

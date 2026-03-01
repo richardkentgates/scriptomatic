@@ -168,9 +168,12 @@ trait Scriptomatic_API {
      * @return true|WP_Error
      */
     public function api_permission_check() {
-        $ip_check = $this->api_check_ip_allowlist();
-        if ( is_wp_error( $ip_check ) ) {
-            return $ip_check;
+        // IP allowlist is a Pro feature; on free the API is open to any IP.
+        if ( scriptomatic_is_premium() ) {
+            $ip_check = $this->api_check_ip_allowlist();
+            if ( is_wp_error( $ip_check ) ) {
+                return $ip_check;
+            }
         }
 
         if ( ! current_user_can( $this->get_required_cap() ) ) {

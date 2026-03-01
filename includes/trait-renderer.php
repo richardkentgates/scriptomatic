@@ -284,8 +284,18 @@ trait Scriptomatic_Renderer {
                 <button type="button" class="sm-url-entry__remove" aria-label="<?php esc_attr_e( 'Remove URL', 'scriptomatic' ); ?>">&times; <?php esc_html_e( 'Remove', 'scriptomatic' ); ?></button>
             </div>
             <div class="sm-url-entry__conditions">
+                <?php if ( scriptomatic_is_premium() ) : ?>
                 <span class="sm-url-entry__cond-label"><?php esc_html_e( 'Load conditions:', 'scriptomatic' ); ?></span>
                 <?php $this->render_conditions_stack_ui( $pfx, $logic, $rules, $post_types, '', true ); ?>
+                <?php else : ?>
+                <?php /* Preserve any existing conditions data so it survives a free → Pro upgrade. */ ?>
+                <input type="hidden"
+                       id="<?php echo esc_attr( $pfx ); ?>-json"
+                       data-entry-cond-json="true"
+                       value="<?php echo esc_attr( wp_json_encode( array( 'logic' => $logic, 'rules' => $rules ) ) ); ?>">
+                <span class="dashicons dashicons-lock" style="font-size:.875rem;width:.875rem;height:.875rem;vertical-align:middle;color:#999;margin-right:4px;"></span>
+                <span style="color:#999;font-size:.8125rem;"><?php esc_html_e( 'Per-URL load conditions require Scriptomatic Pro.', 'scriptomatic' ); ?></span>
+                <?php endif; ?>
             </div><!-- .sm-url-entry__conditions -->
         </div><!-- .sm-url-entry -->
         <?php
@@ -697,6 +707,13 @@ trait Scriptomatic_Renderer {
      * @return void
      */
     public function render_head_conditions_field() {
+        if ( ! scriptomatic_is_premium() ) {
+            $this->render_pro_upgrade_notice(
+                __( 'Load Conditions is a Pro feature', 'scriptomatic' ),
+                __( 'Restrict when this script loads: by page, post type, URL pattern, login state, date, or date/time window.', 'scriptomatic' )
+            );
+            return;
+        }
         $this->render_conditions_field_for( 'head' );
     }
 
@@ -707,6 +724,13 @@ trait Scriptomatic_Renderer {
      * @return void
      */
     public function render_footer_conditions_field() {
+        if ( ! scriptomatic_is_premium() ) {
+            $this->render_pro_upgrade_notice(
+                __( 'Load Conditions is a Pro feature', 'scriptomatic' ),
+                __( 'Restrict when this script loads: by page, post type, URL pattern, login state, date, or date/time window.', 'scriptomatic' )
+            );
+            return;
+        }
         $this->render_conditions_field_for( 'footer' );
     }
 
@@ -868,5 +892,34 @@ trait Scriptomatic_Renderer {
         $post_types = get_post_types( array( 'public' => true ), 'objects' );
 
         $this->render_conditions_stack_ui( $pfx, $logic, $rules, $post_types, 'sm_file_conditions', false );
+    }
+
+    // =========================================================================
+    // PRO UPGRADE NOTICE
+    // =========================================================================
+
+    /**
+     * Render a styled upgrade-to-Pro notice box.
+     *
+     * Used by conditions fields and any other gated admin UI.
+     *
+     * @since  3.0.0
+     * @param  string $feature_title Short feature name, e.g. 'Load Conditions is a Pro feature'.
+     * @param  string $feature_desc  One-sentence description of what the feature does.
+     * @return void
+     */
+    public function render_pro_upgrade_notice( $feature_title, $feature_desc ) {
+        $upgrade_url = function_exists( 'scriptomatic_fs' ) ? esc_url( scriptomatic_fs()->get_upgrade_url() ) : '#';
+        ?>
+        <div class="notice notice-info sm-pro-notice" style="padding:1.25rem 1.5rem;display:flex;gap:1rem;align-items:flex-start;max-width:800px;margin:8px 0;">
+            <span class="dashicons dashicons-lock" style="font-size:1.75rem;width:1.75rem;height:1.75rem;flex-shrink:0;color:#2271b1;margin-top:2px;"></span>
+            <div>
+                <h3 style="margin:0 0 .4rem;font-size:1rem;"><?php echo esc_html( $feature_title ); ?></h3>
+                <p style="margin:0 0 .875rem;color:#50575e;"><?php echo esc_html( $feature_desc ); ?></p>
+                <a href="<?php echo $upgrade_url; ?>" class="button button-primary"><?php esc_html_e( 'Upgrade to Scriptomatic Pro', 'scriptomatic' ); ?></a>
+                <a href="<?php echo $upgrade_url; ?>" style="margin-left:.75rem;color:#2271b1;"><?php esc_html_e( 'Start free 14-day trial', 'scriptomatic' ); ?></a>
+            </div>
+        </div>
+        <?php
     }
 }

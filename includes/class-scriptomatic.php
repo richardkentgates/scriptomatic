@@ -95,8 +95,8 @@ class Scriptomatic {
     private function __construct() {
         $this->init_hooks();
 
-        // WP-CLI commands are only registered in a CLI context.
-        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+        // WP-CLI commands: Pro feature, only registered in a CLI context.
+        if ( defined( 'WP_CLI' ) && WP_CLI && scriptomatic_is_premium() ) {
             require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/class-scriptomatic-cli.php';
             WP_CLI::add_command( 'scriptomatic', new Scriptomatic_CLI_Commands() );
         }
@@ -125,20 +125,25 @@ class Scriptomatic {
         );
 
         // AJAX — wp_ajax_ prefix ensures only logged-in users can trigger it.
-        add_action( 'wp_ajax_scriptomatic_rollback',                  array( $this, 'ajax_rollback' ) );
-        add_action( 'wp_ajax_scriptomatic_get_history_content',       array( $this, 'ajax_get_history_content' ) );
-        add_action( 'wp_ajax_scriptomatic_rollback_js_file',          array( $this, 'ajax_rollback_js_file' ) );
-        add_action( 'wp_ajax_scriptomatic_get_file_activity_content', array( $this, 'ajax_get_file_activity_content' ) );
-        add_action( 'wp_ajax_scriptomatic_delete_js_file',            array( $this, 'ajax_delete_js_file' ) );
-        add_action( 'wp_ajax_scriptomatic_restore_deleted_file',       array( $this, 'ajax_restore_deleted_file' ) );
-        add_action( 'wp_ajax_scriptomatic_rollback_urls',              array( $this, 'ajax_rollback_urls' ) );
-        add_action( 'wp_ajax_scriptomatic_get_url_history_content',    array( $this, 'ajax_get_url_history_content' ) );
+        // Free tier: inline script rollback and URL rollback.
+        add_action( 'wp_ajax_scriptomatic_rollback',                array( $this, 'ajax_rollback' ) );
+        add_action( 'wp_ajax_scriptomatic_get_history_content',     array( $this, 'ajax_get_history_content' ) );
+        add_action( 'wp_ajax_scriptomatic_rollback_urls',           array( $this, 'ajax_rollback_urls' ) );
+        add_action( 'wp_ajax_scriptomatic_get_url_history_content', array( $this, 'ajax_get_url_history_content' ) );
 
-        // Admin-post: JS file save form.
-        add_action( 'admin_post_scriptomatic_save_js_file',      array( $this, 'handle_save_js_file' ) );
+        // Pro-only AJAX: managed JS file actions, admin-post save, and REST API.
+        if ( scriptomatic_is_premium() ) {
+            add_action( 'wp_ajax_scriptomatic_rollback_js_file',          array( $this, 'ajax_rollback_js_file' ) );
+            add_action( 'wp_ajax_scriptomatic_get_file_activity_content', array( $this, 'ajax_get_file_activity_content' ) );
+            add_action( 'wp_ajax_scriptomatic_delete_js_file',            array( $this, 'ajax_delete_js_file' ) );
+            add_action( 'wp_ajax_scriptomatic_restore_deleted_file',      array( $this, 'ajax_restore_deleted_file' ) );
 
-        // REST API routes (authentication via WordPress Application Passwords).
-        add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+            // Admin-post: JS file save form.
+            add_action( 'admin_post_scriptomatic_save_js_file', array( $this, 'handle_save_js_file' ) );
+
+            // REST API routes (authentication via WordPress Application Passwords).
+            add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+        }
     }
 
     /**

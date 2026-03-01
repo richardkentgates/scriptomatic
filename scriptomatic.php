@@ -3,7 +3,7 @@
  * Plugin Name: Scriptomatic
  * Plugin URI: https://github.com/richardkentgates/scriptomatic
  * Description: Inject custom JavaScript into the head and footer of your WordPress site. Manage standalone JS files with a built-in code editor, conditional per-page loading, external script URLs, revision history, rollback, activity logging, and fine-grained admin controls.
- * Version: 2.9.0
+ * Version: 3.0.0
  * Requires at least: 5.3
  * Tested up to: 6.7
  * Requires PHP: 7.2
@@ -38,7 +38,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ---- Core ----
-define( 'SCRIPTOMATIC_VERSION',     '2.9.0' );
+define( 'SCRIPTOMATIC_VERSION',     '3.0.0' );
 define( 'SCRIPTOMATIC_PLUGIN_FILE', __FILE__ );
 define( 'SCRIPTOMATIC_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'SCRIPTOMATIC_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -69,6 +69,9 @@ define( 'SCRIPTOMATIC_MAX_LOG_ENTRIES', 200 );                // Default maximum
 
 // ---- Nonces: JS files ----
 define( 'SCRIPTOMATIC_FILES_NONCE', 'scriptomatic_save_js_file' );    // File edit form + AJAX delete nonce
+
+// Initialise Freemius (defines scriptomatic_fs() and scriptomatic_is_premium()).
+require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/freemius-init.php';
 
 // Load the main class (also requires all trait files).
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/class-scriptomatic.php';
