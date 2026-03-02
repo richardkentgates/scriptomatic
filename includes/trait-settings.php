@@ -523,29 +523,29 @@ trait Scriptomatic_Settings {
             return $cached;
         }
 
-        $wheres = array( '1=1' );
-        $args   = array( $table );
-
-        if ( '' !== $location ) {
-            $wheres[] = 'location = %s';
-            $args[]   = $location;
+        if ( '' !== $location && '' !== $file_id ) {
+            $sql = $wpdb->prepare(
+                'SELECT * FROM %i WHERE location = %s AND file_id = %s ORDER BY id DESC LIMIT %d OFFSET %d',
+                $table, $location, $file_id, $limit, $offset
+            );
+        } elseif ( '' !== $location ) {
+            $sql = $wpdb->prepare(
+                'SELECT * FROM %i WHERE location = %s ORDER BY id DESC LIMIT %d OFFSET %d',
+                $table, $location, $limit, $offset
+            );
+        } elseif ( '' !== $file_id ) {
+            $sql = $wpdb->prepare(
+                'SELECT * FROM %i WHERE file_id = %s ORDER BY id DESC LIMIT %d OFFSET %d',
+                $table, $file_id, $limit, $offset
+            );
+        } else {
+            $sql = $wpdb->prepare(
+                'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d',
+                $table, $limit, $offset
+            );
         }
-        if ( '' !== $file_id ) {
-            $wheres[] = 'file_id = %s';
-            $args[]   = $file_id;
-        }
 
-        $args[] = $limit;
-        $args[] = $offset;
-
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                'SELECT * FROM %i WHERE ' . implode( ' AND ', $wheres )
-                . ' ORDER BY id DESC LIMIT %d OFFSET %d',
-                $args
-            ),
-            ARRAY_A
-        );
+        $rows = $wpdb->get_results( $sql, ARRAY_A );
 
         if ( ! is_array( $rows ) ) {
             return array();

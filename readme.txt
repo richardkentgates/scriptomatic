@@ -1,7 +1,7 @@
 === Scriptomatic ===
 Contributors: richardkentgates
 Tags: javascript, script injection, head scripts, conditional loading, activity log
-Requires at least: 5.3
+Requires at least: 6.2
 Tested up to: 6.9
 Requires PHP: 7.2
 Stable tag: 3.0.0
