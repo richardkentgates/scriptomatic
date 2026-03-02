@@ -664,7 +664,7 @@ trait Scriptomatic_Renderer {
             <?php endif; ?>
 
             <template id="<?php echo esc_attr( $pfx ); ?>-rule-tpl">
-                <?php echo $this->render_condition_rule_card_html( $pfx, $tpl_ridx, array(), $post_types, true );
+                <?php echo $this->render_condition_rule_card_html( $pfx, $tpl_ridx, array(), $post_types, true ); ?>
             </template>
 
         </div><!-- .scriptomatic-conditions-wrap -->
