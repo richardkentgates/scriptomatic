@@ -210,7 +210,7 @@ trait Scriptomatic_Renderer {
                                   ? $entry['conditions']
                                   : array( 'logic' => 'and', 'rules' => array() );
 
-                    echo $this->render_url_entry_html( $location, $idx, $url, $conditions, $post_types );
+                    echo wp_kses_post( $this->render_url_entry_html( $location, $idx, $url, $conditions, $post_types ) );
                 endforeach; ?>
             </div>
 
@@ -236,14 +236,14 @@ trait Scriptomatic_Renderer {
 
             <template id="<?php echo esc_attr( $prefix ); ?>-url-entry-template">
                 <?php
-                echo $this->render_url_entry_html(
+                echo wp_kses_post( $this->render_url_entry_html(
                     $location,
                     '__IDX__',
                     '',
                     array( 'logic' => 'and', 'rules' => array() ),
                     $post_types,
                     true
-                );
+                ) );
                 ?>
             </template>
 
@@ -390,7 +390,7 @@ trait Scriptomatic_Renderer {
                     return false;
                 }
 
-                $uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+                $uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/';
                 foreach ( $values as $pattern ) {
                     if ( '' !== $pattern && false !== strpos( $uri, $pattern ) ) {
                         return true;
@@ -639,7 +639,7 @@ trait Scriptomatic_Renderer {
 
             <div class="sm-rules-list" id="<?php echo esc_attr( $pfx ); ?>-rules">
                 <?php foreach ( $rules as $ridx => $rule ) :
-                    echo $this->render_condition_rule_card_html( $pfx, $ridx, $rule, $post_types, false );
+                    echo wp_kses_post( $this->render_condition_rule_card_html( $pfx, $ridx, $rule, $post_types, false ) );
                 endforeach; ?>
             </div><!-- .sm-rules-list -->
 
@@ -664,7 +664,7 @@ trait Scriptomatic_Renderer {
             <?php endif; ?>
 
             <template id="<?php echo esc_attr( $pfx ); ?>-rule-tpl">
-                <?php echo $this->render_condition_rule_card_html( $pfx, $tpl_ridx, array(), $post_types, true ); ?>
+                <?php echo wp_kses_post( $this->render_condition_rule_card_html( $pfx, $tpl_ridx, array(), $post_types, true ) ); ?>
             </template>
 
         </div><!-- .scriptomatic-conditions-wrap -->

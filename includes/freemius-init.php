@@ -162,7 +162,7 @@ function scriptomatic_fs_uninstall_cleanup() {
 function scriptomatic_drop_log_table() {
     global $wpdb;
     $table = $wpdb->get_blog_prefix() . 'scriptomatic_log';
-    $wpdb->query( 'DROP TABLE IF EXISTS `' . $table . '`' );
+    $wpdb->query( 'DROP TABLE IF EXISTS `' . esc_sql( $table ) . '`' );
 }
 
 /**
@@ -179,17 +179,12 @@ function scriptomatic_delete_uploads_dir() {
         return;
     }
 
-    $files = glob( $dir . '*', GLOB_NOSORT );
-    if ( is_array( $files ) ) {
-        foreach ( $files as $file ) {
-            if ( is_file( $file ) ) {
-
-                unlink( $file );
-            }
-        }
+    if ( ! function_exists( 'WP_Filesystem' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
     }
-
-    rmdir( $dir );
+    WP_Filesystem();
+    global $wp_filesystem;
+    $wp_filesystem->rmdir( $dir, true );
 }
 
 // Register uninstall cleanup with Freemius (fires after uninstall is reported).

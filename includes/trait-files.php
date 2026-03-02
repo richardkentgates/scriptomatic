@@ -281,8 +281,14 @@ trait Scriptomatic_Files {
         // operation. Network upload validation is enforced by validate_js_upload().
 
         if ( ! empty( $_FILES['sm_file_upload'] ) && isset( $_FILES['sm_file_upload']['error'] ) && UPLOAD_ERR_NO_FILE !== (int) $_FILES['sm_file_upload']['error'] ) {
-
-            $upload_result = $this->validate_js_upload( $_FILES['sm_file_upload'] );
+            $upload_file = array(
+                'name'     => isset( $_FILES['sm_file_upload']['name'] )     ? sanitize_file_name( wp_unslash( (string) $_FILES['sm_file_upload']['name'] ) )     : '',
+                'type'     => isset( $_FILES['sm_file_upload']['type'] )     ? sanitize_mime_type( wp_unslash( (string) $_FILES['sm_file_upload']['type'] ) )     : '',
+                'tmp_name' => isset( $_FILES['sm_file_upload']['tmp_name'] ) ? sanitize_text_field( wp_unslash( (string) $_FILES['sm_file_upload']['tmp_name'] ) ) : '',
+                'error'    => isset( $_FILES['sm_file_upload']['error'] )    ? (int) $_FILES['sm_file_upload']['error']                                            : UPLOAD_ERR_NO_FILE,
+                'size'     => isset( $_FILES['sm_file_upload']['size'] )     ? (int) $_FILES['sm_file_upload']['size']                                             : 0,
+            );
+            $upload_result = $this->validate_js_upload( $upload_file );
             if ( is_wp_error( $upload_result ) ) {
                 if ( 'list' === $upload_source ) {
                     wp_safe_redirect(
@@ -327,7 +333,7 @@ trait Scriptomatic_Files {
                     if ( file_exists( $path ) ) {
 
                         $file_content = (string) file_get_contents( $path );
-                        @unlink( $path );
+                        wp_delete_file( $path );
                     }
                     $this->save_js_files_meta( $files_meta );
                     $this->write_activity_entry( array(
@@ -413,7 +419,7 @@ trait Scriptomatic_Files {
                 if ( $f['id'] === $original_id && $f['filename'] !== $filename ) {
                     $old_path = $dir . $f['filename'];
                     if ( file_exists( $old_path ) ) {
-                        @unlink( $old_path );
+                        wp_delete_file( $old_path );
                     }
                     break;
                 }
@@ -578,7 +584,7 @@ trait Scriptomatic_Files {
         if ( file_exists( $path ) ) {
 
             $file_content = (string) file_get_contents( $path );
-            @unlink( $path );
+            wp_delete_file( $path );
         }
 
         $this->save_js_files_meta( $files );

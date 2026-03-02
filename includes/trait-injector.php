@@ -81,7 +81,7 @@ trait Scriptomatic_Injector {
                     'scriptomatic-url-' . md5( $url ),
                     $url,
                     array(),
-                    null,
+                    SCRIPTOMATIC_VERSION,
                     $in_footer
                 );
             }

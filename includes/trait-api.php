@@ -1084,7 +1084,7 @@ trait Scriptomatic_API {
             foreach ( $files as $f ) {
                 if ( $f['id'] === $original_id && $f['filename'] !== $filename ) {
                     $old_path = $dir . $f['filename'];
-                    if ( file_exists( $old_path ) ) { @unlink( $old_path ); }
+                    if ( file_exists( $old_path ) ) { wp_delete_file( $old_path ); }
                     break;
                 }
             }
@@ -1175,7 +1175,7 @@ trait Scriptomatic_API {
         $file_content = '';
         if ( file_exists( $path ) ) {
             $file_content = (string) file_get_contents( $path );
-            @unlink( $path );
+            wp_delete_file( $path );
         }
 
         $this->save_js_files_meta( $files );
