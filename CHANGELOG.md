@@ -26,8 +26,28 @@ _Nothing yet._
   `scriptomatic_fs_uninstall_cleanup()`, `scriptomatic_drop_log_table()`, and
   `scriptomatic_delete_uploads_dir()` are now called via the Freemius uninstall action,
   which fires *after* opt-out feedback is reported to the Freemius servers.
+- **Client-side JavaScript syntax validation.** On form submit, the script content is
+  checked via `new Function(code)` — a real browser-engine parse. A `SyntaxError`
+  produces a confirmation dialog with the error message; the user can cancel to fix it
+  or confirm to save anyway.
+- **Server-side JavaScript structural validation (`check_js_structure()`).** A
+  character-level state machine in `trait-sanitizer.php` tracks string literals
+  (single-quoted, double-quoted, template), single-line and block comments, then
+  verifies all `{}`, `()`, `[]` bracket pairs are balanced and closed, no string or
+  block comment is unclosed at end-of-input, and nesting depth never exceeds 50 levels.
+  Returns `true` or `WP_Error` with typed error codes (`unmatched_bracket`,
+  `mismatched_bracket`, `unclosed_bracket`, `unclosed_string`, `unclosed_comment`,
+  `excessive_nesting`). Called by `api_validate_script_content()` (hard block on error)
+  and `sanitize_location_for()` (warning-level admin notice).
+- **WordPress.org Plugin Check compliance.** All ERROR-level items resolved across
+  multiple Plugin Check report iterations: `EscapeOutput`, `UnescapedDBParameter`,
+  `NotPrepared`, `MissingVersion`, `$_FILES` sanitization, `$_POST` sanitization,
+  discouraged functions. No `phpcs:ignore` suppressions on any ERROR-level item.
 
 ### Changed
+- **Minimum WordPress version raised to 6.2.** Required to use the `%i` identifier
+  placeholder in `$wpdb->prepare()`, which is used for all custom DB table name
+  references to prevent `UnescapedDBParameter` / `NotPrepared` errors.
 - **Freemium feature split:**
   - **Free** — Inline script editor (head + footer), External URL manager, Activity log
     with rollback. All free features are fully unlimited with no quantity caps.

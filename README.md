@@ -4,7 +4,7 @@
   <img src="docs/scriptomatic-logo.png" alt="Scriptomatic" width="180" />
 </p>
 
-[![WordPress Plugin](https://img.shields.io/badge/WordPress-5.3%2B-blue)](https://wordpress.org/)
+[![WordPress Plugin](https://img.shields.io/badge/WordPress-6.2%2B-blue)](https://wordpress.org/)
 [![PHP Version](https://img.shields.io/badge/PHP-7.2%2B-purple)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-green)](LICENSE)
 [![Freemium](https://img.shields.io/badge/Model-Free%20%2B%20Pro-orange)]()
@@ -65,7 +65,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 
 ## 📋 Requirements
 
-- **WordPress**: 5.3 or higher
+- **WordPress**: 6.2 or higher (required for `%i` identifier placeholder in `$wpdb->prepare()`)
 - **PHP**: 7.2 or higher
 - **User Role**: Administrator (manage_options capability)
 
@@ -347,8 +347,8 @@ Scriptomatic is built with security as a top priority:
 - Uninstall cleanup is hooked to Freemius's `after_uninstall` action, ensuring opt-out feedback is reported before data is removed
 - On multisite, uninstall iterates every sub-site and removes per-site option data, then cleans network-level options
 - Multisite-aware data handling
-- No external dependencies or API calls
-- No raw SQL from user input — options API and `$wpdb` prepared statements only
+- **Freemius SDK** (bundled, `vendor/freemius/`): handles licence management, in-dashboard upgrade flow, and uninstall opt-out survey. Freemius makes outbound requests to `freemius.com` for licence validation and telemetry (collected only with user opt-in). No other external calls are made by the plugin itself.
+- No raw SQL from user input — all custom-table queries use `$wpdb->prepare()` with typed placeholders (`%i`, `%d`, `%s`)
 
 ## 🛠️ Best Practices
 

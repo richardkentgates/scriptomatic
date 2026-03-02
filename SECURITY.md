@@ -10,7 +10,7 @@ We provide security updates for the following versions:
 
 | Version | Supported          | Status        |
 | ------- | ------------------ | ------------- |
-| 2.5.x   | :white_check_mark: | Active Support |
+| 3.0.x   | :white_check_mark: | Active Support |
 
 ## Security Features
 
@@ -50,8 +50,8 @@ We provide security updates for the following versions:
 
 ### Data Protection
 
-- **No External Calls**: Plugin makes no external API calls
-- **No Tracking**: No analytics or telemetry collected
+- **Freemius SDK (bundled)**: The plugin uses the Freemius SDK (`vendor/freemius/`) for commercial licence management and the in-dashboard upgrade flow. Freemius makes outbound HTTPS requests to `freemius.com` for licence validation and anonymous usage statistics. Usage statistics are collected **only with explicit user opt-in** during activation; no data is sent without consent. No other outbound calls are made by the plugin.
+- **No Tracking by the plugin itself**: The plugin code does not collect or transmit any analytics or telemetry. Any data collection is handled entirely by the Freemius SDK, subject to the Freemius privacy policy.
 - **Clean Uninstall**: All data removed upon plugin deletion
 - **Multisite Safe**: Proper handling of multisite installations
 
@@ -60,7 +60,7 @@ We provide security updates for the following versions:
 - **WordPress Coding Standards**: Follows official WordPress PHP coding standards
 - **OOP Architecture**: Clean object-oriented design with singleton pattern
 - **No Deprecated Functions**: Uses current WordPress APIs only
-- **SQL Injection Protection**: No raw SQL from user input; data access is via WordPress options APIs
+- **SQL Injection Protection**: All queries against the custom `{prefix}scriptomatic_log` table use `$wpdb->prepare()` with `%i`, `%d`, and `%s` typed placeholders. No raw SQL from user input is ever concatenated into a query.
 - **Defensive Type Checks**: All input types verified at runtime via `is_string()`, `is_array()`, `absint()`, and similar guards throughout all sanitisation methods
 
 ## Known Limitations
@@ -71,7 +71,7 @@ By its nature, Scriptomatic allows injection of arbitrary JavaScript code. While
 
 1. **JavaScript Execution**: Any code entered will execute on your website
 2. **Administrator Trust**: Plugin assumes administrators are trustworthy
-3. **Code Review**: No automated JavaScript syntax validation (planned for future)
+3. **Code Review**: Basic structural validation is performed (bracket matching, unclosed strings/comments, nesting depth), and basic client-side syntax checking is performed via `new Function()`. However, no semantic analysis or sandbox execution is done — functionally valid but malicious JS will still be accepted.
 4. **XSS Risk**: Malicious JavaScript could lead to XSS attacks if entered by compromised admin account
 
 ### Responsibility
@@ -211,7 +211,7 @@ We appreciate responsible security researchers who help keep Scriptomatic secure
 
 ---
 
-**Last Updated**: March 1, 2026
-**Version**: 2.5.0
+**Last Updated**: March 2, 2026
+**Version**: 3.0.0
 
 Thank you for helping keep Scriptomatic secure!

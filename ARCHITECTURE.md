@@ -51,7 +51,6 @@ There are no abstract base classes, no dependency injection containers, and no a
 ```
 scriptomatic/
 ├── scriptomatic.php              # Entry point: header, constants, require_once, bootstrap hook
-├── uninstall.php                 # Runs on plugin deletion; honours keep_data_on_uninstall
 ├── index.php                     # Returns HTTP 403 — blocks direct directory access
 ├── .gitattributes                # Marks docs/ as export-ignore (excluded from zip downloads)
 │
@@ -111,7 +110,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'2.9.0'` |
+| `SCRIPTOMATIC_VERSION` | `'3.0.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
@@ -394,7 +393,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
 
 Output format:
 ```html
-<!-- Scriptomatic v2.4.0 (head) -->
+<!-- Scriptomatic v3.0.0 (head) -->
 <script src="https://example.com/script.js"></script>
 <script src="/wp-content/uploads/scriptomatic/my-tracker.js"></script>
 <script>
@@ -483,9 +482,9 @@ All write commands — whether from the REST API or WP-CLI — call these public
 | `service_delete_file( $file_id )` | Deletes file from disk + metadata; returns `{file_id, message}` or `WP_Error` |
 | `service_upload_file( array $file_data, array $params )` | Validates upload via `validate_js_upload()` then delegates to `service_set_file()`; returns same shape or `WP_Error`. Used by `rest_upload_file()` and the CLI `files upload` command. |
 
-**Private helper:**
+**Protected helper:**
 
-`api_validate_script_content( $content )` — mirrors the `sanitize_script_for()` pipeline but returns structured `WP_Error` instead of calling `add_settings_error()`. Checks string type, strips null bytes, validates UTF-8, rejects control characters and PHP tags, strips `<script>` tags, enforces `SCRIPTOMATIC_MAX_SCRIPT_LENGTH`.
+`api_validate_script_content( $content )` — mirrors the `sanitize_script_for()` pipeline but returns structured `WP_Error` instead of calling `add_settings_error()`. Checks string type, strips null bytes, validates UTF-8, rejects control characters and PHP tags, strips `<script>` tags, enforces `SCRIPTOMATIC_MAX_SCRIPT_LENGTH`, then calls `check_js_structure()` to validate bracket pairing, string closure, and comment closure.
 
 ---
 
@@ -501,11 +500,11 @@ Loaded only when `WP_CLI` is defined (bootstrapped in `scriptomatic.php`). Regis
 |---|---|---|
 | `script get` | `--location=<head\|footer>` | Print current inline script |
 | `script set` | `--location=<head\|footer> [--content=<js>] [--file=<path>] [--conditions=<json>]` | Save inline script |
-| `script rollback` | `--location=<head\|footer> --index=<n>` | Restore script snapshot (1-based) |
+| `script rollback` | `--location=<head\|footer> --id=<id>` | Restore script snapshot (DB row ID from `wp scriptomatic history`) |
 | `history` | `--location=<head\|footer> [--format=<format>]` | List inline script history |
 | `urls get` | `--location=<head\|footer> [--format=<format>]` | Print external URL list |
 | `urls set` | `--location=<head\|footer> (--urls=<json> \| --file=<path>)` | Replace URL list |
-| `urls rollback` | `--location=<head\|footer> --index=<n>` | Restore URL snapshot |
+| `urls rollback` | `--location=<head\|footer> --id=<id>` | Restore URL snapshot |
 | `urls history` | `--location=<head\|footer> [--format=<format>]` | List URL history |
 | `files list` | `[--format=<format>]` | List all managed JS files |
 | `files get` | `--id=<file-id> [--format=<table\|json>]` | Print file content + metadata |
@@ -513,7 +512,7 @@ Loaded only when `WP_CLI` is defined (bootstrapped in `scriptomatic.php`). Regis
 | `files upload` | `--path=<local-path> [--label=<label>] [--id=<id>] [--location=<head\|footer>] [--conditions=<json>]` | Upload a `.js` file through the shared service layer |
 | `files delete` | `--id=<file-id> [--yes]` | Delete a managed JS file |
 
-`--format` defaults to `table`; accepts `table`, `json`, `csv`, `yaml`, `count`. `--index` is 1-based (index 0 = current live state, cannot restore). `--conditions` accepts a JSON `{logic, rules}` object.
+`--format` defaults to `table`; accepts `table`, `json`, `csv`, `yaml`, `count`. `--id` is the DB row primary key of the snapshot to restore — obtain IDs from the history commands. `--conditions` accepts a JSON `{logic, rules}` object.
 
 ---
 
@@ -772,12 +771,13 @@ Responsibilities:
 
 ## 17. Uninstall
 
-`uninstall.php` is executed by WordPress when the plugin is deleted (`WP_UNINSTALL_PLUGIN` is defined). It:
+Uninstall cleanup is handled via the Freemius SDK `after_uninstall` action registered in `includes/freemius-init.php`. This fires **after** any opt-out survey feedback has been reported to Freemius, which is why the static `uninstall.php` pattern is not used (it was removed in v3.0.0).
 
-1. Reads `scriptomatic_plugin_settings` to check `keep_data_on_uninstall`.
-2. If `true`, returns immediately (data preserved).
-3. Otherwise, calls `delete_option()` for every option key and `scriptomatic_drop_log_table()` on the current site.
-4. On multisite, additionally iterates every blog via `switch_to_blog()` / `restore_current_blog()` and calls `delete_site_option()` for completeness.
+Three cleanup functions are registered on the hook:
+
+- **`scriptomatic_fs_uninstall_cleanup()`** — reads `scriptomatic_plugin_settings` to check `keep_data_on_uninstall`. If `true`, returns immediately (data preserved). Otherwise, calls `delete_option()` for every option key on the current site. On multisite, iterates every blog via `switch_to_blog()` / `restore_current_blog()` and deletes per-site options.
+- **`scriptomatic_drop_log_table()`** — drops the custom log table using `$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) )`.
+- **`scriptomatic_delete_uploads_dir()`** — removes `wp-content/uploads/scriptomatic/` via `WP_Filesystem()->rmdir( $dir, true )`.
 
 All option keys explicitly cleaned up:
 
@@ -792,7 +792,7 @@ Custom DB table dropped:
 DROP TABLE IF EXISTS {prefix}scriptomatic_log
 ```
 
-The uploads directory (`wp-content/uploads/scriptomatic/`) is also deleted via `scriptomatic_delete_uploads_dir()`.
+The uploads directory (`wp-content/uploads/scriptomatic/`) is deleted recursively.
 
 ---
 
@@ -877,4 +877,4 @@ $wpdb->insert(
 
 ---
 
-*Document version: 2.9.0 — reflects the codebase as of February 2026.*
+*Document version: 3.0.0 — reflects the codebase as of March 2026.*
