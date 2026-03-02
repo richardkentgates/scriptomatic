@@ -14,19 +14,19 @@ assets
 !README.md
 
 # Freemius dev files
-freemius/.example.env
-freemius/.editorconfig
-freemius/.gitattributes
-freemius/.gitignore
-freemius/patches
-freemius/composer.json
-freemius/composer.lock
-freemius/gulpfile.js
-freemius/gulptasks
-freemius/package.json
-freemius/package-lock.json
-freemius/phpcompat.xml
-freemius/phpcs.xml
-freemius/phpstan.neon
-freemius/CONTRIBUTING.md
-freemius/README.md
+vendor/freemius/.example.env
+vendor/freemius/.editorconfig
+vendor/freemius/.gitattributes
+vendor/freemius/.gitignore
+vendor/freemius/patches
+vendor/freemius/composer.json
+vendor/freemius/composer.lock
+vendor/freemius/gulpfile.js
+vendor/freemius/gulptasks
+vendor/freemius/package.json
+vendor/freemius/package-lock.json
+vendor/freemius/phpcompat.xml
+vendor/freemius/phpcs.xml
+vendor/freemius/phpstan.neon
+vendor/freemius/CONTRIBUTING.md
+vendor/freemius/README.md

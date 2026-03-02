@@ -32,7 +32,7 @@ if ( ! function_exists( 'scriptomatic_fs' ) ) {
 
         if ( ! isset( $scriptomatic_fs ) ) {
             // Include the Freemius SDK.
-            require_once SCRIPTOMATIC_PLUGIN_DIR . 'freemius/start.php';
+            require_once SCRIPTOMATIC_PLUGIN_DIR . 'vendor/freemius/start.php';
 
             $scriptomatic_fs = fs_dynamic_init( array(
                 'id'                  => '25187',
@@ -136,7 +136,7 @@ function scriptomatic_fs_uninstall_cleanup() {
     if ( is_multisite() ) {
         global $wpdb;
 
-        $blog_ids = $wpdb->get_col( "SELECT blog_id FROM {$wpdb->blogs}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        $blog_ids = $wpdb->get_col( "SELECT blog_id FROM {$wpdb->blogs}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         foreach ( (array) $blog_ids as $blog_id ) {
             switch_to_blog( $blog_id );
@@ -164,8 +164,7 @@ function scriptomatic_fs_uninstall_cleanup() {
 function scriptomatic_drop_log_table() {
     global $wpdb;
     $table = $wpdb->prefix . 'scriptomatic_log';
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    $wpdb->query( "DROP TABLE IF EXISTS `{$table}`" );
+    $wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 }
 
 /**

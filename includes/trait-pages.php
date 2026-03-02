@@ -101,7 +101,7 @@ trait Scriptomatic_Pages {
             printf(
                 /* translators: %d: maximum number of retained log entries */
                 esc_html__( 'All script saves, rollbacks, and file events for this location. The most recent %d entries are retained. Inline script, external URL, and file entries are recorded separately and restored independently.', 'scriptomatic' ),
-                $this->get_max_log_entries()
+                absint( $this->get_max_log_entries() )
             );
             ?>
         </p>
@@ -412,7 +412,7 @@ trait Scriptomatic_Pages {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'scriptomatic' ) );
         }
 
-        $action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
+        $action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         if ( 'edit' === $action ) {
             $this->render_js_file_edit_view();
@@ -431,7 +431,7 @@ trait Scriptomatic_Pages {
     private function render_js_file_list_view() {
         $files = $this->get_js_files_meta();
 
-        $saved_notice = isset( $_GET['saved'] ) && '1' === $_GET['saved'];
+        $saved_notice = isset( $_GET['saved'] ) && '1' === $_GET['saved']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         $condition_labels = array(
             'all'          => __( 'All pages', 'scriptomatic' ),
@@ -599,11 +599,11 @@ trait Scriptomatic_Pages {
             'upload_no_file'   => __( 'No file was received. Please choose a .js file to upload.', 'scriptomatic' ),
         );
 
-        $error_code = isset( $_GET['error'] ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : '';
+        $error_code = isset( $_GET['error'] ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $error_msg  = isset( $error_messages[ $error_code ] ) ? $error_messages[ $error_code ] : '';
 
         // Determine if editing an existing file.
-        $file_id = isset( $_GET['file'] ) ? sanitize_key( wp_unslash( $_GET['file'] ) ) : '';
+        $file_id = isset( $_GET['file'] ) ? sanitize_key( wp_unslash( $_GET['file'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $entry   = null;
 
         if ( '' !== $file_id ) {

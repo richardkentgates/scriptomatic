@@ -58,7 +58,7 @@ trait Scriptomatic_Renderer {
      */
     public function render_head_links_section() {
         echo '<p>';
-        esc_html_e( 'Add external JavaScript URLs to inject as <script src="..."> tags in <head>, before the inline block. Each URL has its own independent load conditions.', 'scriptomatic' );
+        esc_html_e( 'Add external JavaScript URLs to enqueue as external scripts in the page head, before the inline block. Each URL has its own independent load conditions.', 'scriptomatic' );
         echo '</p>';
     }
 
@@ -106,7 +106,7 @@ trait Scriptomatic_Renderer {
      */
     public function render_footer_links_section() {
         echo '<p>';
-        esc_html_e( 'Add external JavaScript URLs to inject as <script src="..."> tags just before </body>, before the inline block. Each URL has its own independent load conditions.', 'scriptomatic' );
+        esc_html_e( 'Add external JavaScript URLs to enqueue as external scripts just before the closing body tag, before the inline block. Each URL has its own independent load conditions.', 'scriptomatic' );
         echo '</p>';
     }
 
