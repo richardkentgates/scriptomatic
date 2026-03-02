@@ -269,17 +269,18 @@ trait Scriptomatic_Files {
             ? 'footer'
             : 'head';
         $content     = isset( $_POST['sm_file_content'] )
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- raw JavaScript; sanitize_text_field() would corrupt code. Validated in service_save_file().
             ? wp_unslash( $_POST['sm_file_content'] )
             : '';
         $cond_raw    = isset( $_POST['sm_file_conditions'] )
-            ? wp_unslash( $_POST['sm_file_conditions'] )
+            ? sanitize_textarea_field( wp_unslash( $_POST['sm_file_conditions'] ) )
             : '{"logic":"and","rules":[]}';
 
         // If a .js file was uploaded, validate it and use its content.
         // This path serves both as a no-JS fallback and as a pure file-import
         // operation. Network upload validation is enforced by validate_js_upload().
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        if ( ! empty( $_FILES['sm_file_upload'] ) && UPLOAD_ERR_NO_FILE !== (int) $_FILES['sm_file_upload']['error'] ) {
+        if ( ! empty( $_FILES['sm_file_upload'] ) && isset( $_FILES['sm_file_upload']['error'] ) && UPLOAD_ERR_NO_FILE !== (int) $_FILES['sm_file_upload']['error'] ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
             $upload_result = $this->validate_js_upload( $_FILES['sm_file_upload'] );
             if ( is_wp_error( $upload_result ) ) {
@@ -299,7 +300,7 @@ trait Scriptomatic_Files {
             // Auto-fill filename from the uploaded file's name if not manually supplied.
             if ( '' === $filename ) {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                $filename = sanitize_file_name( (string) $_FILES['sm_file_upload']['name'] );
+                $filename = sanitize_file_name( (string) ( isset( $_FILES['sm_file_upload']['name'] ) ? $_FILES['sm_file_upload']['name'] : '' ) );
             }
             // Auto-fill label from the filename (without extension) if not supplied.
             if ( '' === $label ) {

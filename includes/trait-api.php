@@ -208,7 +208,7 @@ trait Scriptomatic_API {
             return true; // Empty list = allow all.
         }
 
-        $client_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+        $client_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) ) : '';
         if ( '' === $client_ip ) {
             return new WP_Error(
                 'rest_ip_forbidden',
