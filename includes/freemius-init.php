@@ -162,7 +162,7 @@ function scriptomatic_fs_uninstall_cleanup() {
 function scriptomatic_drop_log_table() {
     global $wpdb;
     $table = $wpdb->get_blog_prefix() . 'scriptomatic_log';
-    $wpdb->query( 'DROP TABLE IF EXISTS `' . esc_sql( $table ) . '`' );
+    $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
 }
 
 /**

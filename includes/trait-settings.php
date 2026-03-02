@@ -248,13 +248,14 @@ trait Scriptomatic_Settings {
         // If the log limit was reduced, immediately trim the activity log table.
         if ( $clean['max_log_entries'] < $this->get_max_log_entries() ) {
             global $wpdb;
-            $log_table = esc_sql( $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE );
+            $log_table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
             $keep_id   = $wpdb->get_var( $wpdb->prepare(
-                'SELECT id FROM `' . $log_table . '` ORDER BY id DESC LIMIT 1 OFFSET %d',
+                'SELECT id FROM %i ORDER BY id DESC LIMIT 1 OFFSET %d',
+                $log_table,
                 $clean['max_log_entries'] - 1
             ) );
             if ( $keep_id ) {
-                $wpdb->query( $wpdb->prepare( 'DELETE FROM `' . $log_table . '` WHERE id < %d', (int) $keep_id ) );
+                $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id < %d', $log_table, (int) $keep_id ) );
             }
         }
 
@@ -407,14 +408,14 @@ trait Scriptomatic_Settings {
      */
     private function get_log_entry_by_id( $id ) {
         global $wpdb;
-        $table     = esc_sql( $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE );
+        $table     = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
         $cache_key = 'log_entry_' . (int) $id;
         $cached    = wp_cache_get( $cache_key, 'scriptomatic_log' );
         if ( false !== $cached ) {
             return is_array( $cached ) ? $this->decode_log_row( $cached ) : null;
         }
         $row = $wpdb->get_row(
-            $wpdb->prepare( 'SELECT * FROM `' . $table . '` WHERE id = %d', (int) $id ),
+            $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, (int) $id ),
             ARRAY_A
         );
         wp_cache_set( $cache_key, $row ? $row : 0, 'scriptomatic_log', 300 );
@@ -481,18 +482,18 @@ trait Scriptomatic_Settings {
 
         // Prune oldest rows when total row count exceeds the configured maximum.
         $max       = $this->get_max_log_entries();
-        $log_table = esc_sql( $table );
         $prune_key = 'prune_id_' . (int) $max;
         $keep_id   = wp_cache_get( $prune_key, 'scriptomatic_log' );
         if ( false === $keep_id ) {
             $keep_id = $wpdb->get_var( $wpdb->prepare(
-                'SELECT id FROM `' . $log_table . '` ORDER BY id DESC LIMIT 1 OFFSET %d',
+                'SELECT id FROM %i ORDER BY id DESC LIMIT 1 OFFSET %d',
+                $table,
                 $max - 1
             ) );
             wp_cache_set( $prune_key, $keep_id ? $keep_id : 0, 'scriptomatic_log', 5 );
         }
         if ( $keep_id ) {
-            $wpdb->query( $wpdb->prepare( 'DELETE FROM `' . $log_table . '` WHERE id < %d', (int) $keep_id ) );
+            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id < %d', $table, (int) $keep_id ) );
             wp_cache_delete( $prune_key, 'scriptomatic_log' );
         }
     }
@@ -511,7 +512,7 @@ trait Scriptomatic_Settings {
      */
     private function get_activity_log( $limit = 0, $offset = 0, $location = '', $file_id = '' ) {
         global $wpdb;
-        $table = esc_sql( $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE );
+        $table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
         if ( $limit <= 0 ) {
             $limit = $this->get_max_log_entries();
         }
@@ -523,7 +524,7 @@ trait Scriptomatic_Settings {
         }
 
         $wheres = array( '1=1' );
-        $args   = array();
+        $args   = array( $table );
 
         if ( '' !== $location ) {
             $wheres[] = 'location = %s';
@@ -539,7 +540,7 @@ trait Scriptomatic_Settings {
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                'SELECT * FROM `' . $table . '` WHERE ' . implode( ' AND ', $wheres )
+                'SELECT * FROM %i WHERE ' . implode( ' AND ', $wheres )
                 . ' ORDER BY id DESC LIMIT %d OFFSET %d',
                 $args
             ),
