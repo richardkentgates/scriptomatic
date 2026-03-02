@@ -524,28 +524,38 @@ trait Scriptomatic_Settings {
         }
 
         if ( '' !== $location && '' !== $file_id ) {
-            $sql = $wpdb->prepare(
-                'SELECT * FROM %i WHERE location = %s AND file_id = %s ORDER BY id DESC LIMIT %d OFFSET %d',
-                $table, $location, $file_id, $limit, $offset
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT * FROM %i WHERE location = %s AND file_id = %s ORDER BY id DESC LIMIT %d OFFSET %d',
+                    $table, $location, $file_id, $limit, $offset
+                ),
+                ARRAY_A
             );
         } elseif ( '' !== $location ) {
-            $sql = $wpdb->prepare(
-                'SELECT * FROM %i WHERE location = %s ORDER BY id DESC LIMIT %d OFFSET %d',
-                $table, $location, $limit, $offset
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT * FROM %i WHERE location = %s ORDER BY id DESC LIMIT %d OFFSET %d',
+                    $table, $location, $limit, $offset
+                ),
+                ARRAY_A
             );
         } elseif ( '' !== $file_id ) {
-            $sql = $wpdb->prepare(
-                'SELECT * FROM %i WHERE file_id = %s ORDER BY id DESC LIMIT %d OFFSET %d',
-                $table, $file_id, $limit, $offset
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT * FROM %i WHERE file_id = %s ORDER BY id DESC LIMIT %d OFFSET %d',
+                    $table, $file_id, $limit, $offset
+                ),
+                ARRAY_A
             );
         } else {
-            $sql = $wpdb->prepare(
-                'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d',
-                $table, $limit, $offset
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d',
+                    $table, $limit, $offset
+                ),
+                ARRAY_A
             );
         }
-
-        $rows = $wpdb->get_results( $sql, ARRAY_A );
 
         if ( ! is_array( $rows ) ) {
             return array();
