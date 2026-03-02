@@ -249,12 +249,12 @@ trait Scriptomatic_Settings {
         if ( $clean['max_log_entries'] < $this->get_max_log_entries() ) {
             global $wpdb;
             $log_table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
-            $keep_id   = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-                "SELECT id FROM `{$log_table}` ORDER BY id DESC LIMIT 1 OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $keep_id   = $wpdb->get_var( $wpdb->prepare(
+                "SELECT id FROM `{$log_table}` ORDER BY id DESC LIMIT 1 OFFSET %d",
                 $clean['max_log_entries'] - 1
             ) );
             if ( $keep_id ) {
-                $wpdb->query( $wpdb->prepare( "DELETE FROM `{$log_table}` WHERE id < %d", (int) $keep_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $wpdb->query( $wpdb->prepare( "DELETE FROM `{$log_table}` WHERE id < %d", (int) $keep_id ) );
             }
         }
 
@@ -408,7 +408,7 @@ trait Scriptomatic_Settings {
     private function get_log_entry_by_id( $id ) {
         global $wpdb;
         $table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
-        $row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", (int) $id ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", (int) $id ), ARRAY_A );
         if ( ! $row ) {
             return null;
         }
@@ -454,7 +454,7 @@ trait Scriptomatic_Settings {
 
         $chars = ( isset( $data['chars'] ) && null !== $data['chars'] ) ? (int) $data['chars'] : null;
 
-        $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+        $wpdb->insert(
             $table,
             array(
                 'timestamp'  => time(),
@@ -472,12 +472,12 @@ trait Scriptomatic_Settings {
 
         // Prune oldest rows when total row count exceeds the configured maximum.
         $max     = $this->get_max_log_entries();
-        $keep_id = $wpdb->get_var( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-            "SELECT id FROM `{$table}` ORDER BY id DESC LIMIT 1 OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $keep_id = $wpdb->get_var( $wpdb->prepare(
+            "SELECT id FROM `{$table}` ORDER BY id DESC LIMIT 1 OFFSET %d",
             $max - 1
         ) );
         if ( $keep_id ) {
-            $wpdb->query( $wpdb->prepare( "DELETE FROM `{$table}` WHERE id < %d", (int) $keep_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $wpdb->query( $wpdb->prepare( "DELETE FROM `{$table}` WHERE id < %d", (int) $keep_id ) );
         }
     }
 
@@ -515,11 +515,9 @@ trait Scriptomatic_Settings {
         $args[] = $limit;
         $args[] = $offset;
 
-        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is always $wpdb->prefix . SCRIPTOMATIC constant, never user input
         $sql  = 'SELECT * FROM `' . $table . '` WHERE ' . implode( ' AND ', $wheres )
               . ' ORDER BY id DESC LIMIT %d OFFSET %d';
-        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
-        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
 
         if ( ! is_array( $rows ) ) {
             return array();

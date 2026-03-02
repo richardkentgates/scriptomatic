@@ -412,7 +412,8 @@ trait Scriptomatic_Pages {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'scriptomatic' ) );
         }
 
-        $action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $nonce_ok = isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'scriptomatic_files_view' );
+        $action   = ( $nonce_ok && isset( $_GET['action'] ) ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
 
         if ( 'edit' === $action ) {
             $this->render_js_file_edit_view();
@@ -431,7 +432,8 @@ trait Scriptomatic_Pages {
     private function render_js_file_list_view() {
         $files = $this->get_js_files_meta();
 
-        $saved_notice = isset( $_GET['saved'] ) && '1' === $_GET['saved']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $nonce_ok     = isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'scriptomatic_files_view' );
+        $saved_notice = $nonce_ok && isset( $_GET['saved'] ) && '1' === $_GET['saved'];
 
         $condition_labels = array(
             'all'          => __( 'All pages', 'scriptomatic' ),
@@ -450,7 +452,7 @@ trait Scriptomatic_Pages {
         ?>
         <div class="wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'JS Files', 'scriptomatic' ); ?></h1>
-            <a href="<?php echo esc_url( add_query_arg( array( 'page' => 'scriptomatic-files', 'action' => 'edit' ), admin_url( 'admin.php' ) ) ); ?>" class="page-title-action">
+            <a href="<?php echo esc_url( add_query_arg( array( 'page' => 'scriptomatic-files', 'action' => 'edit', '_wpnonce' => wp_create_nonce( 'scriptomatic_files_view' ) ), admin_url( 'admin.php' ) ) ); ?>" class="page-title-action">
                 <?php esc_html_e( 'Add New', 'scriptomatic' ); ?>
             </a>
             <hr class="wp-header-end">
@@ -459,13 +461,12 @@ trait Scriptomatic_Pages {
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'File saved.', 'scriptomatic' ); ?></p></div>
             <?php endif; ?>
 
-            <?php if ( isset( $_GET['deleted'] ) && '1' === $_GET['deleted'] ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+            <?php if ( $nonce_ok && isset( $_GET['deleted'] ) && '1' === $_GET['deleted'] ) : ?>
             <div class="notice notice-warning is-dismissible"><p><?php esc_html_e( 'File was empty and has been deleted.', 'scriptomatic' ); ?></p></div>
             <?php endif; ?>
 
             <?php
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            $upload_error_code = isset( $_GET['upload_error'] ) ? sanitize_key( wp_unslash( $_GET['upload_error'] ) ) : '';
+            $upload_error_code = ( $nonce_ok && isset( $_GET['upload_error'] ) ) ? sanitize_key( wp_unslash( $_GET['upload_error'] ) ) : '';
             $upload_error_messages = array(
                 'invalid_type'     => __( 'Only .js files may be uploaded. Please select a .js file.', 'scriptomatic' ),
                 'upload_too_large' => __( 'The uploaded file exceeds the maximum size allowed by this server.', 'scriptomatic' ),
@@ -508,7 +509,7 @@ trait Scriptomatic_Pages {
 
             <?php if ( empty( $files ) ) : ?>
             <div class="sm-files-empty">
-                <p><?php esc_html_e( 'No JS files yet.', 'scriptomatic' ); ?> <a href="<?php echo esc_url( add_query_arg( array( 'page' => 'scriptomatic-files', 'action' => 'edit' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Add your first file.', 'scriptomatic' ); ?></a></p>
+                <p><?php esc_html_e( 'No JS files yet.', 'scriptomatic' ); ?> <a href="<?php echo esc_url( add_query_arg( array( 'page' => 'scriptomatic-files', 'action' => 'edit', '_wpnonce' => wp_create_nonce( 'scriptomatic_files_view' ) ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Add your first file.', 'scriptomatic' ); ?></a></p>
             </div>
             <?php else : ?>
             <table class="wp-list-table widefat fixed striped sm-files-table" style="margin-top:16px;">
@@ -547,7 +548,7 @@ trait Scriptomatic_Pages {
                         }
 
                         $edit_url = add_query_arg(
-                            array( 'page' => 'scriptomatic-files', 'action' => 'edit', 'file' => $fid ),
+                            array( 'page' => 'scriptomatic-files', 'action' => 'edit', 'file' => $fid, '_wpnonce' => wp_create_nonce( 'scriptomatic_files_view' ) ),
                             admin_url( 'admin.php' )
                         );
                     ?>
@@ -599,11 +600,12 @@ trait Scriptomatic_Pages {
             'upload_no_file'   => __( 'No file was received. Please choose a .js file to upload.', 'scriptomatic' ),
         );
 
-        $error_code = isset( $_GET['error'] ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $nonce_ok   = isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'scriptomatic_files_view' );
+        $error_code = ( $nonce_ok && isset( $_GET['error'] ) ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : '';
         $error_msg  = isset( $error_messages[ $error_code ] ) ? $error_messages[ $error_code ] : '';
 
         // Determine if editing an existing file.
-        $file_id = isset( $_GET['file'] ) ? sanitize_key( wp_unslash( $_GET['file'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $file_id = ( $nonce_ok && isset( $_GET['file'] ) ) ? sanitize_key( wp_unslash( $_GET['file'] ) ) : '';
         $entry   = null;
 
         if ( '' !== $file_id ) {
@@ -628,7 +630,7 @@ trait Scriptomatic_Pages {
         if ( $entry && ! empty( $entry['filename'] ) ) {
             $file_path = $this->get_js_files_dir() . $entry['filename'];
             if ( file_exists( $file_path ) ) {
-                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
                 $content = file_get_contents( $file_path );
             }
         }

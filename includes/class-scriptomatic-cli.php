@@ -357,7 +357,7 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
             if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
                 WP_CLI::error( sprintf( 'Cannot read file: %s', $path ) );
             }
-            $urls_json = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+            $urls_json = file_get_contents( $path );
         } elseif ( isset( $assoc_args['urls'] ) ) {
             $urls_json = (string) $assoc_args['urls'];
         } else {
@@ -717,7 +717,7 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
             if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
                 WP_CLI::error( sprintf( 'Cannot read file: %s', $path ) );
             }
-            return (string) file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+            return (string) file_get_contents( $path );
         }
         if ( isset( $assoc_args['content'] ) ) {
             return (string) $assoc_args['content'];

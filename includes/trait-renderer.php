@@ -209,7 +209,7 @@ trait Scriptomatic_Renderer {
                     $conditions = ( isset( $entry['conditions'] ) && is_array( $entry['conditions'] ) )
                                   ? $entry['conditions']
                                   : array( 'logic' => 'and', 'rules' => array() );
-                    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside helper
+
                     echo $this->render_url_entry_html( $location, $idx, $url, $conditions, $post_types );
                 endforeach; ?>
             </div>
@@ -236,7 +236,6 @@ trait Scriptomatic_Renderer {
 
             <template id="<?php echo esc_attr( $prefix ); ?>-url-entry-template">
                 <?php
-                // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- all values escaped inside render_url_entry_html()
                 echo $this->render_url_entry_html(
                     $location,
                     '__IDX__',
@@ -245,7 +244,6 @@ trait Scriptomatic_Renderer {
                     $post_types,
                     true
                 );
-                // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
                 ?>
             </template>
 
@@ -391,7 +389,7 @@ trait Scriptomatic_Renderer {
                 if ( empty( $values ) ) {
                     return false;
                 }
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- substring comparison only, not output.
+
                 $uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
                 foreach ( $values as $pattern ) {
                     if ( '' !== $pattern && false !== strpos( $uri, $pattern ) ) {
@@ -641,7 +639,7 @@ trait Scriptomatic_Renderer {
 
             <div class="sm-rules-list" id="<?php echo esc_attr( $pfx ); ?>-rules">
                 <?php foreach ( $rules as $ridx => $rule ) :
-                    echo $this->render_condition_rule_card_html( $pfx, $ridx, $rule, $post_types, false ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                    echo $this->render_condition_rule_card_html( $pfx, $ridx, $rule, $post_types, false );
                 endforeach; ?>
             </div><!-- .sm-rules-list -->
 
@@ -666,7 +664,7 @@ trait Scriptomatic_Renderer {
             <?php endif; ?>
 
             <template id="<?php echo esc_attr( $pfx ); ?>-rule-tpl">
-                <?php echo $this->render_condition_rule_card_html( $pfx, $tpl_ridx, array(), $post_types, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <?php echo $this->render_condition_rule_card_html( $pfx, $tpl_ridx, array(), $post_types, true );
             </template>
 
         </div><!-- .scriptomatic-conditions-wrap -->

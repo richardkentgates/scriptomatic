@@ -195,7 +195,7 @@ trait Scriptomatic_History {
         }
 
         $path = $this->get_js_files_dir() . $file_meta['filename'];
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
         if ( false === file_put_contents( $path, $content ) ) {
             wp_send_json_error( array( 'message' => __( 'Could not write file.', 'scriptomatic' ) ) );
         }
@@ -587,7 +587,7 @@ trait Scriptomatic_History {
         $dir  = $this->get_js_files_dir();
         $path = $dir . $filename;
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
         if ( false === file_put_contents( $path, $content ) ) {
             wp_send_json_error( array( 'message' => __( 'Could not write file to disk.', 'scriptomatic' ) ) );
         }

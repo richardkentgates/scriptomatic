@@ -261,8 +261,8 @@ trait Scriptomatic_API {
         }
 
         // IPv6.
-        $ip_bin     = @inet_pton( $ip );     // phpcs:ignore WordPress.PHP.NoSilencedErrors
-        $subnet_bin = @inet_pton( $subnet ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        $ip_bin     = @inet_pton( $ip );
+        $subnet_bin = @inet_pton( $subnet );
         if ( false === $ip_bin || false === $subnet_bin || strlen( $ip_bin ) !== strlen( $subnet_bin ) ) {
             return false;
         }
@@ -1007,7 +1007,7 @@ trait Scriptomatic_API {
         }
         $dir     = $this->get_js_files_dir();
         $path    = $dir . $found['filename'];
-        $content = file_exists( $path ) ? (string) file_get_contents( $path ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions
+        $content = file_exists( $path ) ? (string) file_get_contents( $path ) : '';
         return array(
             'file_id'    => $found['id'],
             'label'      => $found['label'],
@@ -1084,7 +1084,7 @@ trait Scriptomatic_API {
             foreach ( $files as $f ) {
                 if ( $f['id'] === $original_id && $f['filename'] !== $filename ) {
                     $old_path = $dir . $f['filename'];
-                    if ( file_exists( $old_path ) ) { @unlink( $old_path ); } // phpcs:ignore
+                    if ( file_exists( $old_path ) ) { @unlink( $old_path ); }
                     break;
                 }
             }
@@ -1101,7 +1101,7 @@ trait Scriptomatic_API {
             $new_id = sanitize_key( preg_replace( '/\.js$/i', '', $filename ) );
         }
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
         if ( false === file_put_contents( $dir . $filename, $content ) ) {
             return new WP_Error( 'write_failed', __( 'Could not write file to disk. Check directory permissions.', 'scriptomatic' ), array( 'status' => 500 ) );
         }
@@ -1174,8 +1174,8 @@ trait Scriptomatic_API {
         $path         = $dir . $found['filename'];
         $file_content = '';
         if ( file_exists( $path ) ) {
-            $file_content = (string) file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions
-            @unlink( $path ); // phpcs:ignore
+            $file_content = (string) file_get_contents( $path );
+            @unlink( $path );
         }
 
         $this->save_js_files_meta( $files );

@@ -162,9 +162,7 @@ function scriptomatic_fs_uninstall_cleanup() {
 function scriptomatic_drop_log_table() {
     global $wpdb;
     $table = $wpdb->get_blog_prefix() . 'scriptomatic_log';
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
     $wpdb->query( 'DROP TABLE IF EXISTS `' . $table . '`' );
-    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 }
 
 /**
@@ -185,12 +183,12 @@ function scriptomatic_delete_uploads_dir() {
     if ( is_array( $files ) ) {
         foreach ( $files as $file ) {
             if ( is_file( $file ) ) {
-                // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+
                 unlink( $file );
             }
         }
     }
-    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+
     rmdir( $dir );
 }
 

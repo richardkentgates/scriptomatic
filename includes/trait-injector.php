@@ -81,7 +81,7 @@ trait Scriptomatic_Injector {
                     'scriptomatic-url-' . md5( $url ),
                     $url,
                     array(),
-                    null, // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- external URL; no version to set
+                    null,
                     $in_footer
                 );
             }
@@ -119,7 +119,7 @@ trait Scriptomatic_Injector {
         if ( ! empty( trim( $script_content ) ) && $inline_passes ) {
             $handle = 'scriptomatic-inline-' . $location;
             // Register an empty placeholder script to attach inline content to.
-            wp_register_script( $handle, false, array(), SCRIPTOMATIC_VERSION, $in_footer ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.NotInFooterNoStrategy
+            wp_register_script( $handle, false, array(), SCRIPTOMATIC_VERSION, $in_footer );
             wp_enqueue_script( $handle );
             wp_add_inline_script( $handle, $script_content );
         }

@@ -52,7 +52,7 @@ trait Scriptomatic_Files {
         // Drop an index.php guard to block directory listing.
         $guard = $dir . 'index.php';
         if ( ! file_exists( $guard ) ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
             file_put_contents(
                 $guard,
                 "<?php\n// Silence is golden.\nheader( 'HTTP/1.1 403 Forbidden' );\nexit;\n"
@@ -144,7 +144,7 @@ trait Scriptomatic_Files {
         // CLI callers pass _cli => true and supply a fully-qualified local path,
         // so the is_uploaded_file() check is intentionally skipped for that path.
         $is_cli = ! empty( $file['_cli'] );
-        if ( '' === $tmp_name || ( ! $is_cli && ! @is_uploaded_file( $tmp_name ) ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        if ( '' === $tmp_name || ( ! $is_cli && ! @is_uploaded_file( $tmp_name ) ) ) {
             return new WP_Error(
                 'upload_error',
                 __( 'Invalid upload — did not originate from an HTTP form upload.', 'scriptomatic' ),
@@ -163,7 +163,7 @@ trait Scriptomatic_Files {
 
         // Must not exceed the server upload limit.
         $max_bytes = wp_max_upload_size();
-        if ( $file_size > $max_bytes || @filesize( $tmp_name ) > $max_bytes ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        if ( $file_size > $max_bytes || @filesize( $tmp_name ) > $max_bytes ) {
             return new WP_Error(
                 'upload_too_large',
                 sprintf(
@@ -211,7 +211,7 @@ trait Scriptomatic_Files {
         }
 
         // Read and return the file contents.
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
         $content = file_get_contents( $tmp_name );
         if ( false === $content ) {
             return new WP_Error(
@@ -269,7 +269,7 @@ trait Scriptomatic_Files {
             ? 'footer'
             : 'head';
         $content     = isset( $_POST['sm_file_content'] )
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- raw JavaScript; sanitize_text_field() would corrupt code. Validated in service_save_file().
+
             ? wp_unslash( $_POST['sm_file_content'] )
             : '';
         $cond_raw    = isset( $_POST['sm_file_conditions'] )
@@ -279,15 +279,15 @@ trait Scriptomatic_Files {
         // If a .js file was uploaded, validate it and use its content.
         // This path serves both as a no-JS fallback and as a pure file-import
         // operation. Network upload validation is enforced by validate_js_upload().
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
         if ( ! empty( $_FILES['sm_file_upload'] ) && isset( $_FILES['sm_file_upload']['error'] ) && UPLOAD_ERR_NO_FILE !== (int) $_FILES['sm_file_upload']['error'] ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
             $upload_result = $this->validate_js_upload( $_FILES['sm_file_upload'] );
             if ( is_wp_error( $upload_result ) ) {
                 if ( 'list' === $upload_source ) {
                     wp_safe_redirect(
                         add_query_arg(
-                            array( 'page' => 'scriptomatic-files', 'upload_error' => $upload_result->get_error_code() ),
+                            array( 'page' => 'scriptomatic-files', 'upload_error' => $upload_result->get_error_code(), '_wpnonce' => wp_create_nonce( 'scriptomatic_files_view' ) ),
                             admin_url( 'admin.php' )
                         )
                     );
@@ -299,7 +299,7 @@ trait Scriptomatic_Files {
             $content = $upload_result;
             // Auto-fill filename from the uploaded file's name if not manually supplied.
             if ( '' === $filename ) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
                 $filename = sanitize_file_name( (string) ( isset( $_FILES['sm_file_upload']['name'] ) ? $_FILES['sm_file_upload']['name'] : '' ) );
             }
             // Auto-fill label from the filename (without extension) if not supplied.
@@ -325,9 +325,9 @@ trait Scriptomatic_Files {
                     $path         = $dir . $found['filename'];
                     $file_content = '';
                     if ( file_exists( $path ) ) {
-                        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
                         $file_content = (string) file_get_contents( $path );
-                        @unlink( $path ); // phpcs:ignore
+                        @unlink( $path );
                     }
                     $this->save_js_files_meta( $files_meta );
                     $this->write_activity_entry( array(
@@ -347,7 +347,7 @@ trait Scriptomatic_Files {
                 }
                 wp_safe_redirect(
                     add_query_arg(
-                        array( 'page' => 'scriptomatic-files', 'deleted' => '1' ),
+                        array( 'page' => 'scriptomatic-files', 'deleted' => '1', '_wpnonce' => wp_create_nonce( 'scriptomatic_files_view' ) ),
                         admin_url( 'admin.php' )
                     )
                 );
@@ -413,7 +413,7 @@ trait Scriptomatic_Files {
                 if ( $f['id'] === $original_id && $f['filename'] !== $filename ) {
                     $old_path = $dir . $f['filename'];
                     if ( file_exists( $old_path ) ) {
-                        @unlink( $old_path ); // phpcs:ignore
+                        @unlink( $old_path );
                     }
                     break;
                 }
@@ -433,7 +433,7 @@ trait Scriptomatic_Files {
 
         // Write the file to disk.
         $file_path = $dir . $filename;
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
         $result = file_put_contents( $file_path, $content );
 
         if ( false === $result ) {
@@ -491,7 +491,7 @@ trait Scriptomatic_Files {
         if ( 'list' === $upload_source && '' === $original_id ) {
             wp_safe_redirect(
                 add_query_arg(
-                    array( 'page' => 'scriptomatic-files', 'action' => 'edit', 'file' => $new_id ),
+                    array( 'page' => 'scriptomatic-files', 'action' => 'edit', 'file' => $new_id, '_wpnonce' => wp_create_nonce( 'scriptomatic_files_view' ) ),
                     admin_url( 'admin.php' )
                 )
             );
@@ -500,7 +500,7 @@ trait Scriptomatic_Files {
 
         wp_safe_redirect(
             add_query_arg(
-                array( 'page' => 'scriptomatic-files', 'saved' => '1' ),
+                array( 'page' => 'scriptomatic-files', 'saved' => '1', '_wpnonce' => wp_create_nonce( 'scriptomatic_files_view' ) ),
                 admin_url( 'admin.php' )
             )
         );
@@ -517,9 +517,10 @@ trait Scriptomatic_Files {
      */
     private function redirect_file_edit( $id, $error_code ) {
         $args = array(
-            'page'   => 'scriptomatic-files',
-            'action' => 'edit',
-            'error'  => $error_code,
+            'page'     => 'scriptomatic-files',
+            'action'   => 'edit',
+            'error'    => $error_code,
+            '_wpnonce' => wp_create_nonce( 'scriptomatic_files_view' ),
         );
         if ( '' !== $id ) {
             $args['file'] = $id;
@@ -575,9 +576,9 @@ trait Scriptomatic_Files {
         $path         = $dir . $found['filename'];
         $file_content = '';
         if ( file_exists( $path ) ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
             $file_content = (string) file_get_contents( $path );
-            @unlink( $path ); // phpcs:ignore
+            @unlink( $path );
         }
 
         $this->save_js_files_meta( $files );
