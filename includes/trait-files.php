@@ -268,7 +268,6 @@ trait Scriptomatic_Files {
         $location    = ( isset( $_POST['sm_file_location'] ) && 'footer' === $_POST['sm_file_location'] )
             ? 'footer'
             : 'head';
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_js_content() is a full sanitizer; PHPCS cannot trace sanitization through trait methods.
         $raw_content       = isset( $_POST['sm_file_content'] ) ? $this->sanitize_js_content( wp_unslash( $_POST['sm_file_content'] ) ) : '';
         $validated_content = $this->api_validate_script_content( $raw_content );
         if ( is_wp_error( $validated_content ) ) {
