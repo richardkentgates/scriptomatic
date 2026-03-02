@@ -19,6 +19,46 @@ if ( ! defined( 'ABSPATH' ) ) {
 trait Scriptomatic_Sanitizer {
 
     // =========================================================================
+    // JAVASCRIPT CONTENT SANITISATION
+    // =========================================================================
+
+    /**
+     * Sanitise raw JavaScript content submitted via POST.
+     *
+     * Recognised as a sanitisation function by static analysers (sanitize_*
+     * naming convention). Applies wp_kses_no_null(), UTF-8 validation, control
+     * character filtering, PHP tag rejection, <script> tag stripping, and a
+     * length cap. Returns a clean string or empty string on hard failure.
+     *
+     * @since  3.0.0
+     * @param  string $raw Raw value from $_POST.
+     * @return string Sanitised JavaScript content.
+     */
+    public function sanitize_js_content( $raw ) {
+        if ( ! is_string( $raw ) ) {
+            return '';
+        }
+        $content = wp_kses_no_null( wp_unslash( $raw ) );
+        $content = str_replace( "\r\n", "\n", $content );
+        $checked = wp_check_invalid_utf8( $content, true );
+        if ( '' === $checked && '' !== $content ) {
+            return '';
+        }
+        $content = $checked;
+        if ( preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $content ) ) {
+            return '';
+        }
+        if ( preg_match( '/<\?(php|=)?/i', $content ) ) {
+            return '';
+        }
+        $content = preg_replace( '/<\s*script[^>]*>(.*?)<\s*\/\s*script\s*>/is', '$1', $content );
+        if ( strlen( $content ) > SCRIPTOMATIC_MAX_SCRIPT_LENGTH ) {
+            return '';
+        }
+        return trim( $content );
+    }
+
+    // =========================================================================
     // LOCATION SANITISATION  (v2.8+ unified callbacks)
     // =========================================================================
 

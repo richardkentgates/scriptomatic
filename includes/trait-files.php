@@ -268,7 +268,7 @@ trait Scriptomatic_Files {
         $location    = ( isset( $_POST['sm_file_location'] ) && 'footer' === $_POST['sm_file_location'] )
             ? 'footer'
             : 'head';
-        $raw_content = isset( $_POST['sm_file_content'] ) ? wp_kses_no_null( wp_unslash( $_POST['sm_file_content'] ) ) : '';
+        $raw_content       = isset( $_POST['sm_file_content'] ) ? $this->sanitize_js_content( $_POST['sm_file_content'] ) : '';
         $validated_content = $this->api_validate_script_content( $raw_content );
         if ( is_wp_error( $validated_content ) ) {
             $this->redirect_file_edit( $original_id, $validated_content->get_error_code() );
