@@ -124,8 +124,27 @@ jQuery( document ).ready( function ( $ ) {
             updateCounter( cmEditor.getValue().length );
 
             /* Sync CM content → hidden textarea before the form POSTs. */
-            $textarea.closest( 'form' ).on( 'submit', function () {
-                $textarea.val( cmEditor.getValue() );
+            /* Also run a client-side syntax check via the browser JS engine.  */
+            $textarea.closest( 'form' ).on( 'submit', function ( e ) {
+                var code = cmEditor.getValue();
+                $textarea.val( code );
+                if ( loc === 'files' || loc === 'head' || loc === 'footer' ) {
+                    try {
+                        // new Function() parses the code using the browser's JS
+                        // engine — throws SyntaxError for invalid JavaScript.
+                        // eslint-disable-next-line no-new-func
+                        new Function( code );
+                    } catch ( err ) {
+                        if ( err instanceof SyntaxError ) {
+                            var warnTpl = ( i18n.syntaxWarning || 'JavaScript syntax error:\n\n$1\n\nSave anyway?' );
+                            var warnMsg = warnTpl.replace( '$1', err.message );
+                            if ( ! window.confirm( warnMsg ) ) {
+                                e.preventDefault();
+                                return false;
+                            }
+                        }
+                    }
+                }
             } );
 
         } else {
@@ -134,6 +153,24 @@ jQuery( document ).ready( function ( $ ) {
                 $textarea.on( 'input', function () { updateCounter( this.value.length ); } );
                 updateCounter( $textarea.val().length );
             }
+
+            /* Syntax check for the plain-textarea path. */
+            $textarea.closest( 'form' ).on( 'submit', function ( e ) {
+                var code = $textarea.val();
+                try {
+                    // eslint-disable-next-line no-new-func
+                    new Function( code );
+                } catch ( err ) {
+                    if ( err instanceof SyntaxError ) {
+                        var warnTpl = ( i18n.syntaxWarning || 'JavaScript syntax error:\n\n$1\n\nSave anyway?' );
+                        var warnMsg = warnTpl.replace( '$1', err.message );
+                        if ( ! window.confirm( warnMsg ) ) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    }
+                }
+            } );
         }
     }
 

@@ -1251,7 +1251,7 @@ trait Scriptomatic_API {
      * @param  string $content  Raw JavaScript string.
      * @return string|WP_Error  Sanitised content on success.
      */
-    private function api_validate_script_content( $content ) {
+    protected function api_validate_script_content( $content ) {
         if ( ! is_string( $content ) ) {
             return new WP_Error( 'invalid_type', __( 'Script content must be a string.', 'scriptomatic' ), array( 'status' => 400 ) );
         }

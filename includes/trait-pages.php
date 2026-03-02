@@ -593,9 +593,15 @@ trait Scriptomatic_Pages {
             'too_large'        => __( 'The file exceeds the maximum upload size allowed by this server.', 'scriptomatic' ),
             'write_failed'     => __( 'Could not write the file to disk. Please check directory permissions.', 'scriptomatic' ),
             'empty_content'    => __( 'File content cannot be empty. Add some JavaScript or discard the file.', 'scriptomatic' ),
+            // Content validation codes (from api_validate_script_content).
+            'invalid_type'     => __( 'Script content must be plain text.', 'scriptomatic' ),
+            'invalid_utf8'     => __( 'Script content contains invalid UTF-8 characters.', 'scriptomatic' ),
+            'control_chars'    => __( 'Script content contains disallowed control characters.', 'scriptomatic' ),
+            'php_tags'         => __( 'PHP tags are not allowed in script content.', 'scriptomatic' ),
+            'too_long'         => __( 'Script content exceeds the maximum allowed length.', 'scriptomatic' ),
             // Upload-specific codes.
             'upload_error'     => __( 'File upload failed. Please try again.', 'scriptomatic' ),
-            'invalid_type'     => __( 'Only .js files may be uploaded. Please select a valid JavaScript file.', 'scriptomatic' ),
+            'invalid_js_type'  => __( 'Only .js files may be uploaded. Please select a valid JavaScript file.', 'scriptomatic' ),
             'upload_too_large' => __( 'The uploaded file exceeds the maximum size allowed by this server.', 'scriptomatic' ),
             'upload_no_file'   => __( 'No file was received. Please choose a .js file to upload.', 'scriptomatic' ),
         );

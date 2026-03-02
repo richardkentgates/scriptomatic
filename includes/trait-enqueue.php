@@ -115,6 +115,7 @@ trait Scriptomatic_Enqueue {
                 'loading'          => __( 'Loading…', 'scriptomatic' ),
                 'emptyScript'      => __( '(empty)', 'scriptomatic' ),
                 'viewError'        => __( 'Could not load revision. Please try again.', 'scriptomatic' ),
+                'syntaxWarning'    => __( 'JavaScript syntax error detected:\n\n$1\n\nThe file content will still be saved, but the script will not run until the error is fixed. Save anyway?', 'scriptomatic' ),
                 'deleteFileConfirm' => __( 'Delete "$1"? This cannot be undone.', 'scriptomatic' ),
                 'deleteFileError'   => __( 'Delete failed. Please try again.', 'scriptomatic' ),
                 'deleting'          => __( 'Deleting…', 'scriptomatic' ),
