@@ -515,9 +515,11 @@ trait Scriptomatic_Settings {
         $args[] = $limit;
         $args[] = $offset;
 
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is always $wpdb->prefix . SCRIPTOMATIC constant, never user input
         $sql  = 'SELECT * FROM `' . $table . '` WHERE ' . implode( ' AND ', $wheres )
               . ' ORDER BY id DESC LIMIT %d OFFSET %d';
-        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
+        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         if ( ! is_array( $rows ) ) {
             return array();

@@ -1,0 +1,32 @@
+# Development files — excluded from distribution ZIP
+.git
+.github
+.gitattributes
+.gitignore
+.distignore
+ARCHITECTURE.md
+CONTRIBUTING.md
+SECURITY.md
+bin
+docs
+assets
+*.md
+!README.md
+
+# Freemius dev files
+freemius/.example.env
+freemius/.editorconfig
+freemius/.gitattributes
+freemius/.gitignore
+freemius/patches
+freemius/composer.json
+freemius/composer.lock
+freemius/gulpfile.js
+freemius/gulptasks
+freemius/package.json
+freemius/package-lock.json
+freemius/phpcompat.xml
+freemius/phpcs.xml
+freemius/phpstan.neon
+freemius/CONTRIBUTING.md
+freemius/README.md

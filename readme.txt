@@ -1,14 +1,14 @@
 === Scriptomatic ===
 Contributors: richardkentgates
-Tags: javascript, script injection, code manager, head scripts, footer scripts, conditional loading, js files, activity log, freemium
+Tags: javascript, script injection, head scripts, conditional loading, activity log
 Requires at least: 5.3
-Tested up to: 6.7
+Tested up to: 6.9
 Requires PHP: 7.2
 Stable tag: 3.0.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Inject custom JavaScript into your WordPress head and footer with a built-in CodeMirror editor, activity log, and revision rollback — free. Upgrade to Pro for conditional loading, managed JS files, REST API, WP-CLI, and more.
+Inject JavaScript into your WordPress head and footer — CodeMirror editor, activity log, and rollback free. Pro adds conditional loading and more.
 
 == Description ==
 
@@ -158,7 +158,7 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 == Upgrade Notice ==
 
 = 3.0.0 =
-Introduces a freemium model powered by Freemius. Core features (inline scripts, external URLs, activity log) remain free and unlimited. Conditional loading, managed JS files, REST API, WP-CLI, and the API IP allowlist now require a Pro licence. A 3-day free trial is available (credit card or PayPal required).
+Introduces a freemium model powered by Freemius. Core features remain free. Conditional loading, managed JS files, REST API, and WP-CLI now require a Pro licence. 3-day free trial available (credit card or PayPal required).
 
 = 2.9.0 =
 Activity log data is now stored in a custom DB table (`{prefix}scriptomatic_log`). REST API and WP-CLI rollback endpoints now take an `id` parameter (DB row primary key) instead of `index`. Update any custom API clients or automation scripts that call the rollback endpoints.

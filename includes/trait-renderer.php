@@ -236,7 +236,7 @@ trait Scriptomatic_Renderer {
 
             <template id="<?php echo esc_attr( $prefix ); ?>-url-entry-template">
                 <?php
-                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside helper
+                // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- all values escaped inside render_url_entry_html()
                 echo $this->render_url_entry_html(
                     $location,
                     '__IDX__',
@@ -245,6 +245,7 @@ trait Scriptomatic_Renderer {
                     $post_types,
                     true
                 );
+                // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
                 ?>
             </template>
 
@@ -804,7 +805,7 @@ trait Scriptomatic_Renderer {
             printf(
                 /* translators: %d: default max activity log entries */
                 esc_html__( 'How many activity log entries to keep per location (3–1000). Covers script saves, rollbacks, URL additions/removals, and JS file changes. Older entries are discarded automatically once the limit is reached. Default: %d.', 'scriptomatic' ),
-                SCRIPTOMATIC_MAX_LOG_ENTRIES
+                absint( SCRIPTOMATIC_MAX_LOG_ENTRIES )
             );
             ?>
         </p>
@@ -917,8 +918,8 @@ trait Scriptomatic_Renderer {
             <div>
                 <h3 style="margin:0 0 .4rem;font-size:1rem;"><?php echo esc_html( $feature_title ); ?></h3>
                 <p style="margin:0 0 .875rem;color:#50575e;"><?php echo esc_html( $feature_desc ); ?></p>
-                <a href="<?php echo $upgrade_url; ?>" class="button button-primary"><?php esc_html_e( 'Upgrade to Scriptomatic Pro', 'scriptomatic' ); ?></a>
-                <a href="<?php echo $upgrade_url; ?>" style="margin-left:.75rem;color:#2271b1;"><?php esc_html_e( 'Upgrade to Pro — 3-day free trial', 'scriptomatic' ); ?></a>
+                <a href="<?php echo esc_url( $upgrade_url ); ?>" class="button button-primary"><?php esc_html_e( 'Upgrade to Scriptomatic Pro', 'scriptomatic' ); ?></a>
+                <a href="<?php echo esc_url( $upgrade_url ); ?>" style="margin-left:.75rem;color:#2271b1;"><?php esc_html_e( 'Upgrade to Pro — 3-day free trial', 'scriptomatic' ); ?></a>
             </div>
         </div>
         <?php

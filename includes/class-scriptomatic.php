@@ -113,12 +113,10 @@ class Scriptomatic {
      * @return void
      */
     private function init_hooks() {
-        add_action( 'init',                  array( $this, 'load_textdomain' ) );
-        add_action( 'admin_menu',            array( $this, 'add_admin_menus' ) );
-        add_action( 'admin_init',            array( $this, 'register_settings' ) );
-        add_action( 'wp_head',               array( $this, 'inject_head_scripts' ), 999 );
-        add_action( 'wp_footer',             array( $this, 'inject_footer_scripts' ), 999 );
-        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+        add_action( 'admin_menu',             array( $this, 'add_admin_menus' ) );
+        add_action( 'admin_init',             array( $this, 'register_settings' ) );
+        add_action( 'wp_enqueue_scripts',     array( $this, 'enqueue_frontend_scripts' ), 999 );
+        add_action( 'admin_enqueue_scripts',  array( $this, 'enqueue_admin_scripts' ) );
         add_filter(
             'plugin_action_links_' . plugin_basename( SCRIPTOMATIC_PLUGIN_FILE ),
             array( $this, 'add_action_links' )
@@ -178,11 +176,8 @@ class Scriptomatic {
      * @return void
      */
     public function load_textdomain() {
-        load_plugin_textdomain(
-            'scriptomatic',
-            false,
-            dirname( plugin_basename( SCRIPTOMATIC_PLUGIN_FILE ) ) . '/languages/'
-        );
+        // Translations are loaded automatically by WordPress since 4.6.
+        // This method is kept for backward compatibility.
     }
 
     // =========================================================================

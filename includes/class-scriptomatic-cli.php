@@ -249,7 +249,7 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
             $rows[] = array(
                 'ID'         => $entry['id'],
                 'Action'     => $entry['action'],
-                'Date'       => $entry['timestamp'] > 0 ? date( 'Y-m-d H:i:s', $entry['timestamp'] ) : '—',
+                'Date'       => $entry['timestamp'] > 0 ? gmdate( 'Y-m-d H:i:s', $entry['timestamp'] ) : '—',
                 'User'       => $entry['user'],
                 'Chars'      => number_format( $entry['chars'] ),
                 'Detail'     => $entry['detail'],
@@ -436,7 +436,7 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
             $rows[] = array(
                 'ID'      => $entry['id'],
                 'Action'  => $entry['action'],
-                'Date'    => $entry['timestamp'] > 0 ? date( 'Y-m-d H:i:s', $entry['timestamp'] ) : '—',
+                'Date'    => $entry['timestamp'] > 0 ? gmdate( 'Y-m-d H:i:s', $entry['timestamp'] ) : '—',
                 'User'    => $entry['user'],
                 'URLs'    => $entry['url_count'],
                 'Detail'  => $entry['detail'],
