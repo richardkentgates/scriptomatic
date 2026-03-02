@@ -134,9 +134,7 @@ function scriptomatic_fs_uninstall_cleanup() {
 
     // Multisite: iterate every sub-site.
     if ( is_multisite() ) {
-        global $wpdb;
-
-        $blog_ids = $wpdb->get_col( "SELECT blog_id FROM {$wpdb->blogs}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $blog_ids = get_sites( array( 'fields' => 'ids', 'number' => 0 ) );
 
         foreach ( (array) $blog_ids as $blog_id ) {
             switch_to_blog( $blog_id );
@@ -163,8 +161,8 @@ function scriptomatic_fs_uninstall_cleanup() {
  */
 function scriptomatic_drop_log_table() {
     global $wpdb;
-    $table = $wpdb->prefix . 'scriptomatic_log';
-    $wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    $table = sanitize_key( $wpdb->prefix . 'scriptomatic_log' );
+    $wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 }
 
 /**

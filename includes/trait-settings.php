@@ -254,7 +254,7 @@ trait Scriptomatic_Settings {
                 $clean['max_log_entries'] - 1
             ) );
             if ( $keep_id ) {
-                $wpdb->query( $wpdb->prepare( "DELETE FROM `{$log_table}` WHERE id < %d", (int) $keep_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $wpdb->query( $wpdb->prepare( "DELETE FROM `{$log_table}` WHERE id < %d", (int) $keep_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             }
         }
 
@@ -477,7 +477,7 @@ trait Scriptomatic_Settings {
             $max - 1
         ) );
         if ( $keep_id ) {
-            $wpdb->query( $wpdb->prepare( "DELETE FROM `{$table}` WHERE id < %d", (int) $keep_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $wpdb->query( $wpdb->prepare( "DELETE FROM `{$table}` WHERE id < %d", (int) $keep_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }
     }
 
@@ -495,7 +495,7 @@ trait Scriptomatic_Settings {
      */
     private function get_activity_log( $limit = 0, $offset = 0, $location = '', $file_id = '' ) {
         global $wpdb;
-        $table = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
+        $table = sanitize_key( $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE );
         if ( $limit <= 0 ) {
             $limit = $this->get_max_log_entries();
         }
@@ -518,7 +518,7 @@ trait Scriptomatic_Settings {
         // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is always $wpdb->prefix . SCRIPTOMATIC constant, never user input
         $sql  = 'SELECT * FROM `' . $table . '` WHERE ' . implode( ' AND ', $wheres )
               . ' ORDER BY id DESC LIMIT %d OFFSET %d';
-        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
         // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         if ( ! is_array( $rows ) ) {
