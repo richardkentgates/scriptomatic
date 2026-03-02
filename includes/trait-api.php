@@ -1290,6 +1290,12 @@ trait Scriptomatic_API {
             );
         }
 
+        // Structure check: balanced brackets, unclosed strings, unclosed comments.
+        $structure = $this->check_js_structure( $content );
+        if ( is_wp_error( $structure ) ) {
+            return $structure;
+        }
+
         return trim( $content );
     }
 }

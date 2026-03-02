@@ -599,6 +599,13 @@ trait Scriptomatic_Pages {
             'control_chars'    => __( 'Script content contains disallowed control characters.', 'scriptomatic' ),
             'php_tags'         => __( 'PHP tags are not allowed in script content.', 'scriptomatic' ),
             'too_long'         => __( 'Script content exceeds the maximum allowed length.', 'scriptomatic' ),
+            // Structure validation codes (from check_js_structure).
+            'unmatched_bracket'  => __( 'Script contains an unexpected closing bracket with no matching opener.', 'scriptomatic' ),
+            'mismatched_bracket' => __( 'Script has mismatched brackets (e.g. a { was opened but a ] was closed).', 'scriptomatic' ),
+            'unclosed_bracket'   => __( 'Script has one or more brackets that were opened but never closed.', 'scriptomatic' ),
+            'unclosed_string'    => __( 'Script contains an unclosed string literal (a quote was opened but never closed).', 'scriptomatic' ),
+            'unclosed_comment'   => __( 'Script contains an unclosed block comment — add a closing */ .', 'scriptomatic' ),
+            'excessive_nesting'  => __( 'Script exceeds the maximum bracket nesting depth. Check for runaway loops or obfuscated code.', 'scriptomatic' ),
             // Upload-specific codes.
             'upload_error'     => __( 'File upload failed. Please try again.', 'scriptomatic' ),
             'invalid_js_type'  => __( 'Only .js files may be uploaded. Please select a valid JavaScript file.', 'scriptomatic' ),

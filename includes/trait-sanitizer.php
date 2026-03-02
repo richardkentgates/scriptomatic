@@ -23,6 +23,216 @@ trait Scriptomatic_Sanitizer {
     // =========================================================================
 
     /**
+     * Validate the structural integrity of a JavaScript code string.
+     *
+     * Walks the content character-by-character using a state machine that
+     * correctly skips string literals (single-quoted, double-quoted, template),
+     * single-line comments (//), and block comments (/* ... *\/), then checks:
+     *
+     *   - All bracket / brace / parenthesis pairs are balanced and correctly
+     *     nested: {}, [], ()
+     *   - No unclosed string literals remain at end-of-input.
+     *   - No unclosed block comment remains at end-of-input.
+     *   - Nesting depth never exceeds 100 levels (guards against obfuscated /
+     *     pathological inputs).
+     *
+     * Limitation: template literal interpolation expressions `${…}` are treated
+     * as opaque content — brackets inside `${}` are not tracked. This is an
+     * intentional trade-off to keep the parser simple; the client-side
+     * new Function() check (which uses the real JS engine) catches those cases.
+     *
+     * @since  3.0.0
+     * @access private
+     * @param  string $content  Clean JavaScript string (already unslashed/trimmed).
+     * @return true|WP_Error    true on success; WP_Error describing the first
+     *                          structural problem found.
+     */
+    private function check_js_structure( $content ) {
+        if ( '' === $content ) {
+            return true;
+        }
+
+        $stack     = array(); // tracks unmatched open brackets: '{' '(' '['
+        $max_depth = 50;      // reject absurdly deep nesting
+        $len       = strlen( $content );
+        $i         = 0;
+        // States: 'code' | 'sl_comment' | 'ml_comment' | 'sq' | 'dq' | 'tpl'
+        $state     = 'code';
+
+        while ( $i < $len ) {
+            $ch = $content[ $i ];
+
+            // ---- single-line comment (//) --------------------------------
+            if ( 'sl_comment' === $state ) {
+                if ( "\n" === $ch ) {
+                    $state = 'code';
+                }
+                $i++;
+                continue;
+            }
+
+            // ---- block comment (/* … */) ---------------------------------
+            if ( 'ml_comment' === $state ) {
+                if ( '*' === $ch && $i + 1 < $len && '/' === $content[ $i + 1 ] ) {
+                    $state = 'code';
+                    $i    += 2;
+                } else {
+                    $i++;
+                }
+                continue;
+            }
+
+            // ---- single-quoted string '…' --------------------------------
+            if ( 'sq' === $state ) {
+                if ( '\\' === $ch ) {
+                    $i += 2; // skip one escaped character
+                } elseif ( "'" === $ch ) {
+                    $state = 'code';
+                    $i++;
+                } else {
+                    $i++;
+                }
+                continue;
+            }
+
+            // ---- double-quoted string "…" --------------------------------
+            if ( 'dq' === $state ) {
+                if ( '\\' === $ch ) {
+                    $i += 2;
+                } elseif ( '"' === $ch ) {
+                    $state = 'code';
+                    $i++;
+                } else {
+                    $i++;
+                }
+                continue;
+            }
+
+            // ---- template literal `…` -----------------------------------
+            // ${ … } interpolation is treated as opaque — brackets inside
+            // template expressions are not tracked (see docblock).
+            if ( 'tpl' === $state ) {
+                if ( '\\' === $ch ) {
+                    $i += 2;
+                } elseif ( '`' === $ch ) {
+                    $state = 'code';
+                    $i++;
+                } else {
+                    $i++;
+                }
+                continue;
+            }
+
+            // ---- normal code --------------------------------------------
+            // Detect comment openers.
+            if ( '/' === $ch && $i + 1 < $len ) {
+                if ( '/' === $content[ $i + 1 ] ) {
+                    $state = 'sl_comment';
+                    $i    += 2;
+                    continue;
+                }
+                if ( '*' === $content[ $i + 1 ] ) {
+                    $state = 'ml_comment';
+                    $i    += 2;
+                    continue;
+                }
+            }
+
+            // Detect string / template openers.
+            if ( "'" === $ch ) { $state = 'sq';  $i++; continue; }
+            if ( '"' === $ch ) { $state = 'dq';  $i++; continue; }
+            if ( '`' === $ch ) { $state = 'tpl'; $i++; continue; }
+
+            // Bracket tracking.
+            if ( '{' === $ch || '(' === $ch || '[' === $ch ) {
+                $stack[] = $ch;
+                if ( count( $stack ) > $max_depth ) {
+                    return new WP_Error(
+                        'excessive_nesting',
+                        sprintf(
+                            /* translators: %d: maximum allowed nesting depth */
+                            __( 'Script exceeds the maximum bracket nesting depth of %d. This may indicate obfuscated or malformed code.', 'scriptomatic' ),
+                            $max_depth
+                        ),
+                        array( 'status' => 400 )
+                    );
+                }
+            } elseif ( '}' === $ch || ')' === $ch || ']' === $ch ) {
+                if ( empty( $stack ) ) {
+                    return new WP_Error(
+                        'unmatched_bracket',
+                        sprintf(
+                            /* translators: %s: the unexpected closing bracket character */
+                            __( 'Script contains an unexpected closing bracket "%s" with no matching opener.', 'scriptomatic' ),
+                            esc_html( $ch )
+                        ),
+                        array( 'status' => 400 )
+                    );
+                }
+                $pair   = array( '}' => '{', ')' => '(', ']' => '[' );
+                $opener = array_pop( $stack );
+                if ( $opener !== $pair[ $ch ] ) {
+                    return new WP_Error(
+                        'mismatched_bracket',
+                        sprintf(
+                            /* translators: 1: expected closing bracket, 2: found closing bracket */
+                            __( 'Script has mismatched brackets: "%1$s" was opened but "%2$s" was closed.', 'scriptomatic' ),
+                            esc_html( $opener ),
+                            esc_html( $ch )
+                        ),
+                        array( 'status' => 400 )
+                    );
+                }
+            }
+
+            $i++;
+        } // end while
+
+        // Unclosed string literal.
+        if ( in_array( $state, array( 'sq', 'dq', 'tpl' ), true ) ) {
+            $names = array( 'sq' => 'single-quote ( \' )', 'dq' => 'double-quote ( " )', 'tpl' => 'template literal ( ` )' );
+            return new WP_Error(
+                'unclosed_string',
+                sprintf(
+                    /* translators: %s: the type of string delimiter that was not closed */
+                    __( 'Script contains an unclosed string literal: %s was opened but never closed.', 'scriptomatic' ),
+                    $names[ $state ]
+                ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Unclosed block comment.
+        if ( 'ml_comment' === $state ) {
+            return new WP_Error(
+                'unclosed_comment',
+                __( 'Script contains an unclosed block comment ( /* ) with no closing */ .', 'scriptomatic' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Unclosed brackets.
+        if ( ! empty( $stack ) ) {
+            $pairs   = array( '{' => '{}', '(' => '()', '[' => '[]' );
+            $missing = array();
+            foreach ( array_reverse( $stack ) as $b ) {
+                $missing[] = isset( $pairs[ $b ] ) ? $pairs[ $b ] : $b;
+            }
+            return new WP_Error(
+                'unclosed_bracket',
+                sprintf(
+                    /* translators: %s: comma-separated list of unmatched bracket pairs */
+                    __( 'Script has unclosed brackets still open at end of file: %s', 'scriptomatic' ),
+                    implode( ', ', $missing )
+                ),
+                array( 'status' => 400 )
+            );
+        }
+
+        return true;
+    }
+
+    /**
      * Sanitise raw JavaScript content submitted via POST.
      *
      * Recognised as a sanitisation function by static analysers (sanitize_*
@@ -196,6 +406,13 @@ trait Scriptomatic_Sanitizer {
                 add_settings_error( $error_slug, 'dangerous_content',
                     __( 'Script content contains potentially dangerous HTML tags. Please use JavaScript only.', 'scriptomatic' ), 'warning' );
             }
+        }
+
+        // Structure check: balanced brackets, closed strings and block comments.
+        $structure = $this->check_js_structure( $script );
+        if ( is_wp_error( $structure ) ) {
+            add_settings_error( $error_slug, $structure->get_error_code(),
+                $structure->get_error_message(), 'warning' );
         }
 
         $script = trim( $script );
