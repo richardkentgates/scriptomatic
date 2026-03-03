@@ -119,6 +119,7 @@ class Scriptomatic {
         add_action( 'admin_init',             array( $this, 'register_settings' ) );
         add_action( 'wp_enqueue_scripts',     array( $this, 'enqueue_frontend_scripts' ), 999 );
         add_action( 'admin_enqueue_scripts',  array( $this, 'enqueue_admin_scripts' ) );
+        add_action( 'admin_footer',           array( $this, 'render_history_lightbox' ) );
 
         // Notification opt-in on admin profile pages.
         add_action( 'show_user_profile',        array( $this, 'render_notification_profile_field' ) );

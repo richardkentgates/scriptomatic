@@ -286,24 +286,6 @@ trait Scriptomatic_Pages {
         <?php else : ?>
         <p class="description"><?php esc_html_e( 'No activity yet. Script saves and rollbacks will appear here.', 'scriptomatic' ); ?></p>
         <?php endif;
-
-        // Lightbox — shared by inline View and file View buttons.
-        ?>
-        <div id="sm-history-lightbox" class="sm-history-lightbox" role="dialog" aria-modal="true" aria-labelledby="sm-lightbox-title" hidden>
-            <div class="sm-history-lightbox__card">
-                <div class="sm-history-lightbox__header">
-                    <div>
-                        <p id="sm-lightbox-title" class="sm-history-lightbox__title"></p>
-                        <p class="sm-history-lightbox__meta"></p>
-                    </div>
-                    <button type="button" class="sm-history-lightbox__close" aria-label="<?php esc_attr_e( 'Close', 'scriptomatic' ); ?>">&times;</button>
-                </div>
-                <div class="sm-history-lightbox__body">
-                    <pre class="sm-history-lightbox__pre"></pre>
-                </div>
-            </div>
-        </div>
-        <?php
     }
 
     /**
@@ -942,6 +924,48 @@ trait Scriptomatic_Pages {
      * @param  string[] $links Existing action-link HTML strings.
      * @return string[] Modified array with the Head Scripts link at index 0.
      */
+    /**
+     * Render the history lightbox into the admin footer.
+     *
+     * Hooked to `admin_footer` so the element is a direct child of <body>,
+     * outside any .wrap div, preventing WP admin CSS from overriding display:none.
+     * Only outputs on Scriptomatic plugin pages.
+     *
+     * @since  3.1.0
+     * @return void
+     */
+    public function render_history_lightbox() {
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return;
+        }
+        $plugin_screens = array(
+            'toplevel_page_scriptomatic',
+            'scriptomatic_page_scriptomatic-footer',
+            'scriptomatic_page_scriptomatic-files',
+            'scriptomatic_page_scriptomatic-settings',
+        );
+        if ( ! in_array( $screen->id, $plugin_screens, true ) ) {
+            return;
+        }
+        ?>
+        <div id="sm-history-lightbox" class="sm-history-lightbox" role="dialog" aria-modal="true" aria-labelledby="sm-lightbox-title" hidden>
+            <div class="sm-history-lightbox__card">
+                <div class="sm-history-lightbox__header">
+                    <div>
+                        <p id="sm-lightbox-title" class="sm-history-lightbox__title"></p>
+                        <p class="sm-history-lightbox__meta"></p>
+                    </div>
+                    <button type="button" class="sm-history-lightbox__close" aria-label="<?php esc_attr_e( 'Close', 'scriptomatic' ); ?>">&times;</button>
+                </div>
+                <div class="sm-history-lightbox__body">
+                    <pre class="sm-history-lightbox__pre"></pre>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
     public function add_action_links( $links ) {
         $settings_link = sprintf(
             '<a href="%s">%s</a>',
