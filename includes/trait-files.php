@@ -493,6 +493,11 @@ trait Scriptomatic_Files {
                 'location' => $location,
             ),
         ) );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'JS file saved', 'scriptomatic' ),
+            'location' => $label,
+            'detail'   => $filename,
+        ) );
 
         // When the save was triggered from the list-page upload form, redirect
         // to the edit view for the new file so the user can review the code
@@ -603,6 +608,11 @@ trait Scriptomatic_Files {
                 'filename' => $found['filename'],
                 'location' => isset( $found['location'] ) ? $found['location'] : 'head',
             ),
+        ) );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'JS file deleted', 'scriptomatic' ),
+            'location' => $found['label'],
+            'detail'   => $found['filename'],
         ) );
 
         wp_send_json_success( array( 'message' => __( 'File deleted.', 'scriptomatic' ) ) );

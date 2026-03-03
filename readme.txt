@@ -4,7 +4,7 @@ Tags: javascript, script injection, head scripts, conditional loading, activity 
 Requires at least: 6.2
 Tested up to: 6.9
 Requires PHP: 7.2
-Stable tag: 3.0.0
+Stable tag: 3.1.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,11 +31,14 @@ Scriptomatic is a secure, production-ready WordPress plugin for injecting custom
 * **Managed JS Files** — create, edit, upload, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`. Each file has its own Head/Footer selector, load conditions, and CodeMirror editor. Files survive plugin updates.
 * **REST API** — full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Thirteen endpoints for inline scripts, external URLs, and managed JS files including a multipart file-upload endpoint.
 * **API IP Allowlist** — restrict REST API access to specific IPv4/IPv6 addresses or CIDR ranges.
+* **API Enable / Disable** — toggle REST API access site-wide from Preferences; returns HTTP 503 when disabled.
+* **API Allowed Users** — restrict REST API calls to named administrator accounts from Preferences; returns HTTP 403 for unlisted callers.
 * **WP-CLI** — `wp scriptomatic` command group for inline scripts, external URLs, managed JS files, and history.
+* **Email Notifications** — per-admin opt-in (via WordPress profile page) sends a plain-text notification email on every script save, rollback, file event, or restore.
 
 = Architecture =
 
-Nine PHP traits in separate files, a singleton class, and static `assets/admin.css` / `assets/admin.js`. Freemius SDK for licence management. No external API calls beyond licence verification.
+Ten PHP traits in separate files, a singleton class, and static `assets/admin.css` / `assets/admin.js`. Freemius SDK for licence management. No external API calls beyond licence verification.
 
 = Multisite =
 
@@ -97,10 +100,19 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 2. Activity Log panel — complete snapshot entries with View and Restore buttons.
 3. JS Files list view — managed JavaScript files with conditions summary.
 4. JS Files edit view — CodeMirror editor, Head/Footer selector, load conditions, and per-file Activity Log.
-5. Preferences page — activity log limit and uninstall data retention.
+5. Preferences page — activity log limit, uninstall data retention, API controls, and Preferences Action History.
 6. Contextual help tabs — Overview, Usage, Security, Best Practices, and Troubleshooting.
 
 == Changelog ==
+
+= 3.1.0 =
+* **Added**: Email notifications — administrators can opt in (via their WordPress profile page) to receive plain-text email notifications on every script save, rollback, URL change, file save/delete, and restore event.
+* **Added**: Per-admin notification opt-in via user meta `scriptomatic_notifications` — checkbox added to all administrator profile pages (hidden for non-admins).
+* **Added**: API Enable / Disable setting in Preferences — a checkbox to toggle REST API access site-wide. Returns HTTP 503 when disabled.
+* **Added**: API Allowed Users setting in Preferences — an administrator checklist to restrict REST API access to named accounts. Returns HTTP 403 for unlisted callers. Leave all unchecked to allow any administrator (the default).
+* **Added**: Preferences Action History — a read-only activity log section on the Preferences page showing the last 100 entries, paginated 20/page with AJAX Prev/Next navigation.
+* **Added**: `Scriptomatic_Notifications` trait (`includes/trait-notifications.php`) — contains all notification and Preferences History logic.
+* **Fixed**: Lightbox × close button was visible when the lightbox was closed; resolved by adding the `hidden` HTML attribute on render and a CSS `[hidden] { display:none !important }` override.
 
 = 3.0.0 =
 * **Added**: Freemius SDK integration for freemium licence management. Free tier: inline script editor, external URLs, activity log/rollback (fully unlimited). Pro tier: conditional loading, managed JS files, REST API, WP-CLI, API IP allowlist.
@@ -156,6 +168,9 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 * All internal development backward-compatibility code removed.
 
 == Upgrade Notice ==
+
+= 3.1.0 =
+Adds email notifications (opt-in per admin profile), API enable/disable and allowed-users controls in Preferences, a Preferences Action History panel, and fixes the lightbox close-button visibility bug. No breaking changes; existing scripts, URLs, and settings are unaffected.
 
 = 3.0.0 =
 Introduces a freemium model powered by Freemius. Core features remain free. Conditional loading, managed JS files, REST API, and WP-CLI now require a Pro licence. 3-day free trial available (credit card or PayPal required).

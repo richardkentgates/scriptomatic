@@ -125,6 +125,9 @@ function scriptomatic_fs_uninstall_cleanup() {
         return;
     }
 
+    // Remove notification opt-in preference from all users (network-wide).
+    delete_metadata( 'user', 0, 'scriptomatic_notifications', '', true );
+
     // Single-site: delete from the current site.
     foreach ( $options as $option_key ) {
         delete_option( $option_key );

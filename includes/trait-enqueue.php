@@ -96,6 +96,7 @@ trait Scriptomatic_Enqueue {
             'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
             'rollbackNonce'       => wp_create_nonce( SCRIPTOMATIC_ROLLBACK_NONCE ),
             'filesNonce'          => wp_create_nonce( SCRIPTOMATIC_FILES_NONCE ),
+            'prefHistoryNonce'    => wp_create_nonce( SCRIPTOMATIC_GENERAL_NONCE ),
             'maxLength'           => SCRIPTOMATIC_MAX_SCRIPT_LENGTH,
             'maxUploadSize'       => wp_max_upload_size(),
             'location'            => $location,

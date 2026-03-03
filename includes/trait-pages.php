@@ -289,7 +289,7 @@ trait Scriptomatic_Pages {
 
         // Lightbox — shared by inline View and file View buttons.
         ?>
-        <div id="sm-history-lightbox" class="sm-history-lightbox" role="dialog" aria-modal="true" aria-labelledby="sm-lightbox-title">
+        <div id="sm-history-lightbox" class="sm-history-lightbox" role="dialog" aria-modal="true" aria-labelledby="sm-lightbox-title" hidden>
             <div class="sm-history-lightbox__card">
                 <div class="sm-history-lightbox__header">
                     <div>
@@ -367,6 +367,7 @@ trait Scriptomatic_Pages {
             submit_button( __( 'Save Settings', 'scriptomatic' ), 'primary large' );
             ?>
         </form>
+        <?php $this->render_pref_history_section(); ?>
         </div><!-- .wrap -->
         <?php
     }
@@ -799,7 +800,8 @@ trait Scriptomatic_Pages {
                 '<p>' . __( 'Each location has its own <strong>External Script URLs</strong> section for loading remote <code>&lt;script src&gt;</code> files, and an <strong>Activity Log</strong> below showing all saves, rollbacks, and file events. Inline script changes and external URL changes are recorded as <strong>separate entries</strong>, each with its own View and Restore buttons &mdash; restoring one never affects the other.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( '<strong>Load Conditions</strong> <em>(Pro)</em> — restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or months. Available per inline script and per external URL (11 condition types).', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( '<strong>JS Files</strong> <em>(Pro)</em> — create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file has its own Head/Footer selector and Load Conditions, and persists across plugin updates.', 'scriptomatic' ) . '</p>' .
-                '<p>' . __( '<strong>REST API</strong> <em>(Pro)</em> — full <code>scriptomatic/v1</code> REST API (WordPress Application Passwords). <strong>WP-CLI</strong> <em>(Pro)</em> — <code>wp scriptomatic</code> command group. Both share the same validation, rate limiting, and activity logging as the admin UI. REST API access can be restricted to specific IP addresses in <em>Preferences</em>.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( '<strong>REST API</strong> <em>(Pro)</em> — full <code>scriptomatic/v1</code> REST API (WordPress Application Passwords). <strong>WP-CLI</strong> <em>(Pro)</em> — <code>wp scriptomatic</code> command group. Both share the same validation, rate limiting, and activity logging as the admin UI. Three API access controls in <em>Preferences</em>: enable/disable toggle, IP allowlist, and allowed-users list.', 'scriptomatic' ) . '</p>' .
+                '<p>' . __( '<strong>Email Notifications</strong> <em>(Pro)</em> — administrators opt in via their WordPress profile page to receive a plain-text email on every script save, rollback, URL change, file event, and restore.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'The inline-script editor and JS Files editor both use <strong>CodeMirror</strong> — a full JavaScript code editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea when syntax highlighting is disabled in your WordPress profile.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'A <strong>3-day free trial</strong> is available for all Pro features (credit card or PayPal required). Visit <em>Scriptomatic &rarr; Account</em> to start a trial or upgrade.', 'scriptomatic' ) . '</p>' .
                 '<p>' . __( 'This plugin is designed with security and performance in mind, providing input validation, sanitisation, secondary nonce verification, per-user rate limiting, an activity log with revision rollback, and conditional loading.', 'scriptomatic' ) . '</p>',
@@ -832,7 +834,7 @@ trait Scriptomatic_Pages {
                 '<h3>' . __( 'Security Features', 'scriptomatic' ) . '</h3>' .
                 '<ul>' .
                 '<li><strong>' . __( 'Capability Check:', 'scriptomatic' ) . '</strong> ' . __( 'Only users with &ldquo;manage_options&rdquo; capability (Administrators) can access any Scriptomatic page or modify scripts.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'REST API IP Allowlist (Pro):', 'scriptomatic' ) . '</strong> ' . __( 'The <em>Preferences</em> page lets you restrict REST API access to a specific list of IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges (one per line). Leave the list empty to allow access from any IP (the default). Requires a Pro licence.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'REST API Access Controls (Pro):', 'scriptomatic' ) . '</strong> ' . __( 'Three independent Pro controls in <em>Preferences</em>: <strong>Enable / Disable</strong> — uncheck to disable the REST API site-wide (HTTP 503 when off); <strong>API Allowed IPs</strong> — restrict access to specific IPv4/IPv6/CIDR addresses (HTTP 403 for unlisted IPs); <strong>API Allowed Users</strong> — restrict access to named administrator accounts (HTTP 403 for unlisted users). Leave all fields at their defaults to allow access from any IP by any administrator.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'JS File Upload Validation:', 'scriptomatic' ) . '</strong> ' . __( 'Uploaded files are validated for extension (<code>.js</code> only), MIME type, and file size against the server upload limit. The file must be transmitted as a genuine HTTP file upload; arbitrary binary content is rejected. All uploads are recorded in the Activity Log.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Dual Nonce Verification:', 'scriptomatic' ) . '</strong> ' . __( 'Each form carries both the WordPress Settings API nonce and a secondary location-specific nonce, verified on every save.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Rate Limiting:', 'scriptomatic' ) . '</strong> ' . __( 'A transient-based 10-second cooldown per user per location prevents rapid repeated saves.', 'scriptomatic' ) . '</li>' .
@@ -899,10 +901,12 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'File too large', 'scriptomatic' ) . '</strong> &mdash; ' . __( 'The upload limit is set by your server\'s PHP configuration, not this plugin. The current limit is shown beneath the upload field.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Upload failed / write failed', 'scriptomatic' ) . '</strong> &mdash; ' . __( 'Check that <code>wp-content/uploads/scriptomatic/</code> exists and is writable by the web server.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
-                '<h4>' . __( 'REST API returns 403:', 'scriptomatic' ) . '</h4>' .
+                '<h4>' . __( 'REST API returns 503 or 403:', 'scriptomatic' ) . '</h4>' .
                 '<ul>' .
-                '<li>' . __( 'The REST API requires a <strong>Pro licence</strong>. On free installations the REST API is not registered and will return a 404, not 403.', 'scriptomatic' ) . '</li>' .
-                '<li>' . __( 'If the <strong>API Allowed IPs</strong> list in Preferences is populated, requests from unlisted IP addresses are blocked. Add your IP or clear the list to allow access from any address.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'The REST API requires a <strong>Pro licence</strong>. On free installations the REST API is not registered and will return a 404, not a 4xx.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'If the <strong>API Enable / Disable</strong> checkbox in Preferences is unchecked, all REST requests are rejected with HTTP 503. Re-enable it in <em>Scriptomatic &rarr; Preferences</em>.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'If the <strong>API Allowed Users</strong> list in Preferences is populated and your account is not on it, requests are rejected with HTTP 403. Add your account or clear the list.', 'scriptomatic' ) . '</li>' .
+                '<li>' . __( 'If the <strong>API Allowed IPs</strong> list in Preferences is populated, requests from unlisted IP addresses are blocked with HTTP 403. Add your IP or clear the list to allow access from any address.', 'scriptomatic' ) . '</li>' .
                 '<li>' . __( 'Authenticate using a WordPress <strong>Application Password</strong> (Users &rarr; Profile) passed as <code>Authorization: Basic base64(username:app-password)</code>.', 'scriptomatic' ) . '</li>' .
                 '</ul>',
         ) );

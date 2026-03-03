@@ -354,6 +354,10 @@
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
 }
+/* Ensure the HTML `hidden` attribute always wins over any WP admin override. */
+.sm-history-lightbox[hidden] {
+    display: none !important;
+}
 .sm-history-lightbox.is-open {
     display: flex;
 }
@@ -500,4 +504,45 @@
     border-radius: 4px;
     text-align: center;
     color: #555;
+}
+
+/* =============================================================================
+   Preferences — Action History section
+   ============================================================================= */
+
+.sm-pref-history-section {
+    margin-top: 32px;
+}
+
+.sm-pref-history-section h2 {
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+}
+
+.sm-pref-history-table {
+    margin-top: 12px;
+    border-collapse: collapse;
+    width: 100%;
+    background: #fff;
+}
+
+.sm-pref-history-table th,
+.sm-pref-history-table td {
+    padding: 8px 12px;
+    border: 1px solid #e2e4e7;
+    font-size: 13px;
+    vertical-align: top;
+}
+
+.sm-pref-history-table thead th {
+    background: #f6f7f7;
+    font-weight: 600;
+    text-align: left;
+}
+
+.sm-pref-history-pagination {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
 }

@@ -168,8 +168,29 @@ trait Scriptomatic_API {
      * @return true|WP_Error
      */
     public function api_permission_check() {
-        // IP allowlist is a Pro feature; on free the API is open to any IP.
+        // API enabled check (Pro only — the routes aren't registered on free).
         if ( scriptomatic_is_premium() ) {
+            $sm_perm_settings = $this->get_plugin_settings();
+
+            if ( empty( $sm_perm_settings['api_enabled'] ) ) {
+                return new WP_Error(
+                    'rest_api_disabled',
+                    __( 'The Scriptomatic REST API is currently disabled.', 'scriptomatic' ),
+                    array( 'status' => 503 )
+                );
+            }
+
+            // Allowed users check.
+            $allowed_users = isset( $sm_perm_settings['api_allowed_users'] ) ? array_map( 'absint', (array) $sm_perm_settings['api_allowed_users'] ) : array();
+            if ( ! empty( $allowed_users ) && ! in_array( absint( get_current_user_id() ), $allowed_users, true ) ) {
+                return new WP_Error(
+                    'rest_user_forbidden',
+                    __( 'Your user account is not permitted to use the Scriptomatic REST API.', 'scriptomatic' ),
+                    array( 'status' => 403 )
+                );
+            }
+
+            // IP allowlist.
             $ip_check = $this->api_check_ip_allowlist();
             if ( is_wp_error( $ip_check ) ) {
                 return $ip_check;
@@ -750,6 +771,11 @@ trait Scriptomatic_API {
         );
         $this->write_activity_entry( $log_entry );
         $this->record_save_timestamp( $location );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'Script saved (API)', 'scriptomatic' ),
+            'location' => ucfirst( $location ),
+            'detail'   => number_format( strlen( $content ) ) . ' chars',
+        ) );
 
         return array(
             'location' => $location,
@@ -808,6 +834,11 @@ trait Scriptomatic_API {
             'detail'              => __( 'Restored from snapshot via API', 'scriptomatic' ),
         );
         $this->write_activity_entry( $rollback_entry );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'Script restored (API)', 'scriptomatic' ),
+            'location' => ucfirst( $location ),
+            'detail'   => number_format( strlen( $content ) ) . ' chars',
+        ) );
 
         return array(
             'location' => $location,
@@ -897,6 +928,11 @@ trait Scriptomatic_API {
                 count( $clean )
             ),
         ) );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'External URLs saved (API)', 'scriptomatic' ),
+            'location' => ucfirst( $location ),
+            'detail'   => count( $clean ) . ' URL(s)',
+        ) );
 
         return array(
             'location' => $location,
@@ -946,6 +982,11 @@ trait Scriptomatic_API {
             'location'      => $location,
             'urls_snapshot' => $snapshot,
             'detail'        => __( 'External URLs restored from snapshot via API', 'scriptomatic' ),
+        ) );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'External URLs restored (API)', 'scriptomatic' ),
+            'location' => ucfirst( $location ),
+            'detail'   => count( $snapshot ) . ' URL(s)',
         ) );
 
         return array(
@@ -1135,6 +1176,11 @@ trait Scriptomatic_API {
             'conditions' => $conditions,
             'meta'       => array( 'label' => $label, 'filename' => $filename, 'location' => $loc ),
         ) );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'JS file saved (API)', 'scriptomatic' ),
+            'location' => $label,
+            'detail'   => $filename,
+        ) );
 
         return array(
             'file_id'  => $new_id,
@@ -1191,6 +1237,11 @@ trait Scriptomatic_API {
                 'filename' => $found['filename'],
                 'location' => isset( $found['location'] ) ? $found['location'] : 'head',
             ),
+        ) );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'JS file deleted (API)', 'scriptomatic' ),
+            'location' => $found['label'],
+            'detail'   => $found['filename'],
         ) );
 
         return array(

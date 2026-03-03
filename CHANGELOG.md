@@ -13,6 +13,63 @@ _Nothing yet._
 
 ---
 
+## [3.1.0] – 2026-03-10
+
+### Added
+- **Email notifications for opted-in admins.** All 10+ write paths (inline script saves,
+  URL saves, file saves, file deletes, and all rollback/restore operations) now call
+  `maybe_send_notifications( array $event )` after a successful write. A plain-text email
+  is dispatched via `wp_mail()` to every administrator who has opted in. The actor is
+  deduplicated against the site admin address to avoid double-notification.
+- **Per-admin notification opt-in.** A new **Email Notifications** section appears on each
+  administrator's WordPress profile page (`show_user_profile` / `edit_user_profile`).
+  Checking the box sets user meta key `scriptomatic_notifications` = `'1'`; unchecking
+  sets it to `'0'`. The UI is hidden for non-administrator accounts. Saved via
+  `personal_options_update` and `edit_user_profile_update`.
+- **API enable / disable setting (`api_enabled`).** A new checkbox in **Preferences**
+  (`render_api_enabled_field()`) lets Pro users toggle REST API access site-wide. When
+  unchecked, `api_permission_check()` returns `WP_Error` with HTTP 503. Default: `true`.
+- **API allowed users setting (`api_allowed_users`).** A new administrator checklist in
+  **Preferences** (`render_api_allowed_users_field()`) lets Pro users restrict REST API
+  access to specific named administrators. When the list is non-empty a caller whose user
+  ID is not in it receives HTTP 403. Leaving all checkboxes unchecked allows any
+  administrator (the default). Default: `[]`.
+- **Preferences Action History.** A read-only activity log section (`render_pref_history_section()`)
+  appears below the settings form on the Preferences page. Shows the last 100 entries,
+  paginated 20 per page with AJAX Prev/Next navigation. Columns: Date/Time, User, Action,
+  Location/File, Detail. No View or Restore buttons — audit view only. Powered by the new
+  `wp_ajax_scriptomatic_pref_history` endpoint (`ajax_pref_history()`).
+- **`Scriptomatic_Notifications` trait** (`includes/trait-notifications.php`). Contains
+  all notification and Preferences History logic:
+  `render_notification_profile_field()`, `save_notification_profile_field()`,
+  `maybe_send_notifications()`, `render_pref_history_section()`,
+  `render_pref_history_rows()`, `ajax_pref_history()`.
+- **`scriptomatic_pref_history` AJAX action** (`wp_ajax_scriptomatic_pref_history`).
+  Returns `{ rows (HTML), total_pages, page }` JSON for the Preferences Action History
+  pagination component.
+- **`prefHistoryNonce`** added to the `scriptomaticData` JS object (`wp_localize_script`)
+  for use by the Preferences History AJAX handler.
+- **Preferences History CSS/JS.** `assets/admin.css` gains `.sm-pref-history-section`,
+  `.sm-pref-history-table`, and `.sm-pref-history-pagination` styles. `assets/admin.js`
+  gains a Preferences Action History AJAX pagination block (Prev/Next buttons, page
+  counter, opacity loading state).
+
+### Changed
+- **`api_permission_check()` — four-step guard.** Order is now: ① API enabled check (503),
+  ② allowed-users check (403), ③ IP allowlist check (403, Pro), ④ `manage_options`
+  capability check (403).
+- **`scriptomatic_plugin_settings` option** now includes `api_enabled` (bool, default `true`)
+  and `api_allowed_users` (int[], default `[]`) in defaults, registration, and sanitisation.
+
+### Fixed
+- **Lightbox `×` close button visible when closed.** The `#sm-history-lightbox` element now
+  carries the `hidden` HTML attribute on render. A `[hidden] { display: none !important; }`
+  CSS rule overrides the WP admin stylesheet that previously forced the element visible. All
+  three JS open-paths call `$lightbox.prop('hidden', false)` before adding `.is-open`;
+  `closeLightbox()` calls `$lightbox.prop('hidden', true)` when closing.
+
+---
+
 ## [3.0.0] – 2026-03-01
 
 ### Added

@@ -22,6 +22,7 @@ This document describes the internal structure of Scriptomatic for developers wh
    - [trait-injector.php](#trait-injectorphp)
    - [trait-files.php](#trait-filesphp)
    - [trait-api.php](#trait-apiphp)
+   - [trait-notifications.php](#trait-notificationsphp)
    - [class-scriptomatic-cli.php](#class-scriptomatic-cliphp)
 7. [WordPress Hook Map](#7-wordpress-hook-map)
 8. [Settings API Groups](#8-settings-api-groups)
@@ -40,9 +41,9 @@ This document describes the internal structure of Scriptomatic for developers wh
 
 ## 1. Overview
 
-Scriptomatic is a single-file-bootstrapped, trait-based WordPress plugin. The class `Scriptomatic` is a protected singleton that `use`s nine PHP traits — one per logical concern. Because all traits are mixed into the same class, any method on any trait can call `$this->method()` to reach any other trait's methods without indirection.
+Scriptomatic is a single-file-bootstrapped, trait-based WordPress plugin. The class `Scriptomatic` is a protected singleton that `use`s ten PHP traits — one per logical concern. Because all traits are mixed into the same class, any method on any trait can call `$this->method()` to reach any other trait's methods without indirection.
 
-There are no abstract base classes, no dependency injection containers, and no autoloaders. The load order is: `scriptomatic.php` → `class-scriptomatic.php` → nine trait files (via `require_once`).
+There are no abstract base classes, no dependency injection containers, and no autoloaders. The load order is: `scriptomatic.php` → `class-scriptomatic.php` → ten trait files (via `require_once`).
 
 ---
 
@@ -78,7 +79,8 @@ scriptomatic/
     ├── trait-enqueue.php         # Admin asset enqueueing
     ├── trait-injector.php        # Front-end HTML output
     ├── trait-files.php           # Managed JS files: disk I/O, save/delete handlers
-    └── trait-api.php             # REST API route registration, permission callbacks, service layer
+    ├── trait-api.php             # REST API route registration, permission callbacks, service layer
+    └── trait-notifications.php   # Email notifications, per-admin opt-in profile fields, Preferences Action History
 ```
 
 ---
@@ -88,7 +90,7 @@ scriptomatic/
 `scriptomatic.php` does three things:
 
 1. Defines all plugin-wide constants (see §4).
-2. `require_once`s `includes/class-scriptomatic.php`, which in turn `require_once`s all nine traits.
+2. `require_once`s `includes/class-scriptomatic.php`, which in turn `require_once`s all ten traits.
 3. Registers `scriptomatic_init()` on the `plugins_loaded` action to call `Scriptomatic::get_instance()`.
 
 Nothing runs before `plugins_loaded`. That ensures all WordPress APIs are available when the plugin first executes.
@@ -110,7 +112,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'3.0.0'` |
+| `SCRIPTOMATIC_VERSION` | `'3.1.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
@@ -171,6 +173,7 @@ Each location option stores a unified PHP array `{ script, conditions, urls }` a
 - Declares `private function get_required_cap()` returning `'manage_options'` — the single source of truth for the required capability throughout all traits.
 - Implements `private __clone()` and `public __wakeup()` to prevent singleton bypass via object cloning or PHP `unserialize()`.
 - Loads the text domain via the `init` action hook.
+- Uses ten traits: `Scriptomatic_Menus`, `Scriptomatic_Sanitizer`, `Scriptomatic_History`, `Scriptomatic_Settings`, `Scriptomatic_Renderer`, `Scriptomatic_Pages`, `Scriptomatic_Enqueue`, `Scriptomatic_Injector`, `Scriptomatic_Files`, `Scriptomatic_API`, `Scriptomatic_Notifications`.
 
 All business logic lives in the traits.
 
@@ -295,6 +298,8 @@ array(
     'max_log_entries'        => int,    // 3–1000, default 200
     'keep_data_on_uninstall' => bool,   // default false
     'api_allowed_ips'        => string, // newline-separated IPv4/IPv6/CIDR; empty = allow all
+    'api_enabled'            => bool,   // REST API enabled; default true
+    'api_allowed_users'      => array,  // int[] of administrator user IDs; empty = allow any admin
 )
 ```
 
@@ -319,7 +324,7 @@ All Settings API field and section callback methods. Also owns `check_load_condi
 
 **Public field callbacks:**
 
-`render_head_script_field()`, `render_head_linked_field()`, `render_head_conditions_field()`, `render_footer_script_field()`, `render_footer_linked_field()`, `render_footer_conditions_field()`, `render_max_log_field()`, `render_keep_data_field()`, `render_api_allowed_ips_field()`
+`render_head_script_field()`, `render_head_linked_field()`, `render_head_conditions_field()`, `render_footer_script_field()`, `render_footer_linked_field()`, `render_footer_conditions_field()`, `render_max_log_field()`, `render_keep_data_field()`, `render_api_allowed_ips_field()`, `render_api_enabled_field()`, `render_api_allowed_users_field()`
 
 **Private shared implementations:**
 
@@ -349,7 +354,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
 - `render_head_page()` — outputs the Head Scripts settings form (wraps with `settings_fields()` / `do_settings_sections()` for group `scriptomatic_head_group` / page `scriptomatic_head_page`). Also renders the secondary nonce field and calls `render_activity_log( 'head' )`.
 - `render_footer_page()` — same for the footer location.
 - `render_js_files_page()` — dispatches to `render_js_file_list_view()` (no `id` parameter) or `render_js_file_edit_view()` (when `id` query parameter is present).
-- `render_general_settings_page()` — Preferences form, group `scriptomatic_general_group` / page `scriptomatic_general_page`.
+- `render_general_settings_page()` — Preferences form, group `scriptomatic_general_group` / page `scriptomatic_general_page`. After `</form>`, also renders `render_pref_history_section()` (Preferences Action History) from `trait-notifications.php`.
 
 **Private view helpers:**
 
@@ -380,7 +385,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
   - `scriptomatic-admin` → `assets/admin.css`
   - `scriptomatic-admin-js` → `assets/admin.js`
 - On Head Scripts, Footer Scripts, and JS Files pages, calls `wp_enqueue_code_editor( ['type' => 'text/javascript'] )` to activate the built-in WordPress CodeMirror editor. Returns `false` (and skips the editor) when the user has disabled syntax highlighting in their profile.
-- Calls `wp_localize_script()` with a `scriptomaticData` object containing: `ajaxUrl`, `rollbackNonce`, `filesNonce`, `maxLength`, `maxUploadSize`, `location`, `codeEditorSettings`, `i18n`.
+- Calls `wp_localize_script()` with a `scriptomaticData` object containing: `ajaxUrl`, `rollbackNonce`, `filesNonce`, `prefHistoryNonce`, `maxLength`, `maxUploadSize`, `location`, `codeEditorSettings`, `i18n`.
 
 ---
 
@@ -393,7 +398,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
 
 Output format:
 ```html
-<!-- Scriptomatic v3.0.0 (head) -->
+<!-- Scriptomatic v3.1.0 (head) -->
 <script src="https://example.com/script.js"></script>
 <script src="/wp-content/uploads/scriptomatic/my-tracker.js"></script>
 <script>
@@ -459,8 +464,10 @@ Houses all REST API concerns: route registration, the permission callback (inclu
 
 `api_permission_callback()` — runs before every REST callback:
 
-1. **IP allowlist check** (`api_check_ip_allowlist()`): reads `api_allowed_ips` from plugin settings. If non-empty, parses each newline-separated entry (IPv4, IPv6, or IPv4 CIDR) and checks the request IP. Returns `WP_Error( 'rest_ip_forbidden', ..., 403 )` immediately on mismatch. The `api_ip_in_cidr()` helper handles CIDR prefix matching.
-2. **Capability check**: verifies `current_user_can( 'manage_options' )`. Returns `WP_Error( 'rest_forbidden', ..., 403 )` on failure.
+1. **API enabled check**: reads `api_enabled` from plugin settings. If `false`, returns `WP_Error( 'rest_api_disabled', ..., 503 )` immediately.
+2. **Allowed users check**: reads `api_allowed_users` from plugin settings. If the array is non-empty, checks whether `get_current_user_id()` is in the list. Returns `WP_Error( 'rest_user_forbidden', ..., 403 )` on mismatch.
+3. **IP allowlist check** (`api_check_ip_allowlist()`): reads `api_allowed_ips` from plugin settings. If non-empty, parses each newline-separated entry (IPv4, IPv6, or IPv4 CIDR) and checks the request IP. Returns `WP_Error( 'rest_ip_forbidden', ..., 403 )` immediately on mismatch. The `api_ip_in_cidr()` helper handles CIDR prefix matching.
+4. **Capability check**: verifies `current_user_can( 'manage_options' )`. Returns `WP_Error( 'rest_forbidden', ..., 403 )` on failure.
 
 **Authentication**: WordPress Application Passwords only — `Authorization: Basic base64(username:app-password)`. No custom API key storage; no credentials in URLs.
 
@@ -485,6 +492,29 @@ All write commands — whether from the REST API or WP-CLI — call these public
 **Protected helper:**
 
 `api_validate_script_content( $content )` — mirrors the `sanitize_script_for()` pipeline but returns structured `WP_Error` instead of calling `add_settings_error()`. Checks string type, strips null bytes, validates UTF-8, rejects control characters and PHP tags, strips `<script>` tags, enforces `SCRIPTOMATIC_MAX_SCRIPT_LENGTH`, then calls `check_js_structure()` to validate bracket pairing, string closure, and comment closure.
+
+---
+
+### `trait-notifications.php`
+
+**Trait name:** `Scriptomatic_Notifications`
+
+Email notifications, per-admin opt-in user meta, and the Preferences Action History panel.
+
+**Profile page hooks:**
+
+- `render_notification_profile_field( WP_User $user )` — outputs a **Scriptomatic Email Notifications** checkbox on the WordPress profile page (`show_user_profile` / `edit_user_profile`). Hidden entirely for non-administrator accounts. Reads user meta key `scriptomatic_notifications`.
+- `save_notification_profile_field( $user_id )` — saves user meta `scriptomatic_notifications` as `'1'` (checked) or `'0'` (unchecked). Registered on `personal_options_update` and `edit_user_profile_update`. Guards against non-administrator users and users who lack `edit_user` capability for the target.
+
+**Notification dispatch:**
+
+- `maybe_send_notifications( array $event )` — called from every write path after a successful save/rollback/delete. `$event` shape: `{ action, location, detail }`. Collects all administrators with user meta `scriptomatic_notifications = '1'`. Deduplicates the actor and the site admin address to avoid duplicate emails. Sends a plain-text email via `wp_mail()` per opted-in recipient. Silently returns if there are no opted-in recipients.
+
+**Preferences Action History:**
+
+- `render_pref_history_section()` — outputs the `#sm-pref-history-section` div on the Preferences page (appended below the `</form>` tag). Contains a read-only activity log table: last 100 entries, paginated 20 per page. Includes a hidden nonce input `#sm-pref-history-nonce` and `data-total-pages` attribute for the JS pagination controller.
+- `render_pref_history_rows( array $log )` — renders `<tr>` rows for one page's worth of log entries. Columns: Date/Time, User, Action, Location/File, Detail. No View or Restore buttons (audit trail only).
+- `ajax_pref_history()` — registered on `wp_ajax_scriptomatic_pref_history`. Validates the nonce against `SCRIPTOMATIC_GENERAL_NONCE` and verifies `manage_options`. Queries the activity log for the requested page (20 per page, max 100 entries). Returns `{ rows: (HTML string), total_pages: int, page: int }` as JSON.
 
 ---
 
@@ -528,11 +558,16 @@ Loaded only when `WP_CLI` is defined (bootstrapped in `scriptomatic.php`). Regis
 | `wp_head` | **999** | `inject_head_scripts()` | injector |
 | `wp_footer` | **999** | `inject_footer_scripts()` | injector |
 | `plugin_action_links_{basename}` | default | `add_action_links()` | pages |
+| `show_user_profile` | default | `render_notification_profile_field()` | notifications |
+| `edit_user_profile` | default | `render_notification_profile_field()` | notifications |
+| `personal_options_update` | default | `save_notification_profile_field()` | notifications |
+| `edit_user_profile_update` | default | `save_notification_profile_field()` | notifications |
 | `wp_ajax_scriptomatic_rollback` | default | `ajax_rollback()` | history |
 | `wp_ajax_scriptomatic_get_history_content` | default | `ajax_get_history_content()` | history |
 | `wp_ajax_scriptomatic_rollback_js_file` | default | `ajax_rollback_js_file()` | history |
 | `wp_ajax_scriptomatic_get_file_activity_content` | default | `ajax_get_file_activity_content()` | history |
 | `wp_ajax_scriptomatic_restore_deleted_file` | default | `ajax_restore_deleted_file()` | history |
+| `wp_ajax_scriptomatic_pref_history` | default | `ajax_pref_history()` | notifications |
 | `wp_ajax_scriptomatic_delete_js_file` | default | `ajax_delete_js_file()` | files |
 | `admin_post_scriptomatic_save_js_file` | default | `handle_save_js_file()` | files |
 | `rest_api_init` | default | `register_rest_routes()` | api |
@@ -753,6 +788,7 @@ Localized via `wp_localize_script()` as `scriptomaticData`:
   ajaxUrl:            "...",
   rollbackNonce:      "...",   // SCRIPTOMATIC_ROLLBACK_NONCE
   filesNonce:         "...",   // SCRIPTOMATIC_FILES_NONCE
+  prefHistoryNonce:   "...",   // SCRIPTOMATIC_GENERAL_NONCE (Preferences History AJAX)
   maxLength:          100000,
   maxUploadSize:      ...,
   location:           "head",  // or "footer" or "files"
@@ -765,7 +801,8 @@ Responsibilities:
 - Live character counter: updates on `input` events, changes CSS class at 75% and 90% thresholds.
 - URL manager: add/remove URL chicklet entries; per-entry conditions sub-panel; encode the full entry list as JSON into the hidden `<input>` before form submit.
 - Stacked conditions widget: `initConditions()` manages rule-card add/remove, logic toggle, and JSON sync (`syncJson()`).
-- Activity log: View button fires a `get_*_content` AJAX call and opens a lightbox. Restore button fires the corresponding `restore_*` or `rollback` AJAX call and updates the editor/form in place.
+- Activity log: View button fires a `get_*_content` AJAX call and opens a lightbox. Restore button fires the corresponding `restore_*` or `rollback` AJAX call and updates the editor/form in place. The lightbox `×` close button sets the `hidden` attribute (overrides WP admin CSS); open paths clear it.
+- Preferences Action History: Prev/Next pagination buttons fire `scriptomatic_pref_history` AJAX calls; page counter and opacity loading state updated on each response.
 
 ---
 
@@ -775,7 +812,7 @@ Uninstall cleanup is handled via the Freemius SDK `after_uninstall` action regis
 
 Three cleanup functions are registered on the hook:
 
-- **`scriptomatic_fs_uninstall_cleanup()`** — reads `scriptomatic_plugin_settings` to check `keep_data_on_uninstall`. If `true`, returns immediately (data preserved). Otherwise, calls `delete_option()` for every option key on the current site. On multisite, iterates every blog via `switch_to_blog()` / `restore_current_blog()` and deletes per-site options.
+- **`scriptomatic_fs_uninstall_cleanup()`** — reads `scriptomatic_plugin_settings` to check `keep_data_on_uninstall`. If `true`, returns immediately (data preserved). Otherwise, calls `delete_metadata( 'user', 0, 'scriptomatic_notifications', '', true )` to remove notification opt-in preferences from all users, then calls `delete_option()` for every option key on the current site. On multisite, iterates every blog via `switch_to_blog()` / `restore_current_blog()` and deletes per-site options.
 - **`scriptomatic_drop_log_table()`** — drops the custom log table using `$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) )`.
 - **`scriptomatic_delete_uploads_dir()`** — removes `wp-content/uploads/scriptomatic/` via `WP_Filesystem()->rmdir( $dir, true )`.
 
@@ -847,7 +884,7 @@ add_action( 'wp_head', function() {
 The codebase uses `'head'` and `'footer'` as string identifiers throughout. To add a third location (e.g. `'after_header'`):
 
 1. Define new `SCRIPTOMATIC_{LOCATION}_*` constants in `scriptomatic.php`.
-2. Add the new option to the cleanup list in `uninstall.php`.
+2. Add the new option to the cleanup list in `includes/freemius-init.php` (`scriptomatic_fs_uninstall_cleanup()`).
 3. Add public sanitise callbacks + `register_setting()` calls in `trait-sanitizer.php` and `trait-settings.php`.
 4. Add a sub-page in `trait-menus.php` and a page renderer in `trait-pages.php`.
 5. Add a new action hook and injection method to `trait-injector.php`.
@@ -877,4 +914,4 @@ $wpdb->insert(
 
 ---
 
-*Document version: 3.0.0 — reflects the codebase as of March 2026.*
+*Document version: 3.1.0 — reflects the codebase as of March 2026.*

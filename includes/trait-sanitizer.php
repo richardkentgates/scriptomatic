@@ -447,6 +447,11 @@ trait Scriptomatic_Sanitizer {
         // =========================================================
         $this->log_location_save( $location, $previous, $script, $conditions, $urls );
         $this->record_save_timestamp( $location );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'Script saved', 'scriptomatic' ),
+            'location' => ucfirst( $location ),
+            'detail'   => number_format( strlen( $script ) ) . ' chars',
+        ) );
 
         add_settings_error( $error_slug, 'settings_saved',
             __( 'Settings saved.', 'scriptomatic' ), 'updated' );

@@ -10,7 +10,8 @@ We provide security updates for the following versions:
 
 | Version | Supported          | Status        |
 | ------- | ------------------ | ------------- |
-| 3.0.x   | :white_check_mark: | Active Support |
+| 3.1.x   | :white_check_mark: | Active Support |
+| 3.0.x   | :x:                | End of Life    |
 
 ## Security Features
 
@@ -155,7 +156,7 @@ We classify vulnerabilities using the following severity levels:
 2. **Two-Factor Authentication**: Enable 2FA on all admin accounts
 3. **Limited Access**: Only give `manage_options` capability to trusted users
 4. **Regular Audits**: Review scripts regularly for unauthorized changes
-5. **Monitoring**: Review the Activity Log (bottom of the Head Scripts, Footer Scripts, and JS Files pages) for unexpected script changes; check server error logs for other security events
+5. **Monitoring**: Review the Activity Log (bottom of the Head Scripts, Footer Scripts, and JS Files pages) for unexpected script changes; use the **Preferences Action History** panel (bottom of the Preferences page) for a site-wide audit view; check server error logs for other security events
 6. **Updates**: Keep WordPress, themes, and plugins updated
 7. **Backups**: Maintain regular backups before making script changes
 
@@ -211,7 +212,7 @@ We appreciate responsible security researchers who help keep Scriptomatic secure
 
 ---
 
-**Last Updated**: March 2, 2026
-**Version**: 3.0.0
+**Last Updated**: March 10, 2026
+**Version**: 3.1.0
 
 Thank you for helping keep Scriptomatic secure!

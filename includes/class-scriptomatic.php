@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-menus.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-sanitizer.php';
+require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-notifications.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-history.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-settings.php';
 require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-renderer.php';
@@ -60,6 +61,7 @@ class Scriptomatic {
     use Scriptomatic_Injector;
     use Scriptomatic_Files;
     use Scriptomatic_API;
+    use Scriptomatic_Notifications;
 
     // =========================================================================
     // SINGLETON
@@ -117,6 +119,15 @@ class Scriptomatic {
         add_action( 'admin_init',             array( $this, 'register_settings' ) );
         add_action( 'wp_enqueue_scripts',     array( $this, 'enqueue_frontend_scripts' ), 999 );
         add_action( 'admin_enqueue_scripts',  array( $this, 'enqueue_admin_scripts' ) );
+
+        // Notification opt-in on admin profile pages.
+        add_action( 'show_user_profile',        array( $this, 'render_notification_profile_field' ) );
+        add_action( 'edit_user_profile',        array( $this, 'render_notification_profile_field' ) );
+        add_action( 'personal_options_update',  array( $this, 'save_notification_profile_field' ) );
+        add_action( 'edit_user_profile_update', array( $this, 'save_notification_profile_field' ) );
+
+        // AJAX: Preferences action history pagination.
+        add_action( 'wp_ajax_scriptomatic_pref_history', array( $this, 'ajax_pref_history' ) );
         add_filter(
             'plugin_action_links_' . plugin_basename( SCRIPTOMATIC_PLUGIN_FILE ),
             array( $this, 'add_action_links' )

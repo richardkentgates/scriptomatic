@@ -76,6 +76,8 @@ trait Scriptomatic_Settings {
                 'max_log_entries'        => SCRIPTOMATIC_MAX_LOG_ENTRIES,
                 'keep_data_on_uninstall' => false,
                 'api_allowed_ips'        => '',
+                'api_enabled'            => true,
+                'api_allowed_users'      => array(),
             ),
         ) );
 
@@ -85,10 +87,14 @@ trait Scriptomatic_Settings {
         add_settings_field( 'scriptomatic_keep_data', __( 'Data on Uninstall', 'scriptomatic' ),
             array( $this, 'render_keep_data_field' ), 'scriptomatic_general_page', 'sm_advanced' );
 
-        // API IP allowlist: Pro feature.
+        // API fields: Pro feature.
         if ( scriptomatic_is_premium() ) {
+            add_settings_field( 'scriptomatic_api_enabled', __( 'REST API', 'scriptomatic' ),
+                array( $this, 'render_api_enabled_field' ), 'scriptomatic_general_page', 'sm_advanced' );
             add_settings_field( 'scriptomatic_api_allowed_ips', __( 'API Allowed IPs', 'scriptomatic' ),
                 array( $this, 'render_api_allowed_ips_field' ), 'scriptomatic_general_page', 'sm_advanced' );
+            add_settings_field( 'scriptomatic_api_allowed_users', __( 'API Allowed Users', 'scriptomatic' ),
+                array( $this, 'render_api_allowed_users_field' ), 'scriptomatic_general_page', 'sm_advanced' );
         }
     }
 
@@ -198,6 +204,8 @@ trait Scriptomatic_Settings {
             'max_log_entries'        => SCRIPTOMATIC_MAX_LOG_ENTRIES,
             'keep_data_on_uninstall' => false,
             'api_allowed_ips'        => '',
+            'api_enabled'            => true,
+            'api_allowed_users'      => array(),
         );
         $saved = get_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, false );
         return wp_parse_args( is_array( $saved ) ? $saved : array(), $defaults );
@@ -282,6 +290,23 @@ trait Scriptomatic_Settings {
             }
         }
         $clean['api_allowed_ips'] = implode( "\n", $clean_ips );
+
+        // api_enabled: boolean (Pro feature; defaults true so existing installs are unaffected).
+        $clean['api_enabled'] = isset( $input['api_enabled'] ) ? (bool) $input['api_enabled'] : true;
+
+        // api_allowed_users: array of valid admin user IDs.
+        $raw_users   = isset( $input['api_allowed_users'] ) ? (array) $input['api_allowed_users'] : array();
+        $clean_users = array();
+        foreach ( $raw_users as $uid ) {
+            $uid = absint( $uid );
+            if ( $uid > 0 ) {
+                $u = get_userdata( $uid );
+                if ( $u && user_can( $u, 'manage_options' ) ) {
+                    $clean_users[] = $uid;
+                }
+            }
+        }
+        $clean['api_allowed_users'] = array_values( array_unique( $clean_users ) );
 
         add_settings_error(
             SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION,

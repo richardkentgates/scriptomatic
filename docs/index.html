@@ -483,7 +483,7 @@
 <!-- HERO -->
 <section class="hero">
   <img src="scriptomatic-logo.png" alt="Scriptomatic — WordPress JavaScript injection plugin" class="hero-logo" />
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v3.0.0 &nbsp;·&nbsp; Free + Pro</div>
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v3.1.0 &nbsp;·&nbsp; Free + Pro</div>
   <h1>Inject custom JavaScript<br/><span>into any WordPress site.</span></h1>
   <p>The <strong>free Scriptomatic plugin</strong> gives every WordPress site a full inline script editor, external URL manager, revision history, and activity log. <strong>Scriptomatic Pro</strong> adds conditional loading, managed JS files, a full REST API, and WP-CLI. Add Google Analytics, Tag Manager, Meta Pixel, or any custom JavaScript safely into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer — with auditability and rollback built in.</p>
   <div class="hero-actions">
@@ -577,19 +577,31 @@
       <div class="feature-card">
         <div class="feature-icon icon-purple">🏗️</div>
         <h3>Modular Architecture</h3>
-        <p>Nine focused PHP traits — including dedicated traits for file management, injection, sanitization, and enqueuing — in separate files for clean separation of concerns.</p>
+        <p>Ten focused PHP traits — including dedicated traits for file management, injection, sanitization, notifications, and enqueuing — in separate files for clean separation of concerns.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon icon-blue">🔌</div>
         <h3>REST API <span class="pro-badge">Pro</span></h3>
-        <p>Full <code>scriptomatic/v1</code> REST API (13 POST endpoints) covering inline scripts, external URLs, and managed JS files — including a multipart file upload endpoint. Authenticated via WordPress Application Passwords. Optional IP allowlist in Preferences.</p>
+        <p>Full <code>scriptomatic/v1</code> REST API (13 POST endpoints) covering inline scripts, external URLs, and managed JS files &mdash; including a multipart file upload endpoint. Authenticated via WordPress Application Passwords. Optional IP allowlist, API enable/disable toggle, and per-user access controls in Preferences.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon icon-green">💻</div>
         <h3>WP-CLI <span class="pro-badge">Pro</span></h3>
-        <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), and history. All commands share the same service layer as the REST API — identical validation, rate-limiting, and activity logging.</p>
+        <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), and history. All commands share the same service layer as the REST API &mdash; identical validation, rate-limiting, and activity logging.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-amber">📧</div>
+        <h3>Email Notifications <span class="pro-badge">Pro</span></h3>
+        <p>Administrators opt in via their WordPress profile page to receive a plain-text email on every script save, rollback, URL change, file event, and restore &mdash; keeping the whole team aware of changes in real time.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon icon-purple">🔐</div>
+        <h3>API Access Controls <span class="pro-badge">Pro</span></h3>
+        <p>Three independent API controls in Preferences: an <strong>enable/disable</strong> toggle (503 when off), an <strong>IP Allowlist</strong> (403 for unlisted addresses), and an <strong>Allowed Users</strong> list (403 for unlisted administrators). Stack as many or as few as needed.</p>
       </div>
 
     </div>
@@ -789,7 +801,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
         <div class="security-icon">🌐</div>
         <div>
           <h4>REST API Security</h4>
-          <p>All 13 REST endpoints are POST-only. Authentication exclusively via WordPress Application Passwords (<code>Authorization: Basic</code> header — credentials never in the URL). An optional <strong>IP Allowlist</strong> in Preferences blocks requests from outside a set of IPv4/IPv6 addresses or CIDR ranges before the capability gate is even reached (<code>403 rest_ip_forbidden</code>). Rate limiting and activity logging apply equally to REST and admin UI operations through the shared service layer.</p>
+          <p>All 13 REST endpoints are POST-only. Authentication exclusively via WordPress Application Passwords (<code>Authorization: Basic</code> header &mdash; credentials never in the URL). Three independent access controls in Preferences: an <strong>Enable / Disable</strong> toggle (returns <code>503 rest_api_disabled</code> when off), an optional <strong>IP Allowlist</strong> that blocks requests from unlisted IPv4/IPv6/CIDR addresses (<code>403 rest_ip_forbidden</code>), and an <strong>Allowed Users</strong> list that restricts access to specific administrator accounts (<code>403 rest_user_forbidden</code>). Rate limiting and activity logging apply equally to REST and admin UI operations through the shared service layer.</p>
         </div>
       </div>
 
@@ -832,7 +844,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
           <tr>
             <td>Preferences</td>
             <td>Scriptomatic → Preferences</td>
-            <td>Activity log limit (3–1000), uninstall data-retention toggle, API Allowed IPs <span class="pro-badge">Pro</span> (IPv4/IPv6/CIDR allowlist for REST API access)</td>
+            <td>Activity log limit (3–1000), uninstall data-retention toggle, <strong>API Enable / Disable</strong> <span class="pro-badge">Pro</span>, <strong>API Allowed IPs</strong> <span class="pro-badge">Pro</span> (IPv4/IPv6/CIDR), <strong>API Allowed Users</strong> <span class="pro-badge">Pro</span>, and a read-only <strong>Preferences Action History</strong> panel (last 100 entries, AJAX paginated)</td>
           </tr>
         </tbody>
       </table>
@@ -857,8 +869,13 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
     </div>
 
     <div class="highlight-box" style="margin-bottom:2rem;">
-      <h4>IP Allowlist</h4>
-      <p>Optionally restrict REST API access to specific IP addresses or CIDR ranges in <strong>Preferences → API Allowed IPs</strong>. Leave empty to allow all IPs. Blocked requests receive <code>403 rest_ip_forbidden</code>. Does not affect the WordPress admin interface.</p>
+      <h4>API Access Controls</h4>
+      <p>Three independent Pro controls in <strong>Preferences</strong> let you lock down REST API access:</p>
+      <ul style="margin:.5rem 0 0 1.25rem;">
+        <li><strong>API Enable / Disable</strong> &mdash; uncheck to disable the REST API site-wide. Returns <code>503 rest_api_disabled</code>.</li>
+        <li><strong>API Allowed IPs</strong> &mdash; restrict to specific IPv4/IPv6 addresses or CIDR ranges (one per line). Leave empty to allow all IPs. Returns <code>403 rest_ip_forbidden</code>.</li>
+        <li><strong>API Allowed Users</strong> &mdash; restrict to named administrator accounts. Leave all unchecked to allow any administrator. Returns <code>403 rest_user_forbidden</code>.</li>
+      </ul>
     </div>
 
     <div class="table-wrap">
@@ -1086,6 +1103,9 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
           <tr><td><strong>REST API</strong> (13 endpoints)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>WP-CLI</strong> (<code>wp scriptomatic</code>)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>API IP Allowlist</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td><strong>API Enable / Disable</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td><strong>API Allowed Users</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td><strong>Email Notifications</strong> (opt-in per admin)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -1098,6 +1118,14 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <span class="section-label">Release History</span>
     <h2>Changelog</h2>
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
+
+    <div class="changelog-item">
+      <div class="clog-version" style="background:#16a34a;">v3.1.0</div>
+      <div class="clog-body">
+        <h4>Email notifications, API access controls, Preferences Action History, lightbox fix</h4>
+        <p>Administrators can now <strong>opt in to email notifications</strong> (via their WordPress profile page) to receive a plain-text email on every script save, rollback, URL change, file save/delete, and restore event. Three new <strong>API access controls</strong> in Preferences: an <strong>Enable / Disable</strong> toggle (HTTP 503 when off), an <strong>Allowed Users</strong> list (HTTP 403 for unlisted administrators), and the existing <strong>IP Allowlist</strong> &mdash; all three are independent and stackable. A new <strong>Preferences Action History</strong> panel appears below the Preferences form, showing the last 100 activity log entries paginated 20/page with AJAX Prev/Next navigation (read-only, no Restore buttons). Bug fix: the lightbox <strong>&times; close button</strong> was visible when the panel was closed; resolved by adding the <code>hidden</code> HTML attribute on render and a CSS <code>[hidden] { display:none !important }</code> override.</p>
+      </div>
+    </div>
 
     <div class="changelog-item">
       <div class="clog-version" style="background:#7c3aed;">v3.0.0</div>
@@ -1377,7 +1405,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <a href="https://richardkentgates.com/scriptomatic" style="color:#e9d5ff;">⭐ Upgrade to Pro</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v3.0.0 &nbsp;·&nbsp; Free &amp; Pro &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v3.1.0 &nbsp;·&nbsp; Free &amp; Pro &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>

@@ -529,6 +529,7 @@ jQuery( document ).ready( function ( $ ) {
     if ( $lightbox.length ) {
         function closeLightbox() {
             $lightbox.removeClass( 'is-open' );
+            $lightbox.prop( 'hidden', true );
             $( 'body' ).css( 'overflow', '' );
         }
 
@@ -568,6 +569,7 @@ jQuery( document ).ready( function ( $ ) {
                     } else {
                         $pre.text( i18n.emptyScript || '(empty)' ).addClass( 'sm-history-lightbox__empty' );
                     }
+                    $lightbox.prop( 'hidden', false );
                     $lightbox.addClass( 'is-open' );
                     $( 'body' ).css( 'overflow', 'hidden' );
                 } else {
@@ -707,6 +709,7 @@ jQuery( document ).ready( function ( $ ) {
                     } else {
                         $pre.text( i18n.emptyScript || '(empty)' ).addClass( 'sm-history-lightbox__empty' );
                     }
+                    $lightbox.prop( 'hidden', false );
                     $lightbox.addClass( 'is-open' );
                     $( 'body' ).css( 'overflow', 'hidden' );
                 } else {
@@ -746,6 +749,7 @@ jQuery( document ).ready( function ( $ ) {
                     } else {
                         $pre.text( i18n.emptyScript || '(empty)' ).addClass( 'sm-history-lightbox__empty' );
                     }
+                    $lightbox.prop( 'hidden', false );
                     $lightbox.addClass( 'is-open' );
                     $( 'body' ).css( 'overflow', 'hidden' );
                 } else {
@@ -829,5 +833,55 @@ jQuery( document ).ready( function ( $ ) {
         } );
 
     } /* end loc === 'files' */
+
+    /* =========================================================================
+     * 6.  Preferences — Action History pagination
+     * ====================================================================== */
+    ( function () {
+        var $section = $( '#sm-pref-history-section' );
+        if ( ! $section.length ) { return; }
+
+        var currentPage  = 1;
+        var totalPages   = parseInt( $section.data( 'total-pages' ) || 1, 10 );
+        var $tbody       = $section.find( '#sm-pref-history-tbody' );
+        var $prevBtn     = $section.find( '.sm-pref-history-prev' );
+        var $nextBtn     = $section.find( '.sm-pref-history-next' );
+        var nonce        = $( '#sm-pref-history-nonce' ).val() || ( data && data.prefHistoryNonce ) || '';
+
+        function updateButtons() {
+            $prevBtn.prop( 'disabled', currentPage <= 1 );
+            $nextBtn.prop( 'disabled', currentPage >= totalPages );
+            $section.find( '.sm-pref-history-current-page' ).text( currentPage );
+            $section.find( '.sm-pref-history-total-pages' ).text( totalPages );
+        }
+
+        function loadPage( page ) {
+            $tbody.css( 'opacity', '0.5' );
+            $.post( data.ajaxUrl, {
+                action: 'scriptomatic_pref_history',
+                nonce:  nonce,
+                page:   page
+            }, function ( response ) {
+                $tbody.css( 'opacity', '' );
+                if ( response.success ) {
+                    currentPage = response.data.page;
+                    totalPages  = response.data.total_pages;
+                    $tbody.html( response.data.rows );
+                    updateButtons();
+                }
+            } ).fail( function () {
+                $tbody.css( 'opacity', '' );
+            } );
+        }
+
+        $prevBtn.on( 'click', function () {
+            if ( currentPage > 1 ) { loadPage( currentPage - 1 ); }
+        } );
+        $nextBtn.on( 'click', function () {
+            if ( currentPage < totalPages ) { loadPage( currentPage + 1 ); }
+        } );
+
+        updateButtons();
+    }() );
 
 } );  /* end document.ready */

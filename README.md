@@ -29,6 +29,10 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 | **REST API** (`scriptomatic/v1`, 13 endpoints) | ❌ | ✅ |
 | **WP-CLI** (`wp scriptomatic`) | ❌ | ✅ |
 | **API IP Allowlist** (IPv4/IPv6/CIDR) | ❌ | ✅ |
+| **API Enable / Disable** | ❌ | ✅ |
+| **API Allowed Users** (restrict by admin account) | ❌ | ✅ |
+| **Email Notifications** (opt-in per admin profile) | ❌ | ✅ |
+| **Preferences Action History** (read-only, paginated) | ✅ | ✅ |
 
 <p align="center">
   <a href="https://checkout.freemius.com/mode/dialog/plugin/25187/plan/"><strong>⭐ Upgrade to Scriptomatic Pro →</strong></a>
@@ -57,7 +61,10 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **🗂️ Managed JS Files**: Create, edit, upload, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`; each file has its own Head/Footer selector, load conditions, and CodeMirror editor; files survive plugin updates
 - **🔌 REST API**: Full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Thirteen endpoints cover inline scripts, external URL lists, and managed JS files — including a multipart file upload endpoint
 - **🛡️ API IP Allowlist**: Restrict REST API access to specific IPv4/IPv6 addresses or CIDR ranges from the Preferences page
-- **💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), and history. All commands share the same service layer as the REST API.
+- **� API Enable / Disable**: Toggle REST API access site-wide from Preferences; returns HTTP 503 when disabled
+- **👤 API Allowed Users**: Restrict REST API access to named administrator accounts from Preferences; returns HTTP 403 for unlisted callers
+- **📬 Email Notifications**: Per-admin opt-in (via WordPress profile page) sends a plain-text email for every script save, rollback, URL change, file save/delete, and restore event
+- **�💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), and history. All commands share the same service layer as the REST API.
 - **📤 JS File Upload**: Upload a local `.js` file from the **JS Files list page**, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`
 
 
@@ -83,7 +90,7 @@ scriptomatic/
 └── includes/
     ├── freemius-init.php         # Freemius SDK bootstrap; scriptomatic_fs() + scriptomatic_is_premium()
     │                             #   helpers; uninstall cleanup hooked to Freemius after_uninstall
-    ├── class-scriptomatic.php    # Singleton class — uses all nine traits, registers hooks
+    ├── class-scriptomatic.php    # Singleton class — uses all ten traits, registers hooks
     ├── class-scriptomatic-cli.php# WP-CLI command class (loaded only when WP_CLI is defined) [Pro]
     ├── trait-menus.php           # Admin menu & submenu registration; help-tab hooks
     ├── trait-sanitizer.php       # Input validation and sanitisation
@@ -94,7 +101,8 @@ scriptomatic/
     ├── trait-enqueue.php         # Admin-asset enqueuing
     ├── trait-injector.php        # Front-end HTML injection
     ├── trait-files.php           # Managed JS files: CRUD, disk I/O, save + delete handlers [Pro]
-    └── trait-api.php             # REST API route registration, permission callbacks, service layer [Pro]
+    ├── trait-api.php             # REST API route registration, permission callbacks, service layer [Pro]
+    └── trait-notifications.php   # Email notifications, per-admin opt-in, Preferences Action History
 ```
 
 All traits are `use`d by `class Scriptomatic`, so cross-trait `$this->method()` calls work correctly.
@@ -141,7 +149,7 @@ Then activate via WordPress admin.
 | Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>`; includes Activity Log |
 | Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>`; includes Activity Log |
 | JS Files _(Pro)_ | Scriptomatic → JS Files | Create, edit, and delete managed `.js` files; each file has its own Head/Footer toggle, load conditions, and CodeMirror editor; list view and edit view each include an Activity Log panel |
-| Preferences | Scriptomatic → Preferences | Activity log limit (3–1000), uninstall data retention, API Allowed IPs _(Pro)_ (IPv4/IPv6/CIDR allowlist for REST API) |
+| Preferences | Scriptomatic → Preferences | Activity log limit (3–1000), uninstall data retention, API Allowed IPs _(Pro)_, API Enable/Disable _(Pro)_, API Allowed Users _(Pro)_, email notification opt-ins (per profile), and a read-only **Preferences Action History** (last 100 entries, 20/page, AJAX pagination) |
 
 ### Important Notes
 
@@ -205,7 +213,10 @@ All endpoints are `POST`. Authentication uses **WordPress Application Passwords*
 
 > **Pro feature.** REST API access requires an active Scriptomatic Pro licence. A 3-day free trial is available (credit card or PayPal required).
 
-An optional **API Allowed IPs** allowlist _(Pro)_ in **Preferences** restricts REST access to specific IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges (one per line). Leave empty to allow all IPs. Blocked requests receive `403 rest_ip_forbidden`.
+**API Controls** _(Pro)_ in **Preferences**:
+- **API Enable / Disable** — uncheck to disable the REST API site-wide; blocked requests receive `503 rest_api_disabled`.
+- **API Allowed IPs** — restrict access to specific IPv4 addresses, IPv6 addresses, or IPv4 CIDR ranges (one per line). Leave empty to allow all IPs. Blocked requests receive `403 rest_ip_forbidden`.
+- **API Allowed Users** — restrict access to named administrator accounts. Callers not on the list receive `403 rest_user_forbidden`. Leave all boxes unchecked to allow any administrator.
 
 | Endpoint | Required params | Optional params | Description |
 |---|---|---|---|
@@ -336,6 +347,7 @@ Scriptomatic is built with security as a top priority:
 - No IP addresses collected (intentional privacy decision)
 - Log limit is configurable (3–1000, default 200 entries); oldest entries are discarded automatically once the cap is reached
 - Helps track changes and detect unauthorised modification
+- **Email Notifications** _(Pro)_: administrators can opt in (via their WordPress profile page) to receive a plain-text email every time any script, URL, file, or rollback event is written to the Activity Log
 
 ### Output Security
 - Proper escaping of all admin interface text

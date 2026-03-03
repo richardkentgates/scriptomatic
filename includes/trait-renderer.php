@@ -864,6 +864,89 @@ trait Scriptomatic_Renderer {
         <?php
     }
 
+    /**
+     * Render the REST API enable/disable checkbox field.
+     *
+     * When unchecked every REST API route returns 503 regardless of IP or
+     * user restrictions. Free users never see this field because the routes
+     * are not registered on the free tier.
+     *
+     * @since  3.1.0
+     */
+    public function render_api_enabled_field() {
+        $settings = $this->get_plugin_settings();
+        $enabled  = isset( $settings['api_enabled'] ) ? (bool) $settings['api_enabled'] : true;
+        ?>
+        <label for="scriptomatic_api_enabled">
+            <input
+                type="checkbox"
+                id="scriptomatic_api_enabled"
+                name="<?php echo esc_attr( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ); ?>[api_enabled]"
+                value="1"
+                <?php checked( $enabled, true ); ?>
+                aria-describedby="api-enabled-description"
+            >
+            <?php esc_html_e( 'Enable the Scriptomatic REST API.', 'scriptomatic' ); ?>
+        </label>
+        <p id="api-enabled-description" class="description">
+            <?php esc_html_e( 'When unchecked, all REST API routes return a 503 response. The WordPress admin interface is unaffected.', 'scriptomatic' ); ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Render the API Allowed Users checklist field.
+     *
+     * Shows all users with the manage_options capability as checkboxes.
+     * When no users are checked, any authenticated administrator may use
+     * the API. Selecting specific users restricts API access to those
+     * users only (in addition to any IP restrictions that apply).
+     *
+     * @since  3.1.0
+     */
+    public function render_api_allowed_users_field() {
+        $settings      = $this->get_plugin_settings();
+        $allowed_users = isset( $settings['api_allowed_users'] ) && is_array( $settings['api_allowed_users'] )
+            ? array_map( 'absint', $settings['api_allowed_users'] )
+            : array();
+
+        $admin_users = get_users( array(
+            'role'    => 'administrator',
+            'orderby' => 'display_name',
+            'order'   => 'ASC',
+            'fields'  => array( 'ID', 'display_name', 'user_login' ),
+        ) );
+
+        if ( empty( $admin_users ) ) {
+            echo '<p class="description">' . esc_html__( 'No administrator accounts found.', 'scriptomatic' ) . '</p>';
+            return;
+        }
+        ?>
+        <fieldset>
+            <legend class="screen-reader-text">
+                <span><?php esc_html_e( 'API Allowed Users', 'scriptomatic' ); ?></span>
+            </legend>
+            <div class="sm-api-users-list" style="max-height:180px;overflow-y:auto;border:1px solid #ddd;padding:8px 12px;border-radius:3px;max-width:320px;">
+            <?php foreach ( $admin_users as $u ) : ?>
+                <label style="display:block;margin-bottom:6px;">
+                    <input
+                        type="checkbox"
+                        name="<?php echo esc_attr( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ); ?>[api_allowed_users][]"
+                        value="<?php echo absint( $u->ID ); ?>"
+                        <?php checked( in_array( absint( $u->ID ), $allowed_users, true ) ); ?>
+                    >
+                    <?php echo esc_html( $u->display_name ); ?>
+                    <span class="description">(<?php echo esc_html( $u->user_login ); ?>)</span>
+                </label>
+            <?php endforeach; ?>
+            </div>
+        </fieldset>
+        <p class="description" style="margin-top:6px;">
+            <?php esc_html_e( 'Restrict REST API access to specific administrators. Leave all unchecked to allow any administrator to use the API.', 'scriptomatic' ); ?>
+        </p>
+        <?php
+    }
+
     // =========================================================================
     // FILE CONDITIONS WIDGET
     // =========================================================================

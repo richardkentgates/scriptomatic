@@ -108,6 +108,11 @@ trait Scriptomatic_History {
             $rollback_entry['conditions_snapshot'] = $entry['conditions_snapshot'];
         }
         $this->write_activity_entry( $rollback_entry );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'Script restored', 'scriptomatic' ),
+            'location' => ucfirst( $location ),
+            'detail'   => number_format( strlen( $content ) ) . ' chars',
+        ) );
 
         wp_send_json_success( array(
             'content'  => $content,
@@ -223,6 +228,11 @@ trait Scriptomatic_History {
             'detail'     => $file_meta['label'],
             'conditions' => isset( $entry['conditions'] ) ? $entry['conditions'] : null,
             'meta'       => isset( $entry['meta'] )       ? $entry['meta']       : null,
+        ) );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'JS file restored', 'scriptomatic' ),
+            'location' => $file_meta['label'],
+            'detail'   => $file_meta['filename'],
         ) );
 
         wp_send_json_success( array(
@@ -341,6 +351,11 @@ trait Scriptomatic_History {
             'location'      => $location,
             'urls_snapshot' => $snapshot,
             'detail'        => __( 'External URLs restored from snapshot', 'scriptomatic' ),
+        ) );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'External URLs restored', 'scriptomatic' ),
+            'location' => ucfirst( $location ),
+            'detail'   => count( $snapshot ) . ' URL(s)',
         ) );
 
         wp_send_json_success( array(
@@ -615,6 +630,11 @@ trait Scriptomatic_History {
             'location' => 'file',
             'file_id'  => $file_id,
             'detail'   => $label,
+        ) );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'Deleted JS file re-created', 'scriptomatic' ),
+            'location' => $label,
+            'detail'   => $filename,
         ) );
 
         wp_send_json_success( array(
