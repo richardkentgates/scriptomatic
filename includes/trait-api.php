@@ -1335,4 +1335,177 @@ trait Scriptomatic_API {
 
         return trim( $content );
     }
+
+    // =========================================================================
+    // PREFERENCES SERVICE — CLI-only; intentionally not exposed via REST API
+    // =========================================================================
+
+    /**
+     * Return all current plugin preferences.
+     *
+     * Available to WP-CLI via `wp scriptomatic prefs get`.
+     * Deliberately has no corresponding REST route — preferences management
+     * (API keys, allowed IPs, user allow-lists) must stay out of band.
+     *
+     * @since  3.2.0
+     * @return array  Full settings array as stored in the DB.
+     */
+    public function service_get_prefs() {
+        return $this->get_plugin_settings();
+    }
+
+    /**
+     * Return paginated rows from the preferences change history log.
+     *
+     * Available to WP-CLI via `wp scriptomatic prefs history`.
+     *
+     * @since  3.2.0
+     * @param  int $limit   Maximum rows to return (default 20).
+     * @param  int $offset  Rows to skip.
+     * @return array
+     */
+    public function service_get_prefs_log( $limit = 20, $offset = 0 ) {
+        return $this->get_prefs_log( (int) $limit, (int) $offset );
+    }
+
+    /**
+     * Validate and persist one or more plugin preferences, then log the change.
+     *
+     * Available to WP-CLI via `wp scriptomatic prefs set`.
+     * Deliberately has no corresponding REST route.
+     *
+     * Accepted keys:
+     *   max_log_entries        int    3–1000
+     *   keep_data_on_uninstall bool   true|false
+     *   save_confirm_enabled   bool   true|false
+     *   api_enabled            bool   true|false  (Pro)
+     *   api_allowed_ips        string newline-separated IPs / CIDR  (Pro)
+     *   api_allowed_users      string comma-separated logins or IDs  (Pro)
+     *
+     * @since  3.2.0
+     * @param  array $updates  Map of preference key \u2192 raw value.
+     * @return array|WP_Error  On success: { message: string, changes: int }.
+     */
+    public function service_set_prefs( array $updates ) {
+        $free_keys = array( 'max_log_entries', 'keep_data_on_uninstall', 'save_confirm_enabled' );
+        $pro_keys  = array( 'api_enabled', 'api_allowed_ips', 'api_allowed_users' );
+        $all_keys  = array_merge( $free_keys, $pro_keys );
+
+        // Reject unknown keys up front.
+        foreach ( array_keys( $updates ) as $k ) {
+            if ( ! in_array( $k, $all_keys, true ) ) {
+                return new WP_Error(
+                    'invalid_key',
+                    sprintf(
+                        /* translators: 1: unknown key, 2: comma-separated list of valid keys */
+                        __( 'Unknown preference key “%1$s”. Valid keys: %2$s.', 'scriptomatic' ),
+                        $k,
+                        implode( ', ', $all_keys )
+                    )
+                );
+            }
+            if ( in_array( $k, $pro_keys, true ) && ! scriptomatic_is_premium() ) {
+                return new WP_Error(
+                    'pro_required',
+                    sprintf(
+                        /* translators: %s: preference key name */
+                        __( 'The “%s” preference requires a Pro licence.', 'scriptomatic' ),
+                        $k
+                    )
+                );
+            }
+        }
+
+        $current = $this->get_plugin_settings();
+        $clean   = $current;
+
+        if ( array_key_exists( 'max_log_entries', $updates ) ) {
+            $v = (int) $updates['max_log_entries'];
+            if ( $v < 3 || $v > 1000 ) {
+                return new WP_Error( 'invalid_value', __( 'max_log_entries must be an integer between 3 and 1000.', 'scriptomatic' ) );
+            }
+            $clean['max_log_entries'] = $v;
+        }
+
+        if ( array_key_exists( 'keep_data_on_uninstall', $updates ) ) {
+            $clean['keep_data_on_uninstall'] = $this->parse_bool( $updates['keep_data_on_uninstall'] );
+        }
+
+        if ( array_key_exists( 'save_confirm_enabled', $updates ) ) {
+            $clean['save_confirm_enabled'] = $this->parse_bool( $updates['save_confirm_enabled'] );
+        }
+
+        if ( array_key_exists( 'api_enabled', $updates ) ) {
+            $clean['api_enabled'] = $this->parse_bool( $updates['api_enabled'] );
+        }
+
+        if ( array_key_exists( 'api_allowed_ips', $updates ) ) {
+            $raw_ips   = (string) $updates['api_allowed_ips'];
+            $ip_lines  = preg_split( '/[\r\n,]+/', $raw_ips );
+            $clean_ips = array();
+            foreach ( $ip_lines as $line ) {
+                $line = trim( $line );
+                if ( '' === $line ) {
+                    continue;
+                }
+                if ( false !== strpos( $line, '/' ) ) {
+                    list( $subnet, $prefix ) = explode( '/', $line, 2 );
+                    if ( filter_var( trim( $subnet ), FILTER_VALIDATE_IP ) && is_numeric( $prefix ) ) {
+                        $clean_ips[] = $line;
+                    }
+                } elseif ( filter_var( $line, FILTER_VALIDATE_IP ) ) {
+                    $clean_ips[] = $line;
+                }
+            }
+            $clean['api_allowed_ips'] = implode( "\n", $clean_ips );
+        }
+
+        if ( array_key_exists( 'api_allowed_users', $updates ) ) {
+            $raw_users = is_array( $updates['api_allowed_users'] )
+                ? $updates['api_allowed_users']
+                : preg_split( '/[\s,]+/', (string) $updates['api_allowed_users'] );
+            $clean_users = array();
+            foreach ( $raw_users as $user_ref ) {
+                $user_ref = trim( (string) $user_ref );
+                if ( '' === $user_ref ) {
+                    continue;
+                }
+                $u = is_numeric( $user_ref )
+                    ? get_userdata( (int) $user_ref )
+                    : get_user_by( 'login', $user_ref );
+                if ( $u && user_can( $u, 'manage_options' ) ) {
+                    $clean_users[] = (int) $u->ID;
+                }
+            }
+            $clean['api_allowed_users'] = array_values( array_unique( $clean_users ) );
+        }
+
+        // Diff and log — no-op when nothing changed.
+        $this->maybe_write_prefs_change( $current, $clean );
+
+        update_option( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION, $clean );
+
+        return array(
+            'message' => __( 'Preferences updated.', 'scriptomatic' ),
+            'changes' => count( $updates ),
+        );
+    }
+
+    /**
+     * Coerce a raw value to boolean.
+     *
+     * Accepts true/false, 1/0, and the strings 'true', 'false', 'yes', 'no',
+     * 'on', 'off', 'enabled', 'disabled'.
+     *
+     * @since  3.2.0
+     * @access private
+     * @param  mixed $value
+     * @return bool
+     */
+    private function parse_bool( $value ) {
+        if ( is_bool( $value ) ) {
+            return $value;
+        }
+        return in_array( strtolower( trim( (string) $value ) ), array( '1', 'true', 'yes', 'on', 'enabled' ), true );
+    }
 }

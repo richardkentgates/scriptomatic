@@ -267,6 +267,7 @@ trait Scriptomatic_Notifications {
                 <tr>
                     <th style="width:18%;"><?php esc_html_e( 'Date / Time', 'scriptomatic' ); ?></th>
                     <th style="width:14%;"><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
+                    <th style="width:80px;"><?php esc_html_e( 'Via', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'Changes', 'scriptomatic' ); ?></th>
                 </tr>
             </thead>
@@ -323,7 +324,7 @@ trait Scriptomatic_Notifications {
      */
     private function render_pref_history_rows( array $log ) {
         if ( empty( $log ) ) {
-            return '<tr><td colspan="3">' . esc_html__( 'No preferences changes recorded yet.', 'scriptomatic' ) . '</td></tr>';
+            return '<tr><td colspan="4">' . esc_html__( 'No preferences changes recorded yet.', 'scriptomatic' ) . '</td></tr>';
         }
 
         $date_fmt = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
@@ -338,6 +339,13 @@ trait Scriptomatic_Notifications {
             $ulogin = isset( $entry['user_login'] ) ? (string) $entry['user_login'] : '';
             $uid    = isset( $entry['user_id'] )    ? (int) $entry['user_id']        : 0;
             $detail = isset( $entry['detail'] )     ? (string) $entry['detail']      : '';
+            $source = isset( $entry['source'] )     ? (string) $entry['source']      : 'dashboard';
+            $source_labels = array(
+                'dashboard' => __( 'Dashboard', 'scriptomatic' ),
+                'api'       => __( 'API', 'scriptomatic' ),
+                'cli'       => __( 'CLI', 'scriptomatic' ),
+            );
+            $source_label = isset( $source_labels[ $source ] ) ? $source_labels[ $source ] : ucfirst( $source );
 
             // Build individual change pills from the structured changes array.
             $changes      = isset( $entry['changes'] ) && is_array( $entry['changes'] ) ? $entry['changes'] : array();
@@ -357,8 +365,7 @@ trait Scriptomatic_Notifications {
 
             $html .= '<tr>';
             $html .= '<td>' . esc_html( $ts ? date_i18n( $date_fmt, $ts ) : '—' ) . '</td>';
-            $html .= '<td>' . esc_html( $ulogin ) . ( $uid ? ' <span class="description">(ID:&nbsp;' . absint( $uid ) . ')</span>' : '' ) . '</td>';
-            $html .= '<td>';
+            $html .= '<td>' . esc_html( $ulogin ) . ( $uid ? ' <span class="description">(ID:&nbsp;' . absint( $uid ) . ')</span>' : '' ) . '</td>';            $html .= '<td>' . esc_html( $source_label ) . '</td>';            $html .= '<td>';
             if ( ! empty( $change_parts ) ) {
                 $html .= implode( '<br>', $change_parts );
             } elseif ( '' !== $detail ) {

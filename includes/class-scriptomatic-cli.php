@@ -30,6 +30,11 @@
  *   wp scriptomatic files upload --path=<path> [--label=<label>] [--id=<id>] [--location=<head|footer>] [--conditions=<json>]
  *   wp scriptomatic files delete --id=<file-id> [--yes]
  *
+ *   # Preferences (read/write; not available via REST API)
+ *   wp scriptomatic prefs get [--format=<format>]
+ *   wp scriptomatic prefs set --key=<key> --value=<value>
+ *   wp scriptomatic prefs history [--format=<format>]
+ *
  * All write operations delegate to the service_*() methods on the
  * Scriptomatic singleton so no logic is duplicated between REST and CLI.
  *
@@ -42,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Manage Scriptomatic inline scripts, external URL lists, and managed JS files.
+ * Manage Scriptomatic inline scripts, external URL lists, managed JS files, and preferences.
  *
  * @since 2.6.0
  */
@@ -690,6 +695,148 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
             'conditions' => isset( $assoc_args['conditions'] ) ? (string) $assoc_args['conditions'] : '',
         ) );
         $this->handle_result( $result );
+    }
+
+    // =========================================================================
+    // PREFERENCES
+    // =========================================================================
+
+    /**
+     * Display all current Scriptomatic preferences.
+     *
+     * Preferences are managed here (CLI) and via the admin Dashboard.
+     * They are intentionally not accessible over the REST API.
+     *
+     * ## OPTIONS
+     *
+     * [--format=<format>]
+     * : Output format. Accepts 'table' (default), 'json', 'csv', 'yaml'.
+     *
+     * ## EXAMPLES
+     *
+     *   wp scriptomatic prefs get
+     *   wp scriptomatic prefs get --format=json
+     *
+     * @since  3.2.0
+     * @param  array $args
+     * @param  array $assoc_args
+     */
+    public function prefs_get( $args, $assoc_args ) {
+        $format   = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+        $settings = $this->plugin->service_get_prefs();
+
+        $rows = array();
+        foreach ( $settings as $key => $value ) {
+            if ( is_array( $value ) ) {
+                $display = empty( $value ) ? '(none)' : implode( ', ', array_map( 'strval', $value ) );
+            } elseif ( is_bool( $value ) ) {
+                $display = $value ? 'true' : 'false';
+            } else {
+                $display = (string) $value;
+            }
+            $rows[] = array( 'Key' => $key, 'Value' => $display );
+        }
+
+        if ( empty( $rows ) ) {
+            WP_CLI::line( 'No preferences found.' );
+            return;
+        }
+
+        WP_CLI\Utils\format_items( $format, $rows, array( 'Key', 'Value' ) );
+    }
+
+    /**
+     * Set a single Scriptomatic preference.
+     *
+     * The change is validated, persisted, and written to the Preferences
+     * Change History log (source will appear as "CLI").
+     *
+     * ## OPTIONS
+     *
+     * --key=<key>
+     * : Preference key. One of: max_log_entries, keep_data_on_uninstall,
+     *   save_confirm_enabled, api_enabled (Pro), api_allowed_ips (Pro),
+     *   api_allowed_users (Pro).
+     *
+     * --value=<value>
+     * : New value. Booleans accept true/false/yes/no/on/off/enabled/disabled.
+     *   api_allowed_ips accepts newline- or comma-separated IPs and CIDR ranges.
+     *   api_allowed_users accepts comma-separated user logins or IDs.
+     *
+     * ## EXAMPLES
+     *
+     *   wp scriptomatic prefs set --key=max_log_entries --value=500
+     *   wp scriptomatic prefs set --key=save_confirm_enabled --value=false
+     *   wp scriptomatic prefs set --key=api_enabled --value=true
+     *   wp scriptomatic prefs set --key=api_allowed_ips --value="203.0.113.0/24"
+     *
+     * @since  3.2.0
+     * @param  array $args
+     * @param  array $assoc_args
+     */
+    public function prefs_set( $args, $assoc_args ) {
+        if ( ! isset( $assoc_args['key'] ) || '' === trim( (string) $assoc_args['key'] ) ) {
+            WP_CLI::error( '--key is required.' );
+        }
+        if ( ! isset( $assoc_args['value'] ) ) {
+            WP_CLI::error( '--value is required.' );
+        }
+
+        $key    = sanitize_key( $assoc_args['key'] );
+        $value  = $assoc_args['value'];
+        $result = $this->plugin->service_set_prefs( array( $key => $value ) );
+        $this->handle_result( $result );
+    }
+
+    /**
+     * List recent Preferences change history.
+     *
+     * Shows the last 20 preference changes with date, user, source, and a
+     * summary of what changed. This history is recorded for both Dashboard
+     * saves and CLI writes.
+     *
+     * ## OPTIONS
+     *
+     * [--format=<format>]
+     * : Output format. Accepts 'table' (default), 'json', 'csv', 'yaml', 'count'.
+     *
+     * ## EXAMPLES
+     *
+     *   wp scriptomatic prefs history
+     *   wp scriptomatic prefs history --format=json
+     *
+     * @since  3.2.0
+     * @param  array $args
+     * @param  array $assoc_args
+     */
+    public function prefs_history( $args, $assoc_args ) {
+        $format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+        $log    = $this->plugin->service_get_prefs_log( 20, 0 );
+
+        if ( empty( $log ) ) {
+            WP_CLI::line( 'No preferences change history found.' );
+            return;
+        }
+
+        $rows = array();
+        foreach ( $log as $entry ) {
+            $changes = array();
+            if ( ! empty( $entry['changes'] ) && is_array( $entry['changes'] ) ) {
+                foreach ( $entry['changes'] as $field => $diff ) {
+                    if ( isset( $diff['old'], $diff['new'] ) ) {
+                        $changes[] = $field . ': ' . $diff['old'] . ' -> ' . $diff['new'];
+                    }
+                }
+            }
+            $rows[] = array(
+                'Date'    => $entry['timestamp'] > 0 ? gmdate( 'Y-m-d H:i:s', $entry['timestamp'] ) : '\u2014',
+                'User'    => $entry['user_login'],
+                'Via'     => isset( $entry['source'] ) ? ucfirst( $entry['source'] ) : 'Dashboard',
+                'Changes' => ! empty( $changes ) ? implode( ' | ', $changes ) : $entry['detail'],
+            );
+        }
+
+        WP_CLI\Utils\format_items( $format, $rows, array( 'Date', 'User', 'Via', 'Changes' ) );
     }
 
     // =========================================================================

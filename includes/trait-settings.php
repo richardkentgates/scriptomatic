@@ -394,12 +394,34 @@ trait Scriptomatic_Settings {
             user_id    INT UNSIGNED NOT NULL DEFAULT 0,
             user_login VARCHAR(60)  NOT NULL DEFAULT '',
             detail     TEXT         NOT NULL,
+            source     VARCHAR(16)  NOT NULL DEFAULT 'dashboard',
             changes    TEXT                  DEFAULT NULL,
             PRIMARY KEY (id)
-        ) {$charset_collate};";
+        ) {$charset_collate};"; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
+    }
+
+    /**
+     * Return 'dashboard', 'api', or 'cli' depending on the current execution context.
+     *
+     * Used to populate the `source` column on every log write so that each entry
+     * records whether it originated from the admin Dashboard, a REST API call, or
+     * a WP-CLI command.
+     *
+     * @since  3.2.0
+     * @access private
+     * @return string 'cli'|'api'|'dashboard'
+     */
+    private function get_current_source() {
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            return 'cli';
+        }
+        if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+            return 'api';
+        }
+        return 'dashboard';
     }
 
     /**
@@ -423,9 +445,10 @@ trait Scriptomatic_Settings {
                 'user_id'    => (int) $user->ID,
                 'user_login' => (string) $user->user_login,
                 'detail'     => (string) $detail,
+                'source'     => $this->get_current_source(),
                 'changes'    => ! empty( $changes ) ? wp_json_encode( $changes ) : null,
             ),
-            array( '%d', '%d', '%s', '%s', '%s' )
+            array( '%d', '%d', '%s', '%s', '%s', '%s' )
         );
 
         // Hard cap at 100 rows.
@@ -469,6 +492,7 @@ trait Scriptomatic_Settings {
                 'user_id'    => (int) $row['user_id'],
                 'user_login' => (string) $row['user_login'],
                 'detail'     => (string) $row['detail'],
+                'source'     => isset( $row['source'] ) ? (string) $row['source'] : 'dashboard',
                 'changes'    => array(),
             );
             if ( ! empty( $row['changes'] ) ) {
@@ -523,11 +547,12 @@ trait Scriptomatic_Settings {
             file_id    VARCHAR(60)           DEFAULT NULL,
             detail     TEXT         NOT NULL,
             chars      INT UNSIGNED          DEFAULT NULL,
+            source     VARCHAR(16)  NOT NULL DEFAULT 'dashboard',
             snapshot   LONGTEXT              DEFAULT NULL,
             PRIMARY KEY (id),
             KEY location_action (location(20), action(40)),
             KEY file_id (file_id(60))
-        ) {$charset_collate};";
+        ) {$charset_collate};"; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
@@ -555,6 +580,7 @@ trait Scriptomatic_Settings {
             'action'     => (string) $row['action'],
             'location'   => (string) $row['location'],
             'detail'     => (string) $row['detail'],
+            'source'     => isset( $row['source'] ) ? (string) $row['source'] : 'dashboard',
         );
         if ( null !== $row['file_id'] ) {
             $entry['file_id'] = (string) $row['file_id'];
@@ -615,6 +641,7 @@ trait Scriptomatic_Settings {
      *   urls_snapshot        (array)  — URL list snapshot
      *   conditions_snapshot  (array)  — conditions snapshot
      *   file_id              (string) — only for file actions
+     *   source               (string) — auto-detected; do not pass; set by write_activity_entry()
      *
      * @since  1.0.0
      * @since  2.9.0 Rewrites to INSERT into `{prefix}scriptomatic_log` instead of wp_options.
@@ -650,9 +677,10 @@ trait Scriptomatic_Settings {
                 'file_id'    => isset( $data['file_id'] )  ? (string) $data['file_id']  : null,
                 'detail'     => isset( $data['detail'] )   ? (string) $data['detail']   : '',
                 'chars'      => $chars,
+                'source'     => $this->get_current_source(),
                 'snapshot'   => ! empty( $snap_data )      ? wp_json_encode( $snap_data ) : null,
             ),
-            array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
+            array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
         );
 
         // Prune oldest rows when total row count exceeds the configured maximum.

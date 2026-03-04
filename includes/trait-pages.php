@@ -114,6 +114,7 @@ trait Scriptomatic_Pages {
                     <th><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'Event', 'scriptomatic' ); ?></th>
                     <th><?php esc_html_e( 'Changes', 'scriptomatic' ); ?></th>
+                    <th style="width:90px;"><?php esc_html_e( 'Via', 'scriptomatic' ); ?></th>
                     <?php if ( $has_content_entries ) : ?>
                     <th style="width:170px;"><?php esc_html_e( 'Actions', 'scriptomatic' ); ?></th>
                     <?php endif; ?>
@@ -133,6 +134,13 @@ trait Scriptomatic_Pages {
                 $detail   = isset( $entry['detail'] )     ? (string) $entry['detail']      : '';
                 $chars    = isset( $entry['chars'] )      ? (int) $entry['chars']           : 0;
                 $file_eid = isset( $entry['file_id'] )    ? (string) $entry['file_id']     : '';
+                $source   = isset( $entry['source'] )     ? (string) $entry['source']      : 'dashboard';
+                $source_label_map = array(
+                    'dashboard' => __( 'Dashboard', 'scriptomatic' ),
+                    'api'       => __( 'API', 'scriptomatic' ),
+                    'cli'       => __( 'CLI', 'scriptomatic' ),
+                );
+                $source_label = isset( $source_label_map[ $source ] ) ? $source_label_map[ $source ] : esc_html( ucfirst( $source ) );
 
                 // Determine whether this row gets View/Restore.
                 $has_delete_snap  = ( 'file_delete' === $action )
@@ -221,8 +229,7 @@ trait Scriptomatic_Pages {
                         } else {
                             echo '—';
                         }
-                    ?></td>
-                    <?php if ( $has_content_entries ) : ?>
+                    ?></td>                    <td><?php echo esc_html( $source_label ); ?></td>                    <?php if ( $has_content_entries ) : ?>
                     <td>
                         <?php if ( $has_code_content ) : ?>
                             <?php if ( $is_file_entry ) : ?>
