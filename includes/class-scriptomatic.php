@@ -122,10 +122,10 @@ class Scriptomatic {
         add_action( 'admin_footer',           array( $this, 'render_history_lightbox' ) );
 
         // Side-effects for inline-script saves: logging, rate-limit stamp, notifications.
-        // Hooked to update_option_* so they fire exactly once, only when the option
-        // is actually written — never inside the sanitize callback.
-        add_action( 'update_option_' . SCRIPTOMATIC_LOCATION_HEAD,   array( $this, 'on_location_saved' ), 10, 3 );
-        add_action( 'update_option_' . SCRIPTOMATIC_LOCATION_FOOTER, array( $this, 'on_location_saved' ), 10, 3 );
+        // pre_update_option fires before WordPress's old==new equality check, so it
+        // runs on every admin form submit — including saves where the value is unchanged.
+        add_filter( 'pre_update_option_' . SCRIPTOMATIC_LOCATION_HEAD,   array( $this, 'on_location_pre_update' ), 10, 3 );
+        add_filter( 'pre_update_option_' . SCRIPTOMATIC_LOCATION_FOOTER, array( $this, 'on_location_pre_update' ), 10, 3 );
 
         // Notification opt-in on admin profile pages.
         add_action( 'show_user_profile',        array( $this, 'render_notification_profile_field' ) );

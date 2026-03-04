@@ -707,10 +707,10 @@ trait Scriptomatic_Renderer {
      */
     public function render_head_conditions_field() {
         if ( ! scriptomatic_is_premium() ) {
-            $this->render_pro_upgrade_notice(
-                __( 'Load Conditions is a Pro feature', 'scriptomatic' ),
-                __( 'Restrict when this script loads: by page, post type, URL pattern, login state, date, or date/time window.', 'scriptomatic' )
-            );
+            ?>
+            <span class="dashicons dashicons-lock" style="font-size:.875rem;width:.875rem;height:.875rem;vertical-align:middle;color:#999;margin-right:4px;"></span>
+            <span style="color:#999;font-size:.8125rem;"><?php esc_html_e( 'Load conditions require Scriptomatic Pro.', 'scriptomatic' ); ?></span>
+            <?php
             return;
         }
         $this->render_conditions_field_for( 'head' );
@@ -724,10 +724,10 @@ trait Scriptomatic_Renderer {
      */
     public function render_footer_conditions_field() {
         if ( ! scriptomatic_is_premium() ) {
-            $this->render_pro_upgrade_notice(
-                __( 'Load Conditions is a Pro feature', 'scriptomatic' ),
-                __( 'Restrict when this script loads: by page, post type, URL pattern, login state, date, or date/time window.', 'scriptomatic' )
-            );
+            ?>
+            <span class="dashicons dashicons-lock" style="font-size:.875rem;width:.875rem;height:.875rem;vertical-align:middle;color:#999;margin-right:4px;"></span>
+            <span style="color:#999;font-size:.8125rem;"><?php esc_html_e( 'Load conditions require Scriptomatic Pro.', 'scriptomatic' ); ?></span>
+            <?php
             return;
         }
         $this->render_conditions_field_for( 'footer' );

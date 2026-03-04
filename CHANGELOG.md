@@ -13,6 +13,13 @@ _Nothing yet._
 
 ---
 
+## [3.1.1] – 2026-03-03
+
+### Fixed
+- **Inline script Load Conditions field empty on free tier.** The upgrade notice used WordPress `.notice` CSS classes, which WP admin JS physically relocates out of the form table at runtime, leaving the cell blank. Replaced with inline lock icon + span markup matching the URL entry style.
+
+---
+
 ## [3.1.0] – 2026-03-10
 
 ### Added

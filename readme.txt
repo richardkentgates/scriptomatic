@@ -4,7 +4,7 @@ Tags: javascript, script injection, head scripts, conditional loading, activity 
 Requires at least: 6.2
 Tested up to: 6.9
 Requires PHP: 7.2
-Stable tag: 3.1.0
+Stable tag: 3.1.1
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,9 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 6. Contextual help tabs — Overview, Usage, Security, Best Practices, and Troubleshooting.
 
 == Changelog ==
+
+= 3.1.1 =
+* **Fixed**: Inline script Load Conditions field showed an empty table cell on free tier because the upgrade notice used WordPress `.notice` CSS classes, which WP admin JS relocates out of the form table. Replaced with inline lock icon + span markup (matching the URL entry style).
 
 = 3.1.0 =
 * **Added**: Email notifications — administrators can opt in (via their WordPress profile page) to receive plain-text email notifications on every script save, rollback, URL change, file save/delete, and restore event.
