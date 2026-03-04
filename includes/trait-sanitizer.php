@@ -18,6 +18,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 trait Scriptomatic_Sanitizer {
 
+    /**
+     * Flags set by sanitize_location_for() to signal on_location_pre_update().
+     *
+     * Keyed by location ('head'|'footer'). Only set when sanitize fully
+     * accepted the submitted input (i.e., did NOT return early due to a
+     * capability, nonce, or rate-limit failure). Cleared immediately after
+     * on_location_pre_update() consumes it so subsequent saves start clean.
+     *
+     * @since 3.1.1
+     * @var   bool[]
+     */
+    private $pending_saves = array();
+
     // =========================================================================
     // JAVASCRIPT CONTENT SANITISATION
     // =========================================================================
@@ -324,7 +337,11 @@ trait Scriptomatic_Sanitizer {
             return $previous;
         }
 
-        // Gate 1: Secondary nonce.
+        // Suppress duplicate 'Settings saved.' notice on WP's second sanitize call.
+        // WordPress calls sanitize callbacks twice per POST; the static flag ensures
+        // the success notice is only added on the first (real) invocation.
+        static $noticed = array();
+
         $secondary_nonce = isset( $_POST[ $nonce_field ] )
             ? sanitize_text_field( wp_unslash( $_POST[ $nonce_field ] ) )
             : '';
@@ -442,8 +459,15 @@ trait Scriptomatic_Sanitizer {
         }
         $urls = $this->sanitize_url_entries( is_array( $decoded_urls ) ? $decoded_urls : array() );
 
-        add_settings_error( $error_slug, 'settings_saved',
-            __( 'Settings saved.', 'scriptomatic' ), 'updated' );
+        // Signal on_location_pre_update() that this save was accepted.
+        $this->pending_saves[ $location ] = true;
+
+        // Only add the success notice on the first invocation (not WP's internal second call).
+        if ( ! isset( $noticed[ $location ] ) ) {
+            add_settings_error( $error_slug, 'settings_saved',
+                __( 'Settings saved.', 'scriptomatic' ), 'updated' );
+            $noticed[ $location ] = true;
+        }
 
         return array(
             'script'     => $script,
@@ -453,24 +477,36 @@ trait Scriptomatic_Sanitizer {
     }
 
     /**
-     * Fires on update_option_{scriptomatic_head|scriptomatic_footer} — exactly
-     * once, only when the option value is actually written to the database.
+     * Filter callback for pre_update_option_{scriptomatic_head|_footer}.
      *
-     * Handles all save side-effects that must not run inside the sanitize
-     * callback (which WordPress calls twice per POST):
+     * The `pre_update_option_{option}` filter fires before WordPress performs
+     * its old-vs-new equality check, so it runs on every admin save — including
+     * saves where the stored value is unchanged.  The sanitize callback cannot
+     * be used for side-effects because WordPress invokes it twice per POST.
+     *
+     * Handles all save side-effects:
      *   - Activity log entry
      *   - Rate-limit transient stamp
      *   - Email notifications
      *
+     * Must return $new_value unchanged (it is a filter, not an action).
+     *
      * @since  3.1.1
-     * @param  mixed  $old_value  Previous stored value.
-     * @param  mixed  $new_value  Newly stored value.
+     * @param  mixed  $new_value  Value about to be stored.
+     * @param  mixed  $old_value  Previously stored value.
      * @param  string $option     Option name (scriptomatic_head|scriptomatic_footer).
-     * @return void
+     * @return mixed  $new_value  Returned unchanged.
      */
-    public function on_location_saved( $old_value, $new_value, $option ) {
+    public function on_location_pre_update( $new_value, $old_value, $option ) {
         $location = ( SCRIPTOMATIC_LOCATION_FOOTER === $option ) ? 'footer' : 'head';
 
+        // Only run side-effects when sanitize actually accepted the submitted
+        // input.  Rate-limited saves, nonce failures, and capability failures
+        // all return $previous early without setting this flag.
+        if ( ! isset( $this->pending_saves[ $location ] ) ) {
+            return $new_value;
+        }
+        unset( $this->pending_saves[ $location ] );
         $old_script     = isset( $old_value['script'] )     ? $old_value['script']     : '';
         $old_conditions = isset( $old_value['conditions'] ) ? $old_value['conditions'] : array();
         $old_urls       = isset( $old_value['urls'] )       ? $old_value['urls']       : array();
@@ -491,6 +527,8 @@ trait Scriptomatic_Sanitizer {
             'location' => ucfirst( $location ),
             'detail'   => number_format( strlen( $new_script ) ) . ' chars',
         ) );
+
+        return $new_value;
     }
 
     // =========================================================================
