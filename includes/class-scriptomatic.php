@@ -29,7 +29,7 @@ require_once SCRIPTOMATIC_PLUGIN_DIR . 'includes/trait-api.php';
  * Main plugin class.
  *
  * Implements a singleton that wires all WordPress hooks, registers the plugin
- * settings, sanitises user input, enforces rate-limiting and nonce security,
+ * settings, sanitises user input, enforces nonce security,
  * renders the admin UI, and injects stored scripts into the front-end.
  *
  * All method groups are implemented in dedicated traits:
@@ -177,24 +177,6 @@ class Scriptomatic {
      */
     public function __wakeup() {
         _doing_it_wrong( __FUNCTION__, 'Cannot unserialize a singleton.', '1.7.1' );
-    }
-
-    // =========================================================================
-    // I18N
-    // =========================================================================
-
-    /**
-     * Load the plugin text domain for i18n.
-     *
-     * Called on the `init` action so WordPress has already set the locale.
-     * The .mo files are expected under `languages/` inside the plugin folder.
-     *
-     * @since  1.2.0
-     * @return void
-     */
-    public function load_textdomain() {
-        // Translations are loaded automatically by WordPress since 4.6.
-        // This method is kept for backward compatibility.
     }
 
     // =========================================================================

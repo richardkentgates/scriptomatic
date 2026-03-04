@@ -134,6 +134,7 @@ function scriptomatic_fs_uninstall_cleanup() {
     }
     scriptomatic_delete_uploads_dir();
     scriptomatic_drop_log_table();
+    scriptomatic_drop_prefs_log_table();
 
     // Multisite: iterate every sub-site.
     if ( is_multisite() ) {
@@ -146,6 +147,7 @@ function scriptomatic_fs_uninstall_cleanup() {
             }
             scriptomatic_delete_uploads_dir();
             scriptomatic_drop_log_table();
+            scriptomatic_drop_prefs_log_table();
             restore_current_blog();
         }
 
@@ -165,6 +167,18 @@ function scriptomatic_fs_uninstall_cleanup() {
 function scriptomatic_drop_log_table() {
     global $wpdb;
     $table = $wpdb->get_blog_prefix() . 'scriptomatic_log';
+    $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
+}
+
+/**
+ * Drop the preferences log table for the current site.
+ *
+ * @since  3.1.1
+ * @return void
+ */
+function scriptomatic_drop_prefs_log_table() {
+    global $wpdb;
+    $table = $wpdb->get_blog_prefix() . 'scriptomatic_prefs_log';
     $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
 }
 

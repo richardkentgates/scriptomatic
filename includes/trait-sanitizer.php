@@ -2,8 +2,8 @@
 /**
  * Trait: Input sanitisation and validation for Scriptomatic.
  *
- * Covers inline-script validation, linked-URL sanitisation, load-conditions
- * sanitisation, and the per-user save rate limiter.
+ * Covers inline-script validation, linked-URL sanitisation, and load-conditions
+ * sanitisation.
  *
  * @package  Scriptomatic
  * @since    1.2.0
@@ -317,7 +317,6 @@ trait Scriptomatic_Sanitizer {
      * Security gates (executed in order):
      * 1. Capability check — must hold `manage_options`.
      * 2. Secondary nonce — location-specific nonce from the form page.
-     * 3. Per-user rate limiter — transient-based save-throttle.
      *
      * @since  2.8.0
      * @access private
@@ -335,7 +334,7 @@ trait Scriptomatic_Sanitizer {
         // Determine whether this call originates from a Settings API form POST
         // (wp-admin/options.php sets option_page) or from a programmatic call
         // such as ajax_rollback() / save_location().  Programmatic calls must
-        // skip the form-specific gates (nonce, rate-limit, user notices) and
+        // skip the form-specific gates (nonce, user notices) and
         // simply sanitize the already-validated data that was passed in.
         $is_form_post = isset( $_POST['option_page'] );  // phpcs:ignore WordPress.Security.NonceVerification
 

@@ -37,8 +37,7 @@
  *   1 = most recent snapshot
  *   2 = second-most-recent snapshot …
  *
- * All write routes enforce the same transient-based rate limit as the
- * admin UI and call write_activity_entry() so every change is logged.
+ * All write routes call write_activity_entry() so every change is logged.
  *
  * @package  Scriptomatic
  * @since    2.6.0

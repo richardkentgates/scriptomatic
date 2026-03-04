@@ -31,8 +31,6 @@ trait Scriptomatic_Settings {
         // Ensure the custom log tables exist (idempotent via dbDelta).
         $this->maybe_create_log_table();
         $this->maybe_create_prefs_log_table();
-        // Migrate data from pre-v2.8 fragmented options on first load.
-        $this->maybe_migrate_to_v2_8();
 
         // Default location data structure.
         $location_default = array(
@@ -140,61 +138,6 @@ trait Scriptomatic_Settings {
     public function save_location( $location, array $data ) {
         $key = ( 'footer' === $location ) ? SCRIPTOMATIC_LOCATION_FOOTER : SCRIPTOMATIC_LOCATION_HEAD;
         update_option( $key, $data );
-    }
-
-    // =========================================================================
-    // MIGRATION — pre-v2.8 fragmented options → unified location arrays
-    // =========================================================================
-
-    /**
-     * One-time migration from the six separate pre-v2.8 options to the two
-     * unified location options.  Runs once at admin_init; no-ops on subsequent
-     * requests once the new options exist.
-     *
-     * @since  2.8.0
-     * @access private
-     * @return void
-     */
-    private function maybe_migrate_to_v2_8() {
-        // If either new option already exists, migration has already run.
-        if ( false !== get_option( SCRIPTOMATIC_LOCATION_HEAD, false ) ) {
-            return;
-        }
-
-        foreach ( array( 'head', 'footer' ) as $loc ) {
-            if ( 'footer' === $loc ) {
-                $script_opt = 'scriptomatic_footer_script';
-                $cond_opt   = 'scriptomatic_footer_conditions';
-                $urls_opt   = 'scriptomatic_footer_linked';
-            } else {
-                $script_opt = 'scriptomatic_script_content';
-                $cond_opt   = 'scriptomatic_head_conditions';
-                $urls_opt   = 'scriptomatic_linked_scripts';
-            }
-
-            $script   = (string) get_option( $script_opt, '' );
-            $cond_raw = get_option( $cond_opt, '' );
-            $cond     = is_string( $cond_raw ) && '' !== $cond_raw ? json_decode( $cond_raw, true ) : null;
-            if ( ! is_array( $cond ) ) {
-                $cond = array( 'logic' => 'and', 'rules' => array() );
-            }
-            $urls_raw = get_option( $urls_opt, '[]' );
-            $urls     = json_decode( $urls_raw, true );
-            if ( ! is_array( $urls ) ) {
-                $urls = array();
-            }
-
-            $new_key = ( 'footer' === $loc ) ? SCRIPTOMATIC_LOCATION_FOOTER : SCRIPTOMATIC_LOCATION_HEAD;
-            add_option( $new_key, array(
-                'script'     => $script,
-                'conditions' => $cond,
-                'urls'       => $urls,
-            ) );
-
-            delete_option( $script_opt );
-            delete_option( $cond_opt );
-            delete_option( $urls_opt );
-        }
     }
 
     /**
