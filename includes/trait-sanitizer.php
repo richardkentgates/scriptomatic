@@ -332,34 +332,43 @@ trait Scriptomatic_Sanitizer {
         $nonce_field  = ( 'footer' === $location ) ? 'scriptomatic_footer_nonce' : 'scriptomatic_save_nonce';
         $error_slug   = 'scriptomatic_' . $location . '_script';
 
-        // Gate 0: Capability.
+        // Determine whether this call originates from a Settings API form POST
+        // (wp-admin/options.php sets option_page) or from a programmatic call
+        // such as ajax_rollback() / save_location().  Programmatic calls must
+        // skip the form-specific gates (nonce, rate-limit, user notices) and
+        // simply sanitize the already-validated data that was passed in.
+        $is_form_post = isset( $_POST['option_page'] );  // phpcs:ignore WordPress.Security.NonceVerification
+
+        // Gate 0: Capability (always enforced).
         if ( ! current_user_can( $this->get_required_cap() ) ) {
             return $previous;
         }
 
-        // Suppress duplicate 'Settings saved.' notice on WP's second sanitize call.
-        // WordPress calls sanitize callbacks twice per POST; the static flag ensures
-        // the success notice is only added on the first (real) invocation.
-        static $noticed = array();
+        if ( $is_form_post ) {
+            // Suppress duplicate 'Settings saved.' notice on WP's second sanitize call.
+            // WordPress calls sanitize callbacks twice per POST; the static flag ensures
+            // the success notice is only added on the first (real) invocation.
+            static $noticed = array();
 
-        $secondary_nonce = isset( $_POST[ $nonce_field ] )
-            ? sanitize_text_field( wp_unslash( $_POST[ $nonce_field ] ) )
-            : '';
-        if ( ! wp_verify_nonce( $secondary_nonce, $nonce_action ) ) {
-            add_settings_error( $error_slug, 'nonce_invalid',
-                __( 'Security check failed. Please refresh the page and try again.', 'scriptomatic' ), 'error' );
-            return $previous;
-        }
+            $secondary_nonce = isset( $_POST[ $nonce_field ] )
+                ? sanitize_text_field( wp_unslash( $_POST[ $nonce_field ] ) )
+                : '';
+            if ( ! wp_verify_nonce( $secondary_nonce, $nonce_action ) ) {
+                add_settings_error( $error_slug, 'nonce_invalid',
+                    __( 'Security check failed. Please refresh the page and try again.', 'scriptomatic' ), 'error' );
+                return $previous;
+            }
 
-        // Gate 2: Rate limiter.
-        if ( $this->is_rate_limited( $location ) ) {
-            add_settings_error( $error_slug, 'rate_limited',
-                sprintf(
-                    /* translators: %d: seconds to wait */
-                    __( 'You are saving too quickly. Please wait %d seconds before trying again.', 'scriptomatic' ),
-                    SCRIPTOMATIC_RATE_LIMIT_SECONDS
-                ), 'error' );
-            return $previous;
+            // Gate 2: Rate limiter.
+            if ( $this->is_rate_limited( $location ) ) {
+                add_settings_error( $error_slug, 'rate_limited',
+                    sprintf(
+                        /* translators: %d: seconds to wait */
+                        __( 'You are saving too quickly. Please wait %d seconds before trying again.', 'scriptomatic' ),
+                        SCRIPTOMATIC_RATE_LIMIT_SECONDS
+                    ), 'error' );
+                return $previous;
+            }
         }
 
         // ---- Ensure $input is an array ----
@@ -435,10 +444,13 @@ trait Scriptomatic_Sanitizer {
         $script = trim( $script );
 
         // =========================================================
-        // 2. Conditions (JSON string → decoded PHP array)
+        // 2. Conditions (JSON string or pre-decoded PHP array)
         // =========================================================
         $cond_raw = isset( $input['conditions'] ) ? $input['conditions'] : '';
-        if ( is_string( $cond_raw ) && '' !== $cond_raw ) {
+        if ( is_array( $cond_raw ) ) {
+            // Programmatic call (e.g. rollback): conditions already decoded.
+            $decoded_cond = $cond_raw;
+        } elseif ( is_string( $cond_raw ) && '' !== $cond_raw ) {
             $decoded_cond = json_decode( wp_unslash( $cond_raw ), true );
         } else {
             $decoded_cond = null;
@@ -449,24 +461,29 @@ trait Scriptomatic_Sanitizer {
         $conditions = $this->sanitize_conditions_array( $decoded_cond );
 
         // =========================================================
-        // 3. External URLs (JSON string → decoded PHP array)
+        // 3. External URLs (JSON string or pre-decoded PHP array)
         // =========================================================
         $urls_raw = isset( $input['urls'] ) ? $input['urls'] : '';
-        if ( is_string( $urls_raw ) && '' !== $urls_raw ) {
+        if ( is_array( $urls_raw ) ) {
+            // Programmatic call (e.g. rollback): URLs already decoded.
+            $decoded_urls = $urls_raw;
+        } elseif ( is_string( $urls_raw ) && '' !== $urls_raw ) {
             $decoded_urls = json_decode( wp_unslash( $urls_raw ), true );
         } else {
             $decoded_urls = null;
         }
         $urls = $this->sanitize_url_entries( is_array( $decoded_urls ) ? $decoded_urls : array() );
 
-        // Signal on_location_pre_update() that this save was accepted.
-        $this->pending_saves[ $location ] = true;
+        if ( $is_form_post ) {
+            // Signal on_location_pre_update() that this save was accepted.
+            $this->pending_saves[ $location ] = true;
 
-        // Only add the success notice on the first invocation (not WP's internal second call).
-        if ( ! isset( $noticed[ $location ] ) ) {
-            add_settings_error( $error_slug, 'settings_saved',
-                __( 'Settings saved.', 'scriptomatic' ), 'updated' );
-            $noticed[ $location ] = true;
+            // Only add the success notice on the first invocation (not WP's internal second call).
+            if ( ! isset( $noticed[ $location ] ) ) {
+                add_settings_error( $error_slug, 'settings_saved',
+                    __( 'Settings saved.', 'scriptomatic' ), 'updated' );
+                $noticed[ $location ] = true;
+            }
         }
 
         return array(
