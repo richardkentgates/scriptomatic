@@ -64,7 +64,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **� API Enable / Disable**: Toggle REST API access site-wide from Preferences; returns HTTP 503 when disabled
 - **👤 API Allowed Users**: Restrict REST API access to named administrator accounts from Preferences; returns HTTP 403 for unlisted callers
 - **📬 Email Notifications**: Per-admin opt-in (via WordPress profile page) sends a plain-text email for every script save, rollback, URL change, file save/delete, and restore event
-- **💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), activity log (`log list`, `log clear`), and history. All commands share the same service layer as the REST API.
+- **💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), activity log (`log list`, `log clear`), preferences management (`prefs get`, `prefs set`, `prefs history`), and history. All write commands share the same service layer as the REST API. Preferences management is CLI and Dashboard only — not REST API.
 - **📤 JS File Upload**: Upload a local `.js` file from the **JS Files list page**, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`
 
 
@@ -90,7 +90,7 @@ scriptomatic/
 └── includes/
     ├── freemius-init.php         # Freemius SDK bootstrap; scriptomatic_fs() + scriptomatic_is_premium()
     │                             #   helpers; uninstall cleanup hooked to Freemius after_uninstall
-    ├── class-scriptomatic.php    # Singleton class — uses all ten traits, registers hooks
+    ├── class-scriptomatic.php    # Singleton class — uses all eleven traits, registers hooks
     ├── class-scriptomatic-cli.php# WP-CLI command class (loaded only when WP_CLI is defined) [Pro]
     ├── trait-menus.php           # Admin menu & submenu registration; help-tab hooks
     ├── trait-sanitizer.php       # Input validation and sanitisation
@@ -149,7 +149,7 @@ Then activate via WordPress admin.
 | Head Scripts | Scriptomatic → Head Scripts | Inline JS + external URLs injected in `<head>`; includes Activity Log |
 | Footer Scripts | Scriptomatic → Footer Scripts | Inline JS + external URLs injected before `</body>`; includes Activity Log |
 | JS Files _(Pro)_ | Scriptomatic → JS Files | Create, edit, and delete managed `.js` files; each file has its own Head/Footer toggle, load conditions, and CodeMirror editor; list view and edit view each include an Activity Log panel |
-| Preferences | Scriptomatic → Preferences | Activity log limit (3–1000), uninstall data retention, API Allowed IPs _(Pro)_, API Enable/Disable _(Pro)_, API Allowed Users _(Pro)_, email notification opt-ins (per profile), and a read-only **Preferences Action History** (last 100 entries, 20/page, AJAX pagination) |
+| Preferences | Scriptomatic → Preferences | Activity log limit (3–1000), save confirmation toggle, uninstall data retention, API Allowed IPs _(Pro)_, API Enable/Disable _(Pro)_, API Allowed Users _(Pro)_, email notification opt-ins (per profile), and a read-only **Preferences Action History** (last 100 entries, 20/page, AJAX pagination) |
 
 ### Important Notes
 

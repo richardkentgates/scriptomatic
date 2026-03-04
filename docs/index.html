@@ -517,7 +517,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-blue">⌨️</div>
         <h3>Inline Script Editor</h3>
-        <p>Write JavaScript directly in the admin. A live character counter colour-codes at 75% and 90% of the 100 KB limit so you always know where you stand.</p>
+        <p>Write JavaScript directly in the admin using a full <strong>CodeMirror editor</strong> — line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. A live character counter colour-codes at 75% and 90% of the 100 KB limit. Falls back to a plain textarea if syntax highlighting is disabled in the user profile.</p>
       </div>
 
       <div class="feature-card">
@@ -535,13 +535,13 @@
       <div class="feature-card">
         <div class="feature-icon icon-green">🔁</div>
         <h3>Revision History &amp; Rollback</h3>
-        <p>Inline script + conditions changes and external URL changes are recorded as separate independent Activity Log entries, each with its own View and Restore buttons. Restoring an inline entry writes back the script and load conditions; restoring a URL entry writes back the external URLs as they were — the two never interfere with each other. View any snapshot in a lightbox.</p>
+        <p>Every save creates a restorable snapshot. Click <strong>Restore</strong> on any Activity Log entry to instantly roll back via AJAX — no page reload, no further Save needed. Inline script and external URL histories are tracked independently so restoring one never touches the other. View any snapshot in a lightbox before restoring.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon icon-amber">📋</div>
         <h3>Activity Log</h3>
-        <p>All saves, rollbacks, and JS file events are recorded with timestamp, username, action type, and a human-readable summary of what changed. Inline script entries and external URL entries are written independently &mdash; each with its own View and Restore buttons; restoring one never touches the other. Configurable limit of 3&ndash;1000 entries (default 200), with oldest entries discarded automatically.</p>
+        <p>All saves, rollbacks, and JS file events are recorded with timestamp, username, action type, a <strong>Via</strong> column (<strong>Dashboard</strong>, <strong>API</strong>, or <strong>CLI</strong>), and a human-readable summary of what changed. Configurable retention limit of 3&ndash;1000 entries (default 200); oldest entries are pruned automatically once the cap is reached.</p>
       </div>
 
       <div class="feature-card">
@@ -569,15 +569,9 @@
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon icon-blue">💻</div>
-        <h3>Built-in Code Editor</h3>
-        <p>Inline scripts and managed JS files use a full CodeMirror editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea if syntax highlighting is disabled.</p>
-      </div>
-
-      <div class="feature-card">
         <div class="feature-icon icon-purple">🏗️</div>
         <h3>Modular Architecture</h3>
-        <p>Ten focused PHP traits — including dedicated traits for file management, injection, sanitization, notifications, and enqueuing — in separate files for clean separation of concerns.</p>
+        <p>Eleven focused PHP traits — including dedicated traits for file management, injection, sanitization, notifications, and enqueuing — in separate files for clean separation of concerns.</p>
       </div>
 
       <div class="feature-card">
@@ -844,7 +838,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
           <tr>
             <td>Preferences</td>
             <td>Scriptomatic → Preferences</td>
-            <td>Activity log limit (3–1000), uninstall data-retention toggle, <strong>API Enable / Disable</strong> <span class="pro-badge">Pro</span>, <strong>API Allowed IPs</strong> <span class="pro-badge">Pro</span> (IPv4/IPv6/CIDR), <strong>API Allowed Users</strong> <span class="pro-badge">Pro</span>, and a read-only <strong>Preferences Action History</strong> panel (last 100 entries, AJAX paginated)</td>
+            <td>Activity log limit (3–1000), save confirmation toggle, uninstall data-retention toggle, <strong>API Enable / Disable</strong> <span class="pro-badge">Pro</span>, <strong>API Allowed IPs</strong> <span class="pro-badge">Pro</span> (IPv4/IPv6/CIDR), <strong>API Allowed Users</strong> <span class="pro-badge">Pro</span>, and a read-only <strong>Preferences Action History</strong> panel (last 100 entries, AJAX paginated)</td>
           </tr>
         </tbody>
       </table>
@@ -1127,6 +1121,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
           <tr><td><strong>API Enable / Disable</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>API Allowed Users</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>Email Notifications</strong> (opt-in per admin)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td>Preferences Action History (read-only, paginated)</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -1143,8 +1138,8 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <div class="changelog-item">
       <div class="clog-version" style="background:#2563eb;">v3.2.0</div>
       <div class="clog-body">
-        <h4>Source tracking, activity log clear, email Via line, REST prefs/history</h4>
-        <p>Every activity log entry now records a <strong>source</strong> field (<code>dashboard</code>, <code>api</code>, <code>cli</code>) indicating which channel made the change. Admin email notifications include a new <strong>Via: Dashboard/API/CLI</strong> line. A <strong>Clear Log</strong> button appears above each Activity Log table on the Head, Footer, and Files pages, scoped to the current location; complemented by two new WP-CLI commands: <code>wp scriptomatic log list</code> and <code>wp scriptomatic log clear</code>. Log-clear is intentionally absent from the REST API. A new REST endpoint <code>POST /wp-json/scriptomatic/v1/prefs/history</code> exposes paginated Preferences Action History read-only. Notification <code>action</code> strings have been cleaned &mdash; <code>(API)</code> suffixes removed; the <code>source</code> field is now the authoritative origin record.</p>
+        <h4>Source tracking, activity log clear, prefs CLI commands, email Via line, REST prefs/history</h4>
+        <p>Every activity log entry now records a <strong>source</strong> field (<code>dashboard</code>, <code>api</code>, <code>cli</code>) indicating which channel made the change. Admin email notifications include a new <strong>Via: Dashboard/API/CLI</strong> line. A <strong>Clear Log</strong> button appears above each Activity Log table on the Head, Footer, and Files pages, scoped to the current location; complemented by two new WP-CLI commands: <code>wp scriptomatic log list</code> and <code>wp scriptomatic log clear</code>. Three new WP-CLI preferences commands: <code>wp scriptomatic prefs get</code>, <code>wp scriptomatic prefs set</code>, and <code>wp scriptomatic prefs history</code> — preferences management is CLI and Dashboard only, intentionally absent from the REST API. Log-clear is also intentionally absent from the REST API. A new REST endpoint <code>POST /wp-json/scriptomatic/v1/prefs/history</code> exposes paginated Preferences Action History read-only. Notification <code>action</code> strings have been cleaned &mdash; <code>(API)</code> suffixes removed; the <code>source</code> field is now the authoritative origin record.</p>
       </div>
     </div>
 

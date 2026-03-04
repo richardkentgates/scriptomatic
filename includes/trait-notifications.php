@@ -312,7 +312,7 @@ trait Scriptomatic_Notifications {
     /**
      * Build the <tr> rows HTML string for one page of Preferences history entries.
      *
-     * Columns: Date/Time · User · Changes.
+     * Columns: Date/Time · User · Via · Changes.
      * Each change is listed as "Setting: old → new". When the full detail string
      * is too wide to display inline the raw string is shown in a title attribute.
      *

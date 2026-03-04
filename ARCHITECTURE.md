@@ -41,9 +41,9 @@ This document describes the internal structure of Scriptomatic for developers wh
 
 ## 1. Overview
 
-Scriptomatic is a single-file-bootstrapped, trait-based WordPress plugin. The class `Scriptomatic` is a protected singleton that `use`s ten PHP traits — one per logical concern. Because all traits are mixed into the same class, any method on any trait can call `$this->method()` to reach any other trait's methods without indirection.
+Scriptomatic is a single-file-bootstrapped, trait-based WordPress plugin. The class `Scriptomatic` is a protected singleton that `use`s eleven PHP traits — one per logical concern. Because all traits are mixed into the same class, any method on any trait can call `$this->method()` to reach any other trait's methods without indirection.
 
-There are no abstract base classes, no dependency injection containers, and no autoloaders. The load order is: `scriptomatic.php` → `class-scriptomatic.php` → ten trait files (via `require_once`).
+There are no abstract base classes, no dependency injection containers, and no autoloaders. The load order is: `scriptomatic.php` → `class-scriptomatic.php` → eleven trait files (via `require_once`).
 
 ---
 
@@ -90,7 +90,7 @@ scriptomatic/
 `scriptomatic.php` does three things:
 
 1. Defines all plugin-wide constants (see §4).
-2. `require_once`s `includes/class-scriptomatic.php`, which in turn `require_once`s all ten traits.
+3. `require_once`s `includes/class-scriptomatic.php`, which in turn `require_once`s all eleven traits.
 3. Registers `scriptomatic_init()` on the `plugins_loaded` action to call `Scriptomatic::get_instance()`.
 
 Nothing runs before `plugins_loaded`. That ensures all WordPress APIs are available when the plugin first executes.
@@ -172,7 +172,7 @@ Each location option stores a unified PHP array `{ script, conditions, urls }` a
 - Declares `private function get_required_cap()` returning `'manage_options'` — the single source of truth for the required capability throughout all traits.
 - Implements `private __clone()` and `public __wakeup()` to prevent singleton bypass via object cloning or PHP `unserialize()`.
 - Loads the text domain via the `init` action hook.
-- Uses ten traits: `Scriptomatic_Menus`, `Scriptomatic_Sanitizer`, `Scriptomatic_History`, `Scriptomatic_Settings`, `Scriptomatic_Renderer`, `Scriptomatic_Pages`, `Scriptomatic_Enqueue`, `Scriptomatic_Injector`, `Scriptomatic_Files`, `Scriptomatic_API`, `Scriptomatic_Notifications`.
+- Uses eleven traits: `Scriptomatic_Menus`, `Scriptomatic_Sanitizer`, `Scriptomatic_History`, `Scriptomatic_Settings`, `Scriptomatic_Renderer`, `Scriptomatic_Pages`, `Scriptomatic_Enqueue`, `Scriptomatic_Injector`, `Scriptomatic_Files`, `Scriptomatic_API`, `Scriptomatic_Notifications`.
 
 All business logic lives in the traits.
 
@@ -291,6 +291,7 @@ array(
 array(
     'max_log_entries'        => int,    // 3–1000, default 200
     'keep_data_on_uninstall' => bool,   // default false
+    'save_confirm_enabled'   => bool,   // default true
     'api_allowed_ips'        => string, // newline-separated IPv4/IPv6/CIDR; empty = allow all
     'api_enabled'            => bool,   // REST API enabled; default true
     'api_allowed_users'      => array,  // int[] of administrator user IDs; empty = allow any admin
@@ -513,7 +514,7 @@ Email notifications, per-admin opt-in user meta, and the Preferences Action Hist
 **Preferences Action History:**
 
 - `render_pref_history_section()` — outputs the `#sm-pref-history-section` div on the Preferences page (appended below the `</form>` tag). Contains a read-only activity log table: last 100 entries, paginated 20 per page. Includes a hidden nonce input `#sm-pref-history-nonce` and `data-total-pages` attribute for the JS pagination controller.
-- `render_pref_history_rows( array $log )` — renders `<tr>` rows for one page's worth of log entries. Columns: Date/Time, User, Action, Location/File, Detail. No View or Restore buttons (audit trail only).
+- `render_pref_history_rows( array $log )` — renders `<tr>` rows for one page's worth of log entries. Columns: Date/Time, User, Via (Dashboard/API/CLI), Changes. No View or Restore buttons (audit trail only).
 - `ajax_pref_history()` — registered on `wp_ajax_scriptomatic_pref_history`. Validates the nonce against `SCRIPTOMATIC_GENERAL_NONCE` and verifies `manage_options`. Queries the activity log for the requested page (20 per page, max 100 entries). Returns `{ rows: (HTML string), total_pages: int, page: int }` as JSON.
 
 ---
