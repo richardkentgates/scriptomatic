@@ -121,6 +121,12 @@ class Scriptomatic {
         add_action( 'admin_enqueue_scripts',  array( $this, 'enqueue_admin_scripts' ) );
         add_action( 'admin_footer',           array( $this, 'render_history_lightbox' ) );
 
+        // Side-effects for inline-script saves: logging, rate-limit stamp, notifications.
+        // Hooked to update_option_* so they fire exactly once, only when the option
+        // is actually written — never inside the sanitize callback.
+        add_action( 'update_option_' . SCRIPTOMATIC_LOCATION_HEAD,   array( $this, 'on_location_saved' ), 10, 3 );
+        add_action( 'update_option_' . SCRIPTOMATIC_LOCATION_FOOTER, array( $this, 'on_location_saved' ), 10, 3 );
+
         // Notification opt-in on admin profile pages.
         add_action( 'show_user_profile',        array( $this, 'render_notification_profile_field' ) );
         add_action( 'edit_user_profile',        array( $this, 'render_notification_profile_field' ) );

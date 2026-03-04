@@ -442,17 +442,6 @@ trait Scriptomatic_Sanitizer {
         }
         $urls = $this->sanitize_url_entries( is_array( $decoded_urls ) ? $decoded_urls : array() );
 
-        // =========================================================
-        // 4. Log the save and stamp the rate-limit transient
-        // =========================================================
-        $this->log_location_save( $location, $previous, $script, $conditions, $urls );
-        $this->record_save_timestamp( $location );
-        $this->maybe_send_notifications( array(
-            'action'   => __( 'Script saved', 'scriptomatic' ),
-            'location' => ucfirst( $location ),
-            'detail'   => number_format( strlen( $script ) ) . ' chars',
-        ) );
-
         add_settings_error( $error_slug, 'settings_saved',
             __( 'Settings saved.', 'scriptomatic' ), 'updated' );
 
@@ -461,6 +450,47 @@ trait Scriptomatic_Sanitizer {
             'conditions' => $conditions,
             'urls'       => $urls,
         );
+    }
+
+    /**
+     * Fires on update_option_{scriptomatic_head|scriptomatic_footer} — exactly
+     * once, only when the option value is actually written to the database.
+     *
+     * Handles all save side-effects that must not run inside the sanitize
+     * callback (which WordPress calls twice per POST):
+     *   - Activity log entry
+     *   - Rate-limit transient stamp
+     *   - Email notifications
+     *
+     * @since  3.1.1
+     * @param  mixed  $old_value  Previous stored value.
+     * @param  mixed  $new_value  Newly stored value.
+     * @param  string $option     Option name (scriptomatic_head|scriptomatic_footer).
+     * @return void
+     */
+    public function on_location_saved( $old_value, $new_value, $option ) {
+        $location = ( SCRIPTOMATIC_LOCATION_FOOTER === $option ) ? 'footer' : 'head';
+
+        $old_script     = isset( $old_value['script'] )     ? $old_value['script']     : '';
+        $old_conditions = isset( $old_value['conditions'] ) ? $old_value['conditions'] : array();
+        $old_urls       = isset( $old_value['urls'] )       ? $old_value['urls']       : array();
+        $previous = array(
+            'script'     => $old_script,
+            'conditions' => $old_conditions,
+            'urls'       => $old_urls,
+        );
+
+        $new_script = isset( $new_value['script'] )     ? $new_value['script']     : '';
+        $new_conds  = isset( $new_value['conditions'] ) ? $new_value['conditions'] : array();
+        $new_urls   = isset( $new_value['urls'] )       ? $new_value['urls']       : array();
+
+        $this->log_location_save( $location, $previous, $new_script, $new_conds, $new_urls );
+        $this->record_save_timestamp( $location );
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'Script saved', 'scriptomatic' ),
+            'location' => ucfirst( $location ),
+            'detail'   => number_format( strlen( $new_script ) ) . ' chars',
+        ) );
     }
 
     // =========================================================================
