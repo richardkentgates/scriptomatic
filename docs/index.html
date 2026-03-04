@@ -589,7 +589,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-green">💻</div>
         <h3>WP-CLI <span class="pro-badge">Pro</span></h3>
-        <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), activity log (<code>log list</code>, <code>log clear</code>), and history. All commands share the same service layer as the REST API &mdash; identical validation and activity logging.</p>
+        <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), activity log (<code>log list</code>, <code>log clear</code>), preferences management (<code>prefs get</code>, <code>prefs set</code>, <code>prefs history</code>), and history. All write commands share the same service layer as the REST API &mdash; identical validation and activity logging. Preferences management is available via CLI only &mdash; intentionally absent from the REST API.</p>
       </div>
 
       <div class="feature-card">
@@ -938,7 +938,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
   <div class="container">
     <span class="section-label">WP-CLI</span>
     <h2>Manage scripts from the command line <span class="pro-badge" style="font-size:.75rem;">Pro</span></h2>
-    <p class="section-intro">The <code>wp scriptomatic</code> command group mirrors the full REST API. All write commands share the same service layer &mdash; identical validation and activity logging apply.</p>
+    <p class="section-intro">The <code>wp scriptomatic</code> command group mirrors the full REST API surface and adds preferences management (<code>prefs get</code>, <code>prefs set</code>, <code>prefs history</code>) which is CLI-only. All write commands share the same service layer &mdash; identical validation and activity logging apply.</p>
     <div class="highlight-box" style="margin-bottom:1.5rem;border-color:#7c3aed;background:#f5f0ff;">
       <h4>Pro Feature</h4>
       <p>WP-CLI commands require an active Scriptomatic Pro licence. <a href="#pricing">View pricing →</a></p>
@@ -981,6 +981,17 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
 <span class="prompt">$ </span>wp scriptomatic log list --location=head --limit=50
 <span class="prompt">$ </span>wp scriptomatic log clear --location=head --yes
 <span class="prompt">$ </span>wp scriptomatic log clear --yes</div>
+      </div>
+
+      <div class="install-card">
+        <h3>Preferences <span class="pro-badge">Pro</span></h3>
+        <div class="shell">
+<span class="prompt">$ </span>wp scriptomatic prefs get
+<span class="prompt">$ </span>wp scriptomatic prefs get --format=json
+<span class="prompt">$ </span>wp scriptomatic prefs set --key=max_log_entries --value=500
+<span class="prompt">$ </span>wp scriptomatic prefs set --key=api_enabled --value=true
+<span class="prompt">$ </span>wp scriptomatic prefs history</div>
+        <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;">Preferences management is CLI-only &mdash; not available via the REST API. Valid keys: <code>max_log_entries</code>, <code>keep_data_on_uninstall</code>, <code>save_confirm_enabled</code>; Pro: <code>api_enabled</code>, <code>api_allowed_ips</code>, <code>api_allowed_users</code>.</p>
       </div>
 
     </div>

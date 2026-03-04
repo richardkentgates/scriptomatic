@@ -258,7 +258,7 @@ curl -X POST https://example.com/wp-json/scriptomatic/v1/files/upload \
 
 > **Pro feature.** WP-CLI commands require an active Scriptomatic Pro licence. A 3-day free trial is available (credit card or PayPal required).
 
-All commands are in the `wp scriptomatic` group. Write commands share the same service layer as the REST API and admin UI.
+All commands are in the `wp scriptomatic` group. Write commands share the same service layer as the REST API and admin UI. Preferences management (`prefs get`, `prefs set`, `prefs history`) is available via CLI only — not the REST API.
 
 ### Inline Script
 
@@ -322,6 +322,39 @@ wp scriptomatic log list [--location=<head|footer|file|all>] [--limit=<n>] [--fo
 # Clear activity log (prompts for confirmation unless --yes)
 wp scriptomatic log clear [--location=<head|footer|file|all>] [--yes]
 ```
+
+### Preferences
+
+> Preferences management is available from the Dashboard and WP-CLI only — intentionally absent from the REST API.
+
+```bash
+# Display all current preferences
+wp scriptomatic prefs get
+wp scriptomatic prefs get --format=json
+
+# Set a preference value
+wp scriptomatic prefs set --key=max_log_entries --value=500
+wp scriptomatic prefs set --key=keep_data_on_uninstall --value=true
+wp scriptomatic prefs set --key=save_confirm_enabled --value=false
+wp scriptomatic prefs set --key=api_enabled --value=true           # Pro
+wp scriptomatic prefs set --key=api_allowed_ips --value="203.0.113.0/24,192.0.2.1"  # Pro
+wp scriptomatic prefs set --key=api_allowed_users --value="admin,editor2"            # Pro
+
+# View preferences change history
+wp scriptomatic prefs history
+wp scriptomatic prefs history --format=json
+```
+
+**Valid keys for `prefs set`:**
+
+| Key | Type | Notes |
+|---|---|---|
+| `max_log_entries` | integer 3–1000 | Maximum number of activity log entries to retain |
+| `keep_data_on_uninstall` | bool | Preserve all plugin data when uninstalling (default: false) |
+| `save_confirm_enabled` | bool | Show a confirmation dialog before saving changes |
+| `api_enabled` | bool | Enable or disable the REST API site-wide _(Pro)_ |
+| `api_allowed_ips` | string | Newline- or comma-separated IPv4/IPv6/CIDR ranges; leave empty to allow all IPs _(Pro)_ |
+| `api_allowed_users` | string | Comma-separated administrator logins or user IDs; leave empty to allow all administrators _(Pro)_ |
 
 `--conditions` accepts a JSON string: `'{"logic":"and","rules":[{"type":"front_page","values":[]}]}'`
 `--format` defaults to `table`. Use the history commands to look up `--id` values for rollback.
