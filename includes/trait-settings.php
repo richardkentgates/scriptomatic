@@ -75,6 +75,7 @@ trait Scriptomatic_Settings {
             'default'           => array(
                 'max_log_entries'        => SCRIPTOMATIC_MAX_LOG_ENTRIES,
                 'keep_data_on_uninstall' => false,
+                'save_confirm_enabled'   => true,
                 'api_allowed_ips'        => '',
                 'api_enabled'            => true,
                 'api_allowed_users'      => array(),
@@ -86,6 +87,8 @@ trait Scriptomatic_Settings {
             array( $this, 'render_max_log_field' ), 'scriptomatic_general_page', 'sm_advanced' );
         add_settings_field( 'scriptomatic_keep_data', __( 'Data on Uninstall', 'scriptomatic' ),
             array( $this, 'render_keep_data_field' ), 'scriptomatic_general_page', 'sm_advanced' );
+        add_settings_field( 'scriptomatic_save_confirm', __( 'Save Confirmation', 'scriptomatic' ),
+            array( $this, 'render_save_confirm_field' ), 'scriptomatic_general_page', 'sm_advanced' );
 
         // API fields: Pro feature.
         if ( scriptomatic_is_premium() ) {
@@ -203,6 +206,7 @@ trait Scriptomatic_Settings {
         $defaults = array(
             'max_log_entries'        => SCRIPTOMATIC_MAX_LOG_ENTRIES,
             'keep_data_on_uninstall' => false,
+            'save_confirm_enabled'   => true,
             'api_allowed_ips'        => '',
             'api_enabled'            => true,
             'api_allowed_users'      => array(),
@@ -270,6 +274,9 @@ trait Scriptomatic_Settings {
         // keep_data_on_uninstall: boolean.
         $clean['keep_data_on_uninstall'] = ! empty( $input['keep_data_on_uninstall'] );
 
+        // save_confirm_enabled: boolean.
+        $clean['save_confirm_enabled'] = ! empty( $input['save_confirm_enabled'] );
+
         // api_allowed_ips: newline-separated list of valid IPs and CIDR ranges.
         $raw_ips   = isset( $input['api_allowed_ips'] ) ? (string) $input['api_allowed_ips'] : '';
         $ip_lines  = preg_split( '/[\r\n]+/', $raw_ips );
@@ -330,6 +337,17 @@ trait Scriptomatic_Settings {
     public function get_max_log_entries() {
         $settings = $this->get_plugin_settings();
         return isset( $settings['max_log_entries'] ) ? (int) $settings['max_log_entries'] : SCRIPTOMATIC_MAX_LOG_ENTRIES;
+    }
+
+    /**
+     * Return whether the save confirmation dialog is enabled.
+     *
+     * @since  3.2.0
+     * @return bool
+     */
+    public function is_save_confirm_enabled() {
+        $settings = $this->get_plugin_settings();
+        return isset( $settings['save_confirm_enabled'] ) ? (bool) $settings['save_confirm_enabled'] : true;
     }
 
     // =========================================================================

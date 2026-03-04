@@ -103,6 +103,7 @@ trait Scriptomatic_Enqueue {
             'codeEditorSettings'  => $code_editor_settings,
             'i18n'               => array(
                 'saveConfirm'      => __( 'Save these changes?', 'scriptomatic' ),
+                'saveConfirmEnabled' => $this->is_save_confirm_enabled(),
                 'invalidUrl'       => __( 'Please enter a valid http:// or https:// URL.', 'scriptomatic' ),
                 'duplicateUrl'     => __( 'This URL has already been added.', 'scriptomatic' ),
                 'rollbackConfirm'  => __( 'Restore this revision? The current script will be preserved in history.', 'scriptomatic' ),

@@ -838,6 +838,33 @@ trait Scriptomatic_Renderer {
     }
 
     /**
+     * Render the save-confirmation-dialog enable/disable checkbox field.
+     *
+     * @since  3.2.0
+     * @return void
+     */
+    public function render_save_confirm_field() {
+        $settings = $this->get_plugin_settings();
+        $enabled  = isset( $settings['save_confirm_enabled'] ) ? (bool) $settings['save_confirm_enabled'] : true;
+        ?>
+        <label for="scriptomatic_save_confirm_enabled">
+            <input
+                type="checkbox"
+                id="scriptomatic_save_confirm_enabled"
+                name="<?php echo esc_attr( SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION ); ?>[save_confirm_enabled]"
+                value="1"
+                <?php checked( $enabled, true ); ?>
+                aria-describedby="save-confirm-description"
+            >
+            <?php esc_html_e( 'Require a confirmation dialog before saving changes.', 'scriptomatic' ); ?>
+        </label>
+        <p id="save-confirm-description" class="description">
+            <?php esc_html_e( 'When checked (default), a browser confirmation prompt appears each time you click Save. Uncheck to save immediately without a prompt.', 'scriptomatic' ); ?>
+        </p>
+        <?php
+    }
+
+    /**
      * Render the "API Allowed IPs" textarea field for the Advanced Settings section.
      *
      * Accepts one IPv4 address, IPv6 address, or IPv4 CIDR range per line.
