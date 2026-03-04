@@ -525,11 +525,13 @@ trait Scriptomatic_Sanitizer {
         $new_conds  = isset( $new_value['conditions'] ) ? $new_value['conditions'] : array();
         $new_urls   = isset( $new_value['urls'] )       ? $new_value['urls']       : array();
 
-        $this->log_location_save( $location, $previous, $new_script, $new_conds, $new_urls );
+        $save_details = $this->log_location_save( $location, $previous, $new_script, $new_conds, $new_urls );
+        $notif_parts  = array_filter( array( $save_details['script_detail'], $save_details['url_detail'] ) );
+        $notif_detail = ! empty( $notif_parts ) ? implode( "\n", $notif_parts ) : '';
         $this->maybe_send_notifications( array(
             'action'   => __( 'Script saved', 'scriptomatic' ),
             'location' => ucfirst( $location ),
-            'detail'   => number_format( strlen( $new_script ) ) . ' chars',
+            'detail'   => $notif_detail,
         ) );
     }
 
@@ -713,7 +715,7 @@ trait Scriptomatic_Sanitizer {
      * @param  string $script     New sanitised script content.
      * @param  array  $conditions New sanitised conditions array.
      * @param  array  $urls       New sanitised URL entries array.
-     * @return void
+     * @return array{script_detail: string|null, url_detail: string|null} Detail strings built for each changed dataset.
      */
     private function log_location_save( $location, array $previous, $script, array $conditions, array $urls ) {
         $old_script     = isset( $previous['script'] )     ? (string) $previous['script']     : '';
@@ -725,6 +727,9 @@ trait Scriptomatic_Sanitizer {
         $script_changed     = ( $old_script !== $script );
         $conditions_changed = ( wp_json_encode( $old_conditions ) !== wp_json_encode( $conditions ) );
         $urls_changed       = ( wp_json_encode( $old_urls ) !== wp_json_encode( $urls ) );
+
+        $script_detail = null;
+        $url_detail    = null;
 
         // ---- Inline script dataset entry ----
         if ( $script_changed || $conditions_changed ) {
@@ -750,13 +755,14 @@ trait Scriptomatic_Sanitizer {
                 );
             }
 
+            $script_detail = implode( ' · ', $detail_parts );
             $this->write_activity_entry( array(
                 'action'             => $action,
                 'location'           => $location,
                 'content'            => $snap_content,
                 'chars'              => strlen( $script ),
                 'conditions_snapshot' => $conditions,
-                'detail'             => implode( ' · ', $detail_parts ),
+                'detail'             => $script_detail,
             ) );
         }
 
@@ -794,13 +800,19 @@ trait Scriptomatic_Sanitizer {
                 $detail_parts[] = __( 'URL conditions updated', 'scriptomatic' );
             }
 
+            $url_detail = implode( ' · ', $detail_parts );
             $this->write_activity_entry( array(
                 'action'        => 'url_save',
                 'location'      => $location,
                 'urls_snapshot' => $urls_snapshot,
-                'detail'        => implode( ' · ', $detail_parts ),
+                'detail'        => $url_detail,
             ) );
         }
+
+        return array(
+            'script_detail' => $script_detail,
+            'url_detail'    => $url_detail,
+        );
     }
 
     /**

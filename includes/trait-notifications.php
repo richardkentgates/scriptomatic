@@ -174,8 +174,8 @@ trait Scriptomatic_Notifications {
             time()
         );
 
-        /* translators: %s: site name */
-        $subject = sprintf( __( '[Scriptomatic] Content changed on %s', 'scriptomatic' ), $site_name );
+        /* translators: 1: action label 2: site name */
+        $subject = sprintf( __( '[Scriptomatic] %1$s on %2$s', 'scriptomatic' ), $action, $site_name );
 
         /* Compose plain-text body. */
         $body  = sprintf(
@@ -195,8 +195,20 @@ trait Scriptomatic_Notifications {
         $body .= sprintf( __( 'User:     %s', 'scriptomatic' ), $actor_login ) . "\n";
         /* translators: %s: formatted date/time */
         $body .= sprintf( __( 'Time:     %s', 'scriptomatic' ), $ts ) . "\n\n";
+        // Resolve a location-aware admin URL so the link goes straight to the
+        // relevant editor page rather than always the Head page.
+        $loc_lower  = strtolower( $location );
+        $manage_url = admin_url( 'admin.php?page=scriptomatic' );
+        if ( 'footer' === $loc_lower ) {
+            $manage_url = admin_url( 'admin.php?page=scriptomatic-footer' );
+        } elseif ( 'head' !== $loc_lower ) {
+            $manage_url = admin_url( 'admin.php?page=scriptomatic-files' );
+        }
+        if ( ! empty( $event['page_url'] ) ) {
+            $manage_url = esc_url_raw( (string) $event['page_url'] );
+        }
         /* translators: %s: admin URL */
-        $body .= sprintf( __( 'Manage scripts: %s', 'scriptomatic' ), admin_url( 'admin.php?page=scriptomatic' ) ) . "\n\n";
+        $body .= sprintf( __( 'Manage scripts: %s', 'scriptomatic' ), $manage_url ) . "\n\n";
         /* translators: %s: profile page URL */
         $body .= sprintf( __( 'To stop receiving these emails, visit your profile: %s', 'scriptomatic' ), admin_url( 'profile.php' ) ) . "\n";
 
