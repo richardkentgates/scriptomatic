@@ -28,8 +28,9 @@ trait Scriptomatic_Settings {
      * @return void
      */
     public function register_settings() {
-        // Ensure the custom log table exists (idempotent via dbDelta).
+        // Ensure the custom log tables exist (idempotent via dbDelta).
         $this->maybe_create_log_table();
+        $this->maybe_create_prefs_log_table();
         // Migrate data from pre-v2.8 fragmented options on first load.
         $this->maybe_migrate_to_v2_8();
 
@@ -322,7 +323,75 @@ trait Scriptomatic_Settings {
             'updated'
         );
 
+        // Diff $current vs $clean and write a prefs log entry when anything changed.
+        $this->maybe_write_prefs_change( $current, $clean );
+
         return $clean;
+    }
+
+    /**
+     * Diff two settings arrays and write a prefs log entry if anything changed.
+     *
+     * Compares only the fields that are user-editable. No-op when $current and
+     * $clean are identical. Called from sanitize_plugin_settings() after the
+     * sanitised array is finalised.
+     *
+     * @since  3.2.0
+     * @access private
+     * @param  array $old  Previous settings (before this save).
+     * @param  array $new  Sanitised incoming settings.
+     * @return void
+     */
+    private function maybe_write_prefs_change( array $old, array $new ) {
+        $labels = array(
+            'max_log_entries'        => __( 'Activity Log Limit', 'scriptomatic' ),
+            'keep_data_on_uninstall' => __( 'Keep Data on Uninstall', 'scriptomatic' ),
+            'save_confirm_enabled'   => __( 'Save Confirmation', 'scriptomatic' ),
+            'api_enabled'            => __( 'REST API', 'scriptomatic' ),
+            'api_allowed_ips'        => __( 'API Allowed IPs', 'scriptomatic' ),
+            'api_allowed_users'      => __( 'API Allowed Users', 'scriptomatic' ),
+        );
+
+        $diff         = array();
+        $detail_parts = array();
+
+        foreach ( $labels as $key => $label ) {
+            $old_val = isset( $old[ $key ] ) ? $old[ $key ] : null;
+            $new_val = isset( $new[ $key ] ) ? $new[ $key ] : null;
+
+            // Normalise for comparison: encode arrays, cast booleans to string.
+            $old_cmp = is_array( $old_val ) ? wp_json_encode( $old_val ) : (string) $old_val;
+            $new_cmp = is_array( $new_val ) ? wp_json_encode( $new_val ) : (string) $new_val;
+
+            if ( $old_cmp === $new_cmp ) {
+                continue;
+            }
+
+            // Build a human-readable old/new string for each type.
+            if ( is_bool( $old_val ) || is_bool( $new_val ) ) {
+                $old_str = $old_val ? __( 'on', 'scriptomatic' ) : __( 'off', 'scriptomatic' );
+                $new_str = $new_val ? __( 'on', 'scriptomatic' ) : __( 'off', 'scriptomatic' );
+            } elseif ( 'api_allowed_users' === $key ) {
+                $old_str = sprintf( _n( '%d user', '%d users', count( (array) $old_val ), 'scriptomatic' ), count( (array) $old_val ) );
+                $new_str = sprintf( _n( '%d user', '%d users', count( (array) $new_val ), 'scriptomatic' ), count( (array) $new_val ) );
+            } elseif ( 'api_allowed_ips' === $key ) {
+                $old_str = __( '(previous list)', 'scriptomatic' );
+                $new_str = __( '(updated)', 'scriptomatic' );
+            } else {
+                $old_str = (string) $old_val;
+                $new_str = (string) $new_val;
+            }
+
+            $diff[ $key ] = array( 'old' => $old_str, 'new' => $new_str );
+            /* translators: 1: setting label, 2: old value, 3: new value */
+            $detail_parts[] = sprintf( __( '%1$s: %2$s → %3$s', 'scriptomatic' ), $label, $old_str, $new_str );
+        }
+
+        if ( empty( $diff ) ) {
+            return; // Nothing changed — Settings API called sanitize on a no-op submit.
+        }
+
+        $this->write_prefs_log_entry( implode( ' · ', $detail_parts ), $diff );
     }
 
     /**
@@ -348,6 +417,126 @@ trait Scriptomatic_Settings {
     public function is_save_confirm_enabled() {
         $settings = $this->get_plugin_settings();
         return isset( $settings['save_confirm_enabled'] ) ? (bool) $settings['save_confirm_enabled'] : true;
+    }
+
+    // =========================================================================
+    // PREFERENCES LOG — READ / WRITE / TABLE
+    // =========================================================================
+
+    /**
+     * Create the preferences log DB table if it does not exist.
+     *
+     * Table `{prefix}scriptomatic_prefs_log`:
+     *   id         — auto-increment primary key
+     *   timestamp  — unix epoch
+     *   user_id    — acting user ID
+     *   user_login — acting user login name (snapshot at write time)
+     *   detail     — human-readable summary, e.g. "Activity Log Limit: 200 → 100"
+     *   changes    — JSON object: { field: { old: string, new: string } }
+     *
+     * Hard-capped at 100 rows; oldest rows pruned after each insert.
+     *
+     * @since  3.2.0
+     * @access private
+     * @return void
+     */
+    private function maybe_create_prefs_log_table() {
+        global $wpdb;
+        $table           = $wpdb->prefix . SCRIPTOMATIC_PREFS_LOG_TABLE;
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE {$table} (
+            id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            timestamp  INT UNSIGNED NOT NULL DEFAULT 0,
+            user_id    INT UNSIGNED NOT NULL DEFAULT 0,
+            user_login VARCHAR(60)  NOT NULL DEFAULT '',
+            detail     TEXT         NOT NULL,
+            changes    TEXT                  DEFAULT NULL,
+            PRIMARY KEY (id)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta( $sql );
+    }
+
+    /**
+     * Insert a row into the preferences log table and prune to 100 rows.
+     *
+     * @since  3.2.0
+     * @access private
+     * @param  string $detail   Human-readable summary of what changed.
+     * @param  array  $changes  Associative array: { field => { old, new } }.
+     * @return void
+     */
+    private function write_prefs_log_entry( $detail, array $changes = array() ) {
+        global $wpdb;
+        $table = $wpdb->prefix . SCRIPTOMATIC_PREFS_LOG_TABLE;
+        $user  = wp_get_current_user();
+
+        $wpdb->insert(
+            $table,
+            array(
+                'timestamp'  => time(),
+                'user_id'    => (int) $user->ID,
+                'user_login' => (string) $user->user_login,
+                'detail'     => (string) $detail,
+                'changes'    => ! empty( $changes ) ? wp_json_encode( $changes ) : null,
+            ),
+            array( '%d', '%d', '%s', '%s', '%s' )
+        );
+
+        // Hard cap at 100 rows.
+        $keep_id = $wpdb->get_var( $wpdb->prepare(
+            'SELECT id FROM %i ORDER BY id DESC LIMIT 1 OFFSET %d',
+            $table,
+            99
+        ) );
+        if ( $keep_id ) {
+            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id < %d', $table, (int) $keep_id ) );
+        }
+    }
+
+    /**
+     * Fetch rows from the preferences log table, newest first.
+     *
+     * @since  3.2.0
+     * @access private
+     * @param  int $limit   Maximum rows to return.
+     * @param  int $offset  Rows to skip.
+     * @return array  Each element: { id, timestamp, user_id, user_login, detail, changes (array) }.
+     */
+    private function get_prefs_log( $limit = 20, $offset = 0 ) {
+        global $wpdb;
+        $table = $wpdb->prefix . SCRIPTOMATIC_PREFS_LOG_TABLE;
+        $rows  = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d',
+                $table, (int) $limit, (int) $offset
+            ),
+            ARRAY_A
+        );
+        if ( ! is_array( $rows ) ) {
+            return array();
+        }
+        $result = array();
+        foreach ( $rows as $row ) {
+            $entry = array(
+                'id'         => (int) $row['id'],
+                'timestamp'  => (int) $row['timestamp'],
+                'user_id'    => (int) $row['user_id'],
+                'user_login' => (string) $row['user_login'],
+                'detail'     => (string) $row['detail'],
+                'changes'    => array(),
+            );
+            if ( ! empty( $row['changes'] ) ) {
+                $decoded = json_decode( $row['changes'], true );
+                if ( is_array( $decoded ) ) {
+                    $entry['changes'] = $decoded;
+                }
+            }
+            $result[] = $entry;
+        }
+        return $result;
     }
 
     // =========================================================================

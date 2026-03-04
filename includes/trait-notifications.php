@@ -224,21 +224,21 @@ trait Scriptomatic_Notifications {
     /**
      * Render the read-only Preferences Action History section.
      *
-     * Outputs the section heading, description, the first page of entries
-     * (server-rendered), and AJAX-driven pagination controls when there is
-     * more than one page.
+     * Reads from `wp_scriptomatic_prefs_log` — records of changes made to the
+     * Preferences page only, not script or file changes. Hard-capped at the
+     * 100 most recent rows; paginated 20 per page.
      *
      * @since  3.1.0
+     * @since  3.2.0 Reads from dedicated prefs log table.
      * @return void
      */
     public function render_pref_history_section() {
         $per_page = 20;
         $cap      = 100;
-        $log      = $this->get_activity_log( $per_page, 0 );
+        $log      = $this->get_prefs_log( $per_page, 0 );
 
-        // Count total entries in the table, capped at 100 for display purposes.
         global $wpdb;
-        $table       = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
+        $table       = $wpdb->prefix . SCRIPTOMATIC_PREFS_LOG_TABLE;
         $total_count = (int) $wpdb->get_var( $wpdb->prepare(
             'SELECT COUNT(*) FROM ( SELECT id FROM %i ORDER BY id DESC LIMIT %d ) AS t',
             $table,
@@ -250,13 +250,13 @@ trait Scriptomatic_Notifications {
         <hr style="margin:30px 0;">
         <h2 style="margin-top:12px;">
             <span class="dashicons dashicons-list-view" style="font-size:24px;width:24px;height:24px;margin-right:4px;vertical-align:middle;"></span>
-            <?php esc_html_e( 'Action History', 'scriptomatic' ); ?>
+            <?php esc_html_e( 'Preferences Change History', 'scriptomatic' ); ?>
         </h2>
         <p class="description">
             <?php
             printf(
-                /* translators: %d: maximum action history entries retained */
-                esc_html__( 'A read-only record of the last %d content-change events across all locations and files, newest first. Paginated 20 per page. This log cannot be cleared manually — oldest entries are pruned automatically based on the Activity Log Limit setting above.', 'scriptomatic' ),
+                /* translators: %d: maximum preferences history entries retained */
+                esc_html__( 'A read-only record of the last %d changes made to this Preferences page, newest first. Paginated 20 per page. This log cannot be cleared manually — oldest entries are pruned automatically when the 100-entry cap is reached.', 'scriptomatic' ),
                 absint( $cap )
             );
             ?>
@@ -265,11 +265,9 @@ trait Scriptomatic_Notifications {
         <table class="widefat scriptomatic-history-table sm-pref-history-table" style="max-width:960px;margin-top:8px;">
             <thead>
                 <tr>
-                    <th><?php esc_html_e( 'Date / Time', 'scriptomatic' ); ?></th>
-                    <th><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
-                    <th><?php esc_html_e( 'Action', 'scriptomatic' ); ?></th>
-                    <th><?php esc_html_e( 'Location / File', 'scriptomatic' ); ?></th>
-                    <th><?php esc_html_e( 'Detail', 'scriptomatic' ); ?></th>
+                    <th style="width:18%;"><?php esc_html_e( 'Date / Time', 'scriptomatic' ); ?></th>
+                    <th style="width:14%;"><?php esc_html_e( 'User', 'scriptomatic' ); ?></th>
+                    <th><?php esc_html_e( 'Changes', 'scriptomatic' ); ?></th>
                 </tr>
             </thead>
             <tbody id="sm-pref-history-tbody">
@@ -299,7 +297,7 @@ trait Scriptomatic_Notifications {
                 <?php esc_html_e( 'Next &raquo;', 'scriptomatic' ); ?>
             </button>
             <span class="sm-pref-history-loading description" style="display:none;">
-                <?php esc_html_e( 'Loading\u2026', 'scriptomatic' ); ?>
+                <?php esc_html_e( 'Loading&hellip;', 'scriptomatic' ); ?>
             </span>
         </div>
         <input type="hidden" id="sm-pref-history-nonce"
@@ -311,84 +309,81 @@ trait Scriptomatic_Notifications {
     /**
      * Build the <tr> rows HTML string for one page of Preferences history entries.
      *
-     * All output is safe to echo directly: strings are esc_html'd, integers are
-     * cast with absint().
+     * Columns: Date/Time · User · Changes.
+     * Each change is listed as "Setting: old → new". When the full detail string
+     * is too wide to display inline the raw string is shown in a title attribute.
+     *
+     * All output is safe to echo directly.
      *
      * @since  3.1.0
+     * @since  3.2.0 Updated for dedicated prefs log schema.
      * @access private
-     * @param  array $log  Decoded log entry arrays.
-     * @return string  HTML string ready for echo.
+     * @param  array $log  Row arrays from get_prefs_log().
+     * @return string  HTML ready for echo.
      */
     private function render_pref_history_rows( array $log ) {
-        $action_label_map = array(
-            'save'            => __( 'Script Save', 'scriptomatic' ),
-            'rollback'        => __( 'Script Restore', 'scriptomatic' ),
-            'url_save'        => __( 'URL Save', 'scriptomatic' ),
-            'url_rollback'    => __( 'URL Restore', 'scriptomatic' ),
-            'conditions_save' => __( 'Conditions Save', 'scriptomatic' ),
-            'file_save'       => __( 'File Save', 'scriptomatic' ),
-            'file_rollback'   => __( 'File Restore', 'scriptomatic' ),
-            'file_delete'     => __( 'File Deleted', 'scriptomatic' ),
-            'file_restored'   => __( 'File Re-created', 'scriptomatic' ),
-        );
-
         if ( empty( $log ) ) {
-            return '<tr><td colspan="5">' . esc_html__( 'No activity recorded yet.', 'scriptomatic' ) . '</td></tr>';
+            return '<tr><td colspan="3">' . esc_html__( 'No preferences changes recorded yet.', 'scriptomatic' ) . '</td></tr>';
         }
 
-        $html = '';
+        $date_fmt = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
+        $html     = '';
+
         foreach ( $log as $entry ) {
             if ( ! is_array( $entry ) ) {
                 continue;
             }
 
-            $ts      = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : 0;
-            $ulogin  = isset( $entry['user_login'] ) ? (string) $entry['user_login'] : '';
-            $uid     = isset( $entry['user_id'] )    ? (int) $entry['user_id']        : 0;
-            $action  = isset( $entry['action'] )     ? (string) $entry['action']      : '';
-            $loc     = isset( $entry['location'] )   ? (string) $entry['location']    : '';
-            $file_id = isset( $entry['file_id'] )    ? (string) $entry['file_id']     : '';
-            $detail  = isset( $entry['detail'] )     ? (string) $entry['detail']      : '';
+            $ts     = isset( $entry['timestamp'] )  ? (int) $entry['timestamp']     : 0;
+            $ulogin = isset( $entry['user_login'] ) ? (string) $entry['user_login'] : '';
+            $uid    = isset( $entry['user_id'] )    ? (int) $entry['user_id']        : 0;
+            $detail = isset( $entry['detail'] )     ? (string) $entry['detail']      : '';
 
-            $action_label = isset( $action_label_map[ $action ] )
-                ? $action_label_map[ $action ]
-                : ucwords( str_replace( '_', ' ', $action ) );
-
-            $loc_str = ucfirst( $loc );
-            if ( '' !== $file_id ) {
-                $loc_str .= ' / ' . $file_id;
-            }
-
-            $detail_display = '';
-            if ( '' !== $detail ) {
-                $detail_display = strlen( $detail ) > 60
-                    ? substr( $detail, 0, 57 ) . "\xe2\x80\xa6" // UTF-8 ellipsis
-                    : $detail;
+            // Build individual change pills from the structured changes array.
+            $changes      = isset( $entry['changes'] ) && is_array( $entry['changes'] ) ? $entry['changes'] : array();
+            $change_parts = array();
+            foreach ( $changes as $field => $diff ) {
+                if ( ! is_array( $diff ) || ! isset( $diff['old'], $diff['new'] ) ) {
+                    continue;
+                }
+                /* translators: 1: setting label, 2: old value, 3: new value */
+                $change_parts[] = sprintf(
+                    __( '%1$s: %2$s &rarr; %3$s', 'scriptomatic' ),
+                    esc_html( ucwords( str_replace( '_', ' ', $field ) ) ),
+                    '<strong>' . esc_html( $diff['old'] ) . '</strong>',
+                    '<strong>' . esc_html( $diff['new'] ) . '</strong>'
+                );
             }
 
             $html .= '<tr>';
-            $html .= '<td>' . esc_html( $ts ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) : '—' ) . '</td>';
+            $html .= '<td>' . esc_html( $ts ? date_i18n( $date_fmt, $ts ) : '—' ) . '</td>';
             $html .= '<td>' . esc_html( $ulogin ) . ( $uid ? ' <span class="description">(ID:&nbsp;' . absint( $uid ) . ')</span>' : '' ) . '</td>';
-            $html .= '<td>' . esc_html( $action_label ) . '</td>';
-            $html .= '<td>' . esc_html( $loc_str ) . '</td>';
             $html .= '<td>';
-            if ( '' !== $detail_display ) {
-                $html .= '<span title="' . esc_attr( $detail ) . '">' . esc_html( $detail_display ) . '</span>';
+            if ( ! empty( $change_parts ) ) {
+                $html .= implode( '<br>', $change_parts );
+            } elseif ( '' !== $detail ) {
+                // Fallback: plain detail string with tooltip for long values.
+                $display = strlen( $detail ) > 80
+                    ? substr( $detail, 0, 77 ) . "\xe2\x80\xa6"
+                    : $detail;
+                $html .= '<span title="' . esc_attr( $detail ) . '">' . esc_html( $display ) . '</span>';
             } else {
                 $html .= '&mdash;';
             }
             $html .= '</td>';
             $html .= '</tr>';
         }
+
         return $html;
     }
 
     /**
-     * AJAX handler — return one page of Preferences action history rows as HTML.
+     * AJAX handler — return one page of Preferences change history rows as HTML.
      *
      * Expects POST fields: `nonce` (SCRIPTOMATIC_GENERAL_NONCE), `page` (1-based int).
      *
      * @since  3.1.0
+     * @since  3.2.0 Reads from dedicated prefs log table.
      * @return void  Sends a JSON response and exits.
      */
     public function ajax_pref_history() {
@@ -403,7 +398,7 @@ trait Scriptomatic_Notifications {
         $page     = isset( $_POST['page'] ) ? max( 1, (int) $_POST['page'] ) : 1;
         $offset   = ( $page - 1 ) * $per_page;
 
-        // Clamp offset to cap so we never read beyond entry 100.
+        // Clamp offset to cap so we never read beyond row 100.
         if ( $offset >= $cap ) {
             wp_send_json_success( array(
                 'rows'        => '',
@@ -414,11 +409,10 @@ trait Scriptomatic_Notifications {
         }
 
         $limit = min( $per_page, $cap - $offset );
-        $log   = $this->get_activity_log( $limit, $offset );
+        $log   = $this->get_prefs_log( $limit, $offset );
 
-        // Recount total, still capped at 100.
         global $wpdb;
-        $table       = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
+        $table       = $wpdb->prefix . SCRIPTOMATIC_PREFS_LOG_TABLE;
         $total_count = (int) $wpdb->get_var( $wpdb->prepare(
             'SELECT COUNT(*) FROM ( SELECT id FROM %i ORDER BY id DESC LIMIT %d ) AS t',
             $table,

@@ -63,8 +63,9 @@ define( 'SCRIPTOMATIC_ROLLBACK_NONCE', 'scriptomatic_rollback' );     // AJAX ro
 define( 'SCRIPTOMATIC_JS_FILES_OPTION', 'scriptomatic_js_files' );    // DB option key for JS file metadata array
 
 // ---- Activity log ----
-define( 'SCRIPTOMATIC_LOG_TABLE',       'scriptomatic_log' ); // Base name (without DB prefix) for the custom log table
-define( 'SCRIPTOMATIC_MAX_LOG_ENTRIES', 200 );                // Default maximum entries shown in the UI
+define( 'SCRIPTOMATIC_LOG_TABLE',       'scriptomatic_log' );       // Base name (without DB prefix) for the script/file activity log table
+define( 'SCRIPTOMATIC_PREFS_LOG_TABLE', 'scriptomatic_prefs_log' ); // Base name (without DB prefix) for the preferences change log table
+define( 'SCRIPTOMATIC_MAX_LOG_ENTRIES', 200 );                      // Default maximum entries shown in the UI
 
 // ---- Nonces: JS files ----
 define( 'SCRIPTOMATIC_FILES_NONCE', 'scriptomatic_save_js_file' );    // File edit form + AJAX delete nonce
