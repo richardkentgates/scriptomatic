@@ -151,6 +151,18 @@ trait Scriptomatic_API {
             'permission_callback' => $pc,
             'args'                => $this->api_upload_file_args(),
         ) );
+
+        // --- Preferences history (read-only) ---
+        // Preferences write (prefs get/set) is intentionally NOT exposed via the
+        // REST API — manage preferences via WP-CLI or the Dashboard only.
+        // Activity-log clear/delete is also intentionally absent from the REST
+        // API; log management is available only from the Dashboard and WP-CLI.
+        register_rest_route( $ns, '/prefs/history', array(
+            'methods'             => 'POST',
+            'callback'            => array( $this, 'rest_get_prefs_history' ),
+            'permission_callback' => $pc,
+            'args'                => $this->api_prefs_history_args(),
+        ) );
     }
 
     // =========================================================================
@@ -300,6 +312,35 @@ trait Scriptomatic_API {
             }
         }
         return true;
+    }
+
+    /**
+     * Argument definitions for the prefs/history endpoint.
+     *
+     * @since  3.2.0
+     * @access private
+     * @return array[]
+     */
+    private function api_prefs_history_args() {
+        return array(
+            'limit' => array(
+                'required'          => false,
+                'type'              => 'integer',
+                'default'           => 20,
+                'minimum'           => 1,
+                'maximum'           => 100,
+                'sanitize_callback' => 'absint',
+                'description'       => __( 'Maximum entries to return (1–100). Default: 20.', 'scriptomatic' ),
+            ),
+            'offset' => array(
+                'required'          => false,
+                'type'              => 'integer',
+                'default'           => 0,
+                'minimum'           => 0,
+                'sanitize_callback' => 'absint',
+                'description'       => __( 'Entries to skip for pagination. Default: 0.', 'scriptomatic' ),
+            ),
+        );
     }
 
     /**
@@ -611,6 +652,26 @@ trait Scriptomatic_API {
     }
 
     /**
+     * POST /wp-json/scriptomatic/v1/prefs/history
+     *
+     * Returns a paginated list of preference change log entries (read-only).
+     * Preferences write is intentionally excluded from the REST API.
+     *
+     * @since  3.2.0
+     * @param  WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
+     */
+    public function rest_get_prefs_history( WP_REST_Request $request ) {
+        $limit  = isset( $request['limit'] )  ? absint( $request['limit'] )  : 20;
+        $offset = isset( $request['offset'] ) ? absint( $request['offset'] ) : 0;
+        $log    = $this->service_get_prefs_log( $limit, $offset );
+        return rest_ensure_response( array(
+            'entries' => $log,
+            'count'   => count( $log ),
+        ) );
+    }
+
+    /**
      * POST /wp-json/scriptomatic/v1/files
      *
      * @since  2.6.0
@@ -752,13 +813,13 @@ trait Scriptomatic_API {
             'conditions_snapshot' => $loc_data['conditions'],
             'detail'              => sprintf(
                 /* translators: %s: character count */
-                __( 'API: %s chars', 'scriptomatic' ),
+                __( '%s chars', 'scriptomatic' ),
                 number_format( strlen( $content ) )
             ),
         );
         $this->write_activity_entry( $log_entry );
         $this->maybe_send_notifications( array(
-            'action'   => __( 'Script saved (API)', 'scriptomatic' ),
+            'action'   => __( 'Script saved', 'scriptomatic' ),
             'location' => ucfirst( $location ),
             'detail'   => number_format( strlen( $content ) ) . ' chars',
         ) );
@@ -817,11 +878,11 @@ trait Scriptomatic_API {
             'content'             => $content,
             'chars'               => strlen( $content ),
             'conditions_snapshot' => $loc_data['conditions'],
-            'detail'              => __( 'Restored from snapshot via API', 'scriptomatic' ),
+            'detail'              => __( 'Restored from snapshot', 'scriptomatic' ),
         );
         $this->write_activity_entry( $rollback_entry );
         $this->maybe_send_notifications( array(
-            'action'   => __( 'Script restored (API)', 'scriptomatic' ),
+            'action'   => __( 'Script restored', 'scriptomatic' ),
             'location' => ucfirst( $location ),
             'detail'   => number_format( strlen( $content ) ) . ' chars',
         ) );
@@ -853,6 +914,7 @@ trait Scriptomatic_API {
                 'user'       => isset( $entry['user_login'] ) ? $entry['user_login']             : '',
                 'chars'      => isset( $entry['chars'] )      ? (int) $entry['chars']            : strlen( isset( $entry['content'] ) ? $entry['content'] : '' ),
                 'detail'     => isset( $entry['detail'] )     ? $entry['detail']                : '',
+                'source'     => isset( $entry['source'] )     ? $entry['source']                : 'dashboard',
                 'has_conditions' => array_key_exists( 'conditions_snapshot', $entry ),
             );
         }
@@ -910,12 +972,12 @@ trait Scriptomatic_API {
             'urls_snapshot' => $clean,
             'detail'        => sprintf(
                 /* translators: %d: number of URLs saved */
-                _n( 'API: %d URL saved', 'API: %d URLs saved', count( $clean ), 'scriptomatic' ),
+                _n( '%d URL saved', '%d URLs saved', count( $clean ), 'scriptomatic' ),
                 count( $clean )
             ),
         ) );
         $this->maybe_send_notifications( array(
-            'action'   => __( 'External URLs saved (API)', 'scriptomatic' ),
+            'action'   => __( 'External URLs saved', 'scriptomatic' ),
             'location' => ucfirst( $location ),
             'detail'   => count( $clean ) . ' URL(s)',
         ) );
@@ -967,10 +1029,10 @@ trait Scriptomatic_API {
             'action'        => 'url_rollback',
             'location'      => $location,
             'urls_snapshot' => $snapshot,
-            'detail'        => __( 'External URLs restored from snapshot via API', 'scriptomatic' ),
+            'detail'        => __( 'External URLs restored from snapshot', 'scriptomatic' ),
         ) );
         $this->maybe_send_notifications( array(
-            'action'   => __( 'External URLs restored (API)', 'scriptomatic' ),
+            'action'   => __( 'External URLs restored', 'scriptomatic' ),
             'location' => ucfirst( $location ),
             'detail'   => count( $snapshot ) . ' URL(s)',
         ) );
@@ -1007,6 +1069,7 @@ trait Scriptomatic_API {
                 'user'      => isset( $entry['user_login'] ) ? $entry['user_login']       : '',
                 'url_count' => is_array( $snap ) ? count( $snap ) : 0,
                 'detail'    => isset( $entry['detail'] )     ? $entry['detail']           : '',
+                'source'    => isset( $entry['source'] )     ? $entry['source']           : 'dashboard',
             );
         }
         return array(
@@ -1163,7 +1226,7 @@ trait Scriptomatic_API {
             'meta'       => array( 'label' => $label, 'filename' => $filename, 'location' => $loc ),
         ) );
         $this->maybe_send_notifications( array(
-            'action'   => __( 'JS file saved (API)', 'scriptomatic' ),
+            'action'   => __( 'JS file saved', 'scriptomatic' ),
             'location' => $label,
             'detail'   => $filename,
         ) );
@@ -1225,7 +1288,7 @@ trait Scriptomatic_API {
             ),
         ) );
         $this->maybe_send_notifications( array(
-            'action'   => __( 'JS file deleted (API)', 'scriptomatic' ),
+            'action'   => __( 'JS file deleted', 'scriptomatic' ),
             'location' => $found['label'],
             'detail'   => $found['filename'],
         ) );
@@ -1488,6 +1551,69 @@ trait Scriptomatic_API {
         return array(
             'message' => __( 'Preferences updated.', 'scriptomatic' ),
             'changes' => count( $updates ),
+        );
+    }
+
+    // =========================================================================
+    // ACTIVITY LOG SERVICE — Dashboard + CLI only; intentionally absent from REST
+    // =========================================================================
+
+    /**
+     * Return paginated rows from the activity log.
+     *
+     * Available to WP-CLI (`wp scriptomatic log list`) and the Dashboard.
+     * No corresponding REST route — use /history and /urls/history endpoints
+     * for structured history data.
+     *
+     * @since  3.2.0
+     * @param  string $location  Filter: 'head'|'footer'|'file'|'' (all).
+     * @param  int    $limit     Maximum rows (0 = configured max).
+     * @param  int    $offset    Rows to skip.
+     * @return array
+     */
+    public function service_get_activity_log( $location = '', $limit = 0, $offset = 0 ) {
+        return $this->get_activity_log( (int) $limit, (int) $offset, sanitize_key( (string) $location ) );
+    }
+
+    /**
+     * Delete all activity log entries for one location (or all locations).
+     *
+     * Available from the Dashboard (AJAX) and WP-CLI (`wp scriptomatic log clear`).
+     * Intentionally NOT exposed via the REST API — log management stays
+     * out of band so auditors retain an independent record.
+     *
+     * @since  3.2.0
+     * @param  string $location  'head'|'footer'|'file' to clear one location;
+     *                           ''|'all' to clear every entry.
+     * @return array|WP_Error  On success: {location, message}.
+     */
+    public function service_clear_activity_log( $location = '' ) {
+        global $wpdb;
+        $table   = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
+        $allowed = array( 'head', 'footer', 'file' );
+
+        if ( '' === $location || 'all' === $location ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $table ) );
+        } elseif ( in_array( $location, $allowed, true ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE location = %s', $table, $location ) );
+        } else {
+            return new WP_Error(
+                'invalid_location',
+                __( 'Invalid location. Use head, footer, file, or all.', 'scriptomatic' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        // Flush the object cache group so the next read is fresh.
+        if ( function_exists( 'wp_cache_flush_group' ) ) {
+            wp_cache_flush_group( 'scriptomatic_log' );
+        }
+
+        return array(
+            'location' => ( '' === $location ) ? 'all' : $location,
+            'message'  => __( 'Activity log cleared.', 'scriptomatic' ),
         );
     }
 

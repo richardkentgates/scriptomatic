@@ -193,6 +193,8 @@ trait Scriptomatic_Notifications {
         }
         /* translators: %s: username */
         $body .= sprintf( __( 'User:     %s', 'scriptomatic' ), $actor_login ) . "\n";
+        /* translators: %s: source label — Dashboard, API, or CLI */
+        $body .= sprintf( __( 'Via:      %s', 'scriptomatic' ), ucfirst( $this->get_current_source() ) ) . "\n";
         /* translators: %s: formatted date/time */
         $body .= sprintf( __( 'Time:     %s', 'scriptomatic' ), $ts ) . "\n\n";
         // Resolve a location-aware admin URL so the link goes straight to the

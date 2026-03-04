@@ -35,6 +35,10 @@
  *   wp scriptomatic prefs set --key=<key> --value=<value>
  *   wp scriptomatic prefs history [--format=<format>]
  *
+ *   # Activity log (list + clear; not available via REST API)
+ *   wp scriptomatic log list [--location=<head|footer|file|all>] [--limit=<n>] [--format=<format>]
+ *   wp scriptomatic log clear [--location=<head|footer|file|all>] [--yes]
+ *
  * All write operations delegate to the service_*() methods on the
  * Scriptomatic singleton so no logic is duplicated between REST and CLI.
  *
@@ -256,12 +260,13 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
                 'Action'     => $entry['action'],
                 'Date'       => $entry['timestamp'] > 0 ? gmdate( 'Y-m-d H:i:s', $entry['timestamp'] ) : '—',
                 'User'       => $entry['user'],
+                'Via'        => isset( $entry['source'] ) ? ucfirst( $entry['source'] ) : 'Dashboard',
                 'Chars'      => number_format( $entry['chars'] ),
                 'Detail'     => $entry['detail'],
             );
         }
 
-        WP_CLI\Utils\format_items( $format, $rows, array( 'ID', 'Action', 'Date', 'User', 'Chars', 'Detail' ) );
+        WP_CLI\Utils\format_items( $format, $rows, array( 'ID', 'Action', 'Date', 'User', 'Via', 'Chars', 'Detail' ) );
     }
 
     // =========================================================================
@@ -443,12 +448,13 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
                 'Action'  => $entry['action'],
                 'Date'    => $entry['timestamp'] > 0 ? gmdate( 'Y-m-d H:i:s', $entry['timestamp'] ) : '—',
                 'User'    => $entry['user'],
+                'Via'     => isset( $entry['source'] ) ? ucfirst( $entry['source'] ) : 'Dashboard',
                 'URLs'    => $entry['url_count'],
                 'Detail'  => $entry['detail'],
             );
         }
 
-        WP_CLI\Utils\format_items( $format, $rows, array( 'ID', 'Action', 'Date', 'User', 'URLs', 'Detail' ) );
+        WP_CLI\Utils\format_items( $format, $rows, array( 'ID', 'Action', 'Date', 'User', 'Via', 'URLs', 'Detail' ) );
     }
 
     // =========================================================================
@@ -837,6 +843,111 @@ class Scriptomatic_CLI_Commands extends WP_CLI_Command {
         }
 
         WP_CLI\Utils\format_items( $format, $rows, array( 'Date', 'User', 'Via', 'Changes' ) );
+    }
+
+    // =========================================================================
+    // ACTIVITY LOG
+    // =========================================================================
+
+    /**
+     * List recent activity log entries.
+     *
+     * Shows saves, rollbacks, file events, and URL changes across head,
+     * footer, and JS file locations. Includes the Via column (Dashboard /
+     * API / CLI) so you can see how each change was made.
+     *
+     * ## OPTIONS
+     *
+     * [--location=<location>]
+     * : Filter by location. Accepts 'head', 'footer', 'file', or 'all' (default).
+     *
+     * [--limit=<n>]
+     * : Maximum number of entries to return. Default: 50.
+     *
+     * [--format=<format>]
+     * : Output format. Accepts 'table' (default), 'json', 'csv', 'yaml', 'count'.
+     *
+     * ## EXAMPLES
+     *
+     *   wp scriptomatic log list
+     *   wp scriptomatic log list --location=head
+     *   wp scriptomatic log list --limit=100 --format=json
+     *
+     * @since  3.2.0
+     * @param  array $args
+     * @param  array $assoc_args
+     */
+    public function log_list( $args, $assoc_args ) {
+        $location = isset( $assoc_args['location'] ) ? sanitize_key( (string) $assoc_args['location'] ) : 'all';
+        $limit    = isset( $assoc_args['limit'] )    ? max( 1, (int) $assoc_args['limit'] )             : 50;
+        $format   = isset( $assoc_args['format'] )   ? $assoc_args['format']                            : 'table';
+
+        $loc_filter = ( 'all' === $location ) ? '' : $location;
+        $entries    = $this->plugin->service_get_activity_log( $loc_filter, $limit, 0 );
+
+        if ( empty( $entries ) ) {
+            WP_CLI::line( 'No activity log entries found.' );
+            return;
+        }
+
+        $rows = array();
+        foreach ( $entries as $entry ) {
+            $detail = isset( $entry['detail'] ) ? (string) $entry['detail'] : '';
+            $rows[] = array(
+                'ID'       => $entry['id'],
+                'Date'     => $entry['timestamp'] > 0 ? gmdate( 'Y-m-d H:i:s', $entry['timestamp'] ) : '—',
+                'User'     => $entry['user_login'],
+                'Location' => $entry['location'],
+                'Action'   => $entry['action'],
+                'Via'      => isset( $entry['source'] ) ? ucfirst( $entry['source'] ) : 'Dashboard',
+                'Detail'   => strlen( $detail ) > 60 ? substr( $detail, 0, 57 ) . '...' : $detail,
+            );
+        }
+
+        WP_CLI\Utils\format_items( $format, $rows, array( 'ID', 'Date', 'User', 'Location', 'Action', 'Via', 'Detail' ) );
+    }
+
+    /**
+     * Clear the activity log for one location (or all locations).
+     *
+     * Permanently deletes entries from the activity log DB table.
+     * The Preferences Change History log is NOT affected — it is
+     * self-managing (hard-capped at 100 rows, auto-pruned).
+     *
+     * ## OPTIONS
+     *
+     * [--location=<location>]
+     * : Location to clear. Accepts 'head', 'footer', 'file', or 'all' (default).
+     *
+     * [--yes]
+     * : Skip the confirmation prompt.
+     *
+     * ## EXAMPLES
+     *
+     *   wp scriptomatic log clear
+     *   wp scriptomatic log clear --location=head
+     *   wp scriptomatic log clear --location=all --yes
+     *
+     * @since  3.2.0
+     * @param  array $args
+     * @param  array $assoc_args
+     */
+    public function log_clear( $args, $assoc_args ) {
+        $location = isset( $assoc_args['location'] ) ? sanitize_key( (string) $assoc_args['location'] ) : 'all';
+        $allowed  = array( 'head', 'footer', 'file', 'all' );
+
+        if ( ! in_array( $location, $allowed, true ) ) {
+            WP_CLI::error( 'Invalid --location. Accepted values: head, footer, file, all.' );
+        }
+
+        $label = ( 'all' === $location ) ? 'all locations' : $location;
+        WP_CLI::confirm(
+            sprintf( 'Clear all activity log entries for %s? This cannot be undone.', $label ),
+            $assoc_args
+        );
+
+        $result = $this->plugin->service_clear_activity_log( $location );
+        $this->handle_result( $result );
     }
 
     // =========================================================================
