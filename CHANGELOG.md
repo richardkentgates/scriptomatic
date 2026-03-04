@@ -13,6 +13,25 @@ _Nothing yet._
 
 ---
 
+## [3.2.0] – 2026-04-01
+
+### Added
+- **Source tracking.** Every activity log entry now carries a `source` field (`dashboard`, `api`, `cli`) recording how the change was made. The `Via` column appears in WP-CLI `wp scriptomatic history` and `wp scriptomatic urls history` table output.
+- **`Via: Dashboard/API/CLI` in admin email notifications.** All admin email notifications now include a `Via:` line (between the existing `User:` and `Time:` lines) showing the originating channel.
+- **Activity log clear — Dashboard + WP-CLI.** A **Clear Log** button appears at the top of each Activity Log table on the Head, Footer, and Files pages. Clearing is scoped to the current location. Two new WP-CLI commands:
+  - `wp scriptomatic log list [--location=<head|footer|file|all>] [--limit=<n>] [--format=<format>]`
+  - `wp scriptomatic log clear [--location=<head|footer|file|all>] [--yes]`
+  Log-clear is intentionally absent from the REST API; Dashboard and CLI only.
+- **REST `POST /prefs/history`.** Read-only endpoint returning paginated Preferences Action History. Accepts `limit` (1–100, default 20) and `offset`. Requires Pro. Log-clear is not exposed via REST (Dashboard and CLI only, by design).
+- **`service_get_activity_log( $location, $limit, $offset )`** — public service method (wraps the private `get_activity_log()`); shared by WP-CLI.
+- **`service_clear_activity_log( $location )`** — public service method; deletes rows from `wp_scriptomatic_log` for the given location (or all); flushes the `scriptomatic_log` object cache group; shared by Dashboard AJAX and WP-CLI.
+
+### Changed
+- **Notification `action` strings cleaned.** `(API)` suffixes and `API: ` prefixes have been removed from all log `action` and `detail` strings. All write paths — Dashboard, API, and CLI — now produce identical clean strings. The new `source` field is the authoritative origin record.
+- **`service_get_history()` and `service_get_url_history()` response shape.** Both now include a `source` key in each entry object.
+
+---
+
 ## [3.1.1] – 2026-03-03
 
 ### Fixed
@@ -880,7 +899,11 @@ _Nothing yet._
 
 ---
 
-[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v2.7.0...HEAD
+[Unreleased]: https://github.com/richardkentgates/scriptomatic/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/richardkentgates/scriptomatic/compare/v3.1.1...v3.2.0
+[3.1.1]: https://github.com/richardkentgates/scriptomatic/compare/v3.1.0...v3.1.1
+[3.1.0]: https://github.com/richardkentgates/scriptomatic/compare/v3.0.0...v3.1.0
+[3.0.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.7.0...v3.0.0
 [2.7.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/richardkentgates/scriptomatic/compare/v2.5.3...v2.6.0
 [2.5.3]: https://github.com/richardkentgates/scriptomatic/compare/v2.5.2...v2.5.3

@@ -4,7 +4,7 @@ Tags: javascript, script injection, head scripts, conditional loading, activity 
 Requires at least: 6.2
 Tested up to: 6.9
 Requires PHP: 7.2
-Stable tag: 3.1.1
+Stable tag: 3.2.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,7 +20,7 @@ Scriptomatic is a secure, production-ready WordPress plugin for injecting custom
 * **External Script URLs** — manage multiple remote `<script src>` URLs per location with a chicklet UI.
 * **Revision History &amp; Rollback** — every save writes a complete snapshot. Click Restore to roll back via AJAX — no further Save needed.
 * **Activity Log** — all saves and rollbacks are recorded in a persistent log embedded at the bottom of each admin page. Configurable limit of 3–1,000 entries (default 200).
-* **Security First** — dual nonce verification, `manage_options` capability gate, transient-based rate limiting, UTF-8 and control-character rejection, 100 KB content cap, PHP-tag detection, and dangerous-HTML-tag warning.
+* **Security First** — dual nonce verification, `manage_options` capability gate, UTF-8 and control-character rejection, 100 KB content cap, PHP-tag detection, and dangerous-HTML-tag warning.
 * All free features are **fully unlimited** — no quantity caps.
 
 = Pro Features (licence required) =
@@ -104,6 +104,14 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 6. Contextual help tabs — Overview, Usage, Security, Best Practices, and Troubleshooting.
 
 == Changelog ==
+
+= 3.2.0 =
+* **Added**: Source tracking — all activity log entries now include a `source` field (`dashboard`, `api`, `cli`). The `Via` column appears in CLI `wp scriptomatic history` and `wp scriptomatic urls history` output.
+* **Added**: `Via: Dashboard/API/CLI` line in admin email notifications — all admin email notifications now include a line indicating how the change was made.
+* **Added**: Activity log clear — a **Clear Log** button appears at the top of each Activity Log table on the Head, Footer, and Files pages. Clears entries for the current location (or all). Also available via WP-CLI: `wp scriptomatic log list` and `wp scriptomatic log clear`. Intentionally absent from the REST API.
+* **Added**: REST endpoint `POST /wp-json/scriptomatic/v1/prefs/history` — read-only; returns paginated Preferences Action History (`limit` 1–100 default 20, `offset`). Requires Pro.
+* **Added**: `service_get_activity_log($location, $limit, $offset)` and `service_clear_activity_log($location)` service methods — shared by the Dashboard AJAX handler and WP-CLI.
+* **Changed**: Notification `action` strings no longer include `(API)` noise. All write paths — Dashboard, API, and CLI — now produce identical clean action names. The `source` field is the authoritative origin record.
 
 = 3.1.1 =
 * **Fixed**: Inline script Load Conditions field showed an empty table cell on free tier because the upgrade notice used WordPress `.notice` CSS classes, which WP admin JS relocates out of the form table. Replaced with inline lock icon + span markup (matching the URL entry style).

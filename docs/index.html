@@ -386,7 +386,7 @@
         "applicationCategory": "BusinessApplication",
         "applicationSubCategory": "WordPress Plugin",
         "operatingSystem": "WordPress 6.2 or higher, PHP 7.2 or higher",
-        "softwareVersion": "3.0.0",
+        "softwareVersion": "3.2.0",
         "url": "https://scriptomatic.richardkentgates.com",
         "downloadUrl": "https://github.com/richardkentgates/scriptomatic/releases/latest",
         "screenshot": "https://scriptomatic.richardkentgates.com/scriptomatic-logo.png",
@@ -483,7 +483,7 @@
 <!-- HERO -->
 <section class="hero">
   <img src="scriptomatic-logo.png" alt="Scriptomatic — WordPress JavaScript injection plugin" class="hero-logo" />
-  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v3.1.0 &nbsp;·&nbsp; Free + Pro</div>
+  <div class="hero-badge">WordPress Plugin &nbsp;·&nbsp; v3.2.0 &nbsp;·&nbsp; Free + Pro</div>
   <h1>Inject custom JavaScript<br/><span>into any WordPress site.</span></h1>
   <p>The <strong>free Scriptomatic plugin</strong> gives every WordPress site a full inline script editor, external URL manager, revision history, and activity log. <strong>Scriptomatic Pro</strong> adds conditional loading, managed JS files, a full REST API, and WP-CLI. Add Google Analytics, Tag Manager, Meta Pixel, or any custom JavaScript safely into the <code style="background:rgba(255,255,255,.15);padding:.1em .4em;border-radius:4px">&lt;head&gt;</code> or footer — with auditability and rollback built in.</p>
   <div class="hero-actions">
@@ -547,7 +547,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-blue">🔒</div>
         <h3>Security-First Architecture</h3>
-        <p>Dual nonce verification, capability checks on every callback, rate limiting (10-second cooldown), open-redirect hardening, and singleton deserialization guards.</p>
+        <p>Dual nonce verification, capability checks on every callback, open-redirect hardening, and singleton deserialization guards.</p>
       </div>
 
       <div class="feature-card">
@@ -583,13 +583,13 @@
       <div class="feature-card">
         <div class="feature-icon icon-blue">🔌</div>
         <h3>REST API <span class="pro-badge">Pro</span></h3>
-        <p>Full <code>scriptomatic/v1</code> REST API (13 POST endpoints) covering inline scripts, external URLs, and managed JS files &mdash; including a multipart file upload endpoint. Authenticated via WordPress Application Passwords. Optional IP allowlist, API enable/disable toggle, and per-user access controls in Preferences.</p>
+        <p>Full <code>scriptomatic/v1</code> REST API (14 POST endpoints) covering inline scripts, external URLs, managed JS files, and Preferences Action History &mdash; including a multipart file upload endpoint. Authenticated via WordPress Application Passwords. Optional IP allowlist, API enable/disable toggle, and per-user access controls in Preferences.</p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon icon-green">💻</div>
         <h3>WP-CLI <span class="pro-badge">Pro</span></h3>
-        <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), and history. All commands share the same service layer as the REST API &mdash; identical validation, rate-limiting, and activity logging.</p>
+        <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), activity log (<code>log list</code>, <code>log clear</code>), and history. All commands share the same service layer as the REST API &mdash; identical validation and activity logging.</p>
       </div>
 
       <div class="feature-card">
@@ -801,7 +801,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
         <div class="security-icon">🌐</div>
         <div>
           <h4>REST API Security</h4>
-          <p>All 13 REST endpoints are POST-only. Authentication exclusively via WordPress Application Passwords (<code>Authorization: Basic</code> header &mdash; credentials never in the URL). Three independent access controls in Preferences: an <strong>Enable / Disable</strong> toggle (returns <code>503 rest_api_disabled</code> when off), an optional <strong>IP Allowlist</strong> that blocks requests from unlisted IPv4/IPv6/CIDR addresses (<code>403 rest_ip_forbidden</code>), and an <strong>Allowed Users</strong> list that restricts access to specific administrator accounts (<code>403 rest_user_forbidden</code>). Rate limiting and activity logging apply equally to REST and admin UI operations through the shared service layer.</p>
+          <p>All 14 REST endpoints are POST-only. Authentication exclusively via WordPress Application Passwords (<code>Authorization: Basic</code> header &mdash; credentials never in the URL). Three independent access controls in Preferences: an <strong>Enable / Disable</strong> toggle (returns <code>503 rest_api_disabled</code> when off), an optional <strong>IP Allowlist</strong> that blocks requests from unlisted IPv4/IPv6/CIDR addresses (<code>403 rest_ip_forbidden</code>), and an <strong>Allowed Users</strong> list that restricts access to specific administrator accounts (<code>403 rest_user_forbidden</code>). Activity logging applies equally to REST and admin UI operations through the shared service layer.</p>
         </div>
       </div>
 
@@ -857,7 +857,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
   <div class="container">
     <span class="section-label">REST API</span>
     <h2>Automate everything over HTTP <span class="pro-badge" style="font-size:.75rem;">Pro</span></h2>
-    <p class="section-intro">All 13 endpoints are <code>POST</code>-only. Authentication uses <strong>WordPress Application Passwords</strong> — credentials always travel in the <code>Authorization: Basic</code> header, never in the URL.</p>
+    <p class="section-intro">All 14 endpoints are <code>POST</code>-only. Authentication uses <strong>WordPress Application Passwords</strong> — credentials always travel in the <code>Authorization: Basic</code> header, never in the URL.</p>
     <div class="highlight-box" style="margin-bottom:2rem;border-color:#7c3aed;background:#f5f0ff;">
       <h4>Pro Feature</h4>
       <p>The REST API requires an active Scriptomatic Pro licence. On free installations the <code>scriptomatic/v1</code> namespace is not registered. <a href="#pricing">View pricing →</a></p>
@@ -897,6 +897,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
           <tr><td><code>POST /urls/set</code></td><td><code>location</code>, <code>urls</code> (JSON array)</td><td>—</td><td>Replace external URL list</td></tr>
           <tr><td><code>POST /urls/rollback</code></td><td><code>location</code>, <code>id</code> (DB row ID)</td><td>—</td><td>Restore URL snapshot</td></tr>
           <tr><td><code>POST /urls/history</code></td><td><code>location</code></td><td>—</td><td>List URL history</td></tr>
+          <tr><td><code>POST /prefs/history</code></td><td>—</td><td><code>limit</code> (1–100, default 20), <code>offset</code></td><td>List Preferences Action History (read-only)</td></tr>
           <tr><td><code>POST /files</code></td><td>—</td><td>—</td><td>List all managed JS files</td></tr>
           <tr><td><code>POST /files/get</code></td><td><code>file_id</code></td><td>—</td><td>Get file content + metadata</td></tr>
           <tr><td><code>POST /files/set</code></td><td><code>label</code>, <code>content</code></td><td><code>file_id</code>, <code>filename</code>, <code>location</code>, <code>conditions</code></td><td>Create or update a file</td></tr>
@@ -937,7 +938,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
   <div class="container">
     <span class="section-label">WP-CLI</span>
     <h2>Manage scripts from the command line <span class="pro-badge" style="font-size:.75rem;">Pro</span></h2>
-    <p class="section-intro">The <code>wp scriptomatic</code> command group mirrors the full REST API. All write commands share the same service layer — identical validation, rate-limiting, and activity logging apply.</p>
+    <p class="section-intro">The <code>wp scriptomatic</code> command group mirrors the full REST API. All write commands share the same service layer &mdash; identical validation and activity logging apply.</p>
     <div class="highlight-box" style="margin-bottom:1.5rem;border-color:#7c3aed;background:#f5f0ff;">
       <h4>Pro Feature</h4>
       <p>WP-CLI commands require an active Scriptomatic Pro licence. <a href="#pricing">View pricing →</a></p>
@@ -971,6 +972,15 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
 <span class="prompt">$ </span>wp scriptomatic files set --label="My Tracker" --file=tracker.js
 <span class="prompt">$ </span>wp scriptomatic files upload --path=tracker.js --label="Tracker"
 <span class="prompt">$ </span>wp scriptomatic files delete --id=my-tracker --yes</div>
+      </div>
+
+      <div class="install-card">
+        <h3>Activity Log</h3>
+        <div class="shell">
+<span class="prompt">$ </span>wp scriptomatic log list
+<span class="prompt">$ </span>wp scriptomatic log list --location=head --limit=50
+<span class="prompt">$ </span>wp scriptomatic log clear --location=head --yes
+<span class="prompt">$ </span>wp scriptomatic log clear --yes</div>
       </div>
 
     </div>
@@ -1100,7 +1110,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
           <tr><td>Multisite compatible</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>Conditional loading</strong> (11 rule types, AND/OR)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>Managed JS Files</strong> (create / edit / upload / delete)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
-          <tr><td><strong>REST API</strong> (13 endpoints)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td><strong>REST API</strong> (14 endpoints)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>WP-CLI</strong> (<code>wp scriptomatic</code>)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>API IP Allowlist</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>API Enable / Disable</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
@@ -1118,6 +1128,22 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <span class="section-label">Release History</span>
     <h2>Changelog</h2>
     <p class="section-intro">Selected highlights — see the full <a href="https://github.com/richardkentgates/scriptomatic/blob/main/CHANGELOG.md">CHANGELOG.md</a> on GitHub.</p>
+
+    <div class="changelog-item">
+      <div class="clog-version" style="background:#2563eb;">v3.2.0</div>
+      <div class="clog-body">
+        <h4>Source tracking, activity log clear, email Via line, REST prefs/history</h4>
+        <p>Every activity log entry now records a <strong>source</strong> field (<code>dashboard</code>, <code>api</code>, <code>cli</code>) indicating which channel made the change. Admin email notifications include a new <strong>Via: Dashboard/API/CLI</strong> line. A <strong>Clear Log</strong> button appears above each Activity Log table on the Head, Footer, and Files pages, scoped to the current location; complemented by two new WP-CLI commands: <code>wp scriptomatic log list</code> and <code>wp scriptomatic log clear</code>. Log-clear is intentionally absent from the REST API. A new REST endpoint <code>POST /wp-json/scriptomatic/v1/prefs/history</code> exposes paginated Preferences Action History read-only. Notification <code>action</code> strings have been cleaned &mdash; <code>(API)</code> suffixes removed; the <code>source</code> field is now the authoritative origin record.</p>
+      </div>
+    </div>
+
+    <div class="changelog-item">
+      <div class="clog-version">v3.1.1</div>
+      <div class="clog-body">
+        <h4>Bug fix: Load Conditions field blank on free tier</h4>
+        <p>The inline script <strong>Load Conditions</strong> field showed an empty table cell on the free tier. The upgrade notice used WordPress <code>.notice</code> CSS classes, which WP admin JavaScript physically relocates out of the form table at runtime. Replaced with inline lock icon + span markup matching the existing URL entry style.</p>
+      </div>
+    </div>
 
     <div class="changelog-item">
       <div class="clog-version" style="background:#16a34a;">v3.1.0</div>
@@ -1405,7 +1431,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <a href="https://richardkentgates.com/scriptomatic" style="color:#e9d5ff;">⭐ Upgrade to Pro</a>
     <a href="https://richardkentgates.com">richardkentgates.com</a>
   </div>
-  <p>Scriptomatic v3.1.0 &nbsp;·&nbsp; Free &amp; Pro &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
+  <p>Scriptomatic v3.2.0 &nbsp;·&nbsp; Free &amp; Pro &nbsp;·&nbsp; GPL v2 or later &nbsp;·&nbsp; Built by <a href="https://richardkentgates.com">Richard Kent Gates</a></p>
 </footer>
 
 <script>

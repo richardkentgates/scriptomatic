@@ -26,7 +26,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 | Multisite compatible | ✅ | ✅ |
 | **Conditional loading** (11 rule types, AND/OR) | ❌ | ✅ |
 | **Managed JS Files** (create / edit / upload / delete) | ❌ | ✅ |
-| **REST API** (`scriptomatic/v1`, 13 endpoints) | ❌ | ✅ |
+| **REST API** (`scriptomatic/v1`, 14 endpoints) | ❌ | ✅ |
 | **WP-CLI** (`wp scriptomatic`) | ❌ | ✅ |
 | **API IP Allowlist** (IPv4/IPv6/CIDR) | ❌ | ✅ |
 | **API Enable / Disable** | ❌ | ✅ |
@@ -44,7 +44,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 
 ### 🆓 Free — included with every install
 
-- **🔒 Security First**: Comprehensive input validation, sanitization, secondary nonce system, rate limiting, and audit logging
+- **🔒 Security First**: Comprehensive input validation, sanitization, secondary nonce system, and audit logging
 - **👤 Capability Checks**: Only administrators with `manage_options` can modify scripts
 - **📝 Inline Script Editor**: Full CodeMirror JavaScript editor with line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea if syntax highlighting is disabled in the user profile.
 - **🔗 External Script URLs**: Manage multiple remote `<script src>` URLs per location with a chicklet UI; loaded before the inline block
@@ -59,12 +59,12 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 
 - **🎯 Conditional Loading**: Restrict injection to specific pages, post types, URL patterns, user login state, date ranges, date/time windows, ISO week numbers, or months — per inline script and per external URL (11 condition types, AND/OR stacked rules)
 - **🗂️ Managed JS Files**: Create, edit, upload, and delete standalone `.js` files stored in `wp-content/uploads/scriptomatic/`; each file has its own Head/Footer selector, load conditions, and CodeMirror editor; files survive plugin updates
-- **🔌 REST API**: Full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Thirteen endpoints cover inline scripts, external URL lists, and managed JS files — including a multipart file upload endpoint
+- **🔌 REST API**: Full `scriptomatic/v1` REST API (all POST, WordPress Application Passwords). Fourteen endpoints cover inline scripts, external URL lists, managed JS files, and Preferences Action History — including a multipart file upload endpoint
 - **🛡️ API IP Allowlist**: Restrict REST API access to specific IPv4/IPv6 addresses or CIDR ranges from the Preferences page
 - **� API Enable / Disable**: Toggle REST API access site-wide from Preferences; returns HTTP 503 when disabled
 - **👤 API Allowed Users**: Restrict REST API access to named administrator accounts from Preferences; returns HTTP 403 for unlisted callers
 - **📬 Email Notifications**: Per-admin opt-in (via WordPress profile page) sends a plain-text email for every script save, rollback, URL change, file save/delete, and restore event
-- **�💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), and history. All commands share the same service layer as the REST API.
+- **💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), activity log (`log list`, `log clear`), and history. All commands share the same service layer as the REST API.
 - **📤 JS File Upload**: Upload a local `.js` file from the **JS Files list page**, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`
 
 
@@ -228,13 +228,14 @@ All endpoints are `POST`. Authentication uses **WordPress Application Passwords*
 | `/urls/set` | `location`, `urls` (JSON array) | — | Replace external URL list |
 | `/urls/rollback` | `location`, `id` (DB row ID) | — | Restore URL snapshot |
 | `/urls/history` | `location` | — | List URL history |
+| `/prefs/history` | — | `limit` (1–100, default 20), `offset` | List Preferences Action History (read-only) |
 | `/files` | — | — | List all managed JS files |
 | `/files/get` | `file_id` | — | Get file content + metadata |
 | `/files/set` | `label`, `content` | `file_id`, `filename`, `location`, `conditions` | Create or update a file |
 | `/files/delete` | `file_id` | — | Delete a managed JS file |
 | `/files/upload` | multipart `file` field | `label`, `file_id`, `location`, `conditions` | Upload a `.js` file |
 
-`location` is `"head"` or `"footer"`. `id` is the DB row primary key of the snapshot to restore — obtain IDs from the history endpoints. All write operations share the same service layer as the admin UI — identical validation, rate-limiting, and activity logging apply.
+`location` is `"head"` or `"footer"`. `id` is the DB row primary key of the snapshot to restore — obtain IDs from the history endpoints. All write operations share the same service layer as the admin UI — identical validation and activity logging apply.
 
 ```bash
 # Example: get current head script
@@ -312,6 +313,16 @@ wp scriptomatic files upload --path=<local-path> \
 wp scriptomatic files delete --id=<file-id> [--yes]
 ```
 
+### Activity Log
+
+```bash
+# List activity log (all locations, or scoped to one)
+wp scriptomatic log list [--location=<head|footer|file|all>] [--limit=<n>] [--format=<table|json|csv|yaml|count>]
+
+# Clear activity log (prompts for confirmation unless --yes)
+wp scriptomatic log clear [--location=<head|footer|file|all>] [--yes]
+```
+
 `--conditions` accepts a JSON string: `'{"logic":"and","rules":[{"type":"front_page","values":[]}]}'`
 `--format` defaults to `table`. Use the history commands to look up `--id` values for rollback.
 
@@ -334,20 +345,18 @@ Scriptomatic is built with security as a top priority:
 - Nonce verification on all form submissions — both the WordPress Settings API nonce **and** a secondary location-specific nonce
 - Capability checks on every admin page load
 
-### Rate Limiting
-- A transient-based per-user, per-location cooldown (10 seconds) prevents rapid repeated saves
-- Saves submitted within the cooldown window are rejected with an admin notice
-
 ### Activity Logging
 - All saves, AJAX rollbacks, and JS file events are recorded in the persistent **Activity Log** embedded on each admin page; each page shows only its own location's entries
+- Every log entry includes a **source** field (`dashboard`, `api`, `cli`) recording the originating channel; the **Via** column is shown in CLI history output
 - Inline script + conditions changes and external URL changes are written as **separate entries** — each with its own View/Restore buttons and rollback path; restoring one never touches the other
-- Each entry captures: timestamp, username, user ID, action (`save`, `url_save`, `rollback`, `url_rollback`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), and a human-readable summary of what changed
+- Each entry captures: timestamp, username, user ID, action (`save`, `url_save`, `rollback`, `url_rollback`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), source, and a human-readable summary of what changed
 - The Restore button is disabled on the most recent entry of each dataset (it already reflects the live state)
 - Entries with content snapshots expose **View** and **Restore** buttons directly in the table
+- A **Clear Log** button at the top of each Activity Log table lets admins delete entries for the current location; also available via `wp scriptomatic log clear` (intentionally absent from the REST API)
 - No IP addresses collected (intentional privacy decision)
 - Log limit is configurable (3–1000, default 200 entries); oldest entries are discarded automatically once the cap is reached
 - Helps track changes and detect unauthorised modification
-- **Email Notifications** _(Pro)_: administrators can opt in (via their WordPress profile page) to receive a plain-text email every time any script, URL, file, or rollback event is written to the Activity Log
+- **Email Notifications** _(Pro)_: administrators can opt in (via their WordPress profile page) to receive a plain-text email every time any script, URL, file, or rollback event is written to the Activity Log; emails include a `Via: Dashboard/API/CLI` line
 
 ### Output Security
 - Proper escaping of all admin interface text
@@ -430,7 +439,6 @@ eval(someUntrustedString); // Never use eval!
 - Check if the inline script exceeds the 100 KB limit (JS files are limited by the server's upload setting, not this plugin)
 - Remove any HTML tags (JavaScript only)
 - Check browser console for JavaScript errors
-- If you saved very recently, the **rate limiter** (10-second cooldown per user/location) may have rejected the save — wait a moment and try again
 
 ### Restoring a Previous Version
 

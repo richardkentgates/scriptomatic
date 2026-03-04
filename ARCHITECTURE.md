@@ -71,7 +71,7 @@ scriptomatic/
     ├── class-scriptomatic.php    # Singleton; requires all traits; registers hooks
     ├── class-scriptomatic-cli.php# WP-CLI command class (`wp scriptomatic`); loaded only when `WP_CLI` is defined
     ├── trait-menus.php           # Admin menu and sub-menu registration
-    ├── trait-sanitizer.php       # Input validation, sanitisation, rate limiter
+    ├── trait-sanitizer.php       # Input validation and sanitisation
     ├── trait-history.php         # Revision history storage and AJAX rollback
     ├── trait-settings.php        # Settings API wiring, activity log write/read, settings CRUD
     ├── trait-renderer.php        # Settings-field callbacks, load-condition evaluator
@@ -112,7 +112,7 @@ All constants are defined in `scriptomatic.php` before the class is loaded.
 
 | Constant | Value / Description |
 |---|---|
-| `SCRIPTOMATIC_VERSION` | `'3.1.0'` |
+| `SCRIPTOMATIC_VERSION` | `'3.2.0'` |
 | `SCRIPTOMATIC_PLUGIN_FILE` | Absolute path to `scriptomatic.php` |
 | `SCRIPTOMATIC_PLUGIN_DIR` | Absolute path to the plugin directory (trailing slash) |
 | `SCRIPTOMATIC_PLUGIN_URL` | URL to the plugin directory (trailing slash) |
@@ -149,7 +149,6 @@ Each location option stores a unified PHP array `{ script, conditions, urls }` a
 | Constant | Value | Description |
 |---|---|---|
 | `SCRIPTOMATIC_MAX_SCRIPT_LENGTH` | `100000` | Hard cap on inline script bytes |
-| `SCRIPTOMATIC_RATE_LIMIT_SECONDS` | `10` | Cooldown between saves (per user, per location) |
 | `SCRIPTOMATIC_MAX_LOG_ENTRIES` | `200` | Default activity log entry cap |
 
 ### Nonces
@@ -223,14 +222,9 @@ All input validation and sanitisation lives here. Publicly callable sanitise cal
 - `sanitize_conditions_array( array $raw )` — validates a `{logic, rules}` stacked conditions object; calls `sanitize_single_rule()` for each rule entry.
 - `sanitize_single_rule( array $raw )` — validates a single rule object (`{type, values}`) within a stack; clamps values per condition type.
 
-**Rate limiter (private):**
-
-- `is_rate_limited( $location )` — checks for a transient keyed `scriptomatic_save_{location}_{user_id}`.
-- `record_save_timestamp( $location )` — sets that transient for `SCRIPTOMATIC_RATE_LIMIT_SECONDS`.
-
 **Double-call guard:**
 
-The WordPress Settings API invokes each sanitise callback twice per POST request. Both `sanitize_script_for()` and `sanitize_linked_for()` use a `static $processed_this_request` array to detect the second invocation and skip rate-limiting, history recording, and activity logging on the second call.
+The WordPress Settings API invokes each sanitise callback twice per POST request. Both `sanitize_script_for()` and `sanitize_linked_for()` use a `static $processed_this_request` array to detect the second invocation and skip history recording and activity logging on the second call.
 
 ---
 
@@ -360,7 +354,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
 
 - `render_js_file_list_view()` — outputs the managed JS files table (label, filename, location, conditions summary) with Add New and Edit links. Also renders an **Upload a JS File** card at the top of the page with a file picker and an **Upload &amp; Edit** button (POST to `admin_post_scriptomatic_save_js_file` with `_sm_upload_source=list`). Includes an all-files activity log panel at the bottom.
 - `render_js_file_edit_view()` — outputs the JS file edit form (label, filename, Head/Footer selector, CodeMirror editor, conditions widget) and a per-file activity log panel.
-- `render_activity_log( $location, $file_id )` — queries the unified activity log, filters by location/file_id, and renders the table with View and Restore buttons where applicable.
+- `render_activity_log( $location, $file_id )` — queries the unified activity log, filters by location/file_id, and renders the table with View and Restore buttons where applicable. Also outputs a **Clear Log** button above the table; clicking it fires `wp_ajax_scriptomatic_clear_activity_log` scoped to the current location.
 
 **Public contextual help:**
 
@@ -385,7 +379,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
   - `scriptomatic-admin` → `assets/admin.css`
   - `scriptomatic-admin-js` → `assets/admin.js`
 - On Head Scripts, Footer Scripts, and JS Files pages, calls `wp_enqueue_code_editor( ['type' => 'text/javascript'] )` to activate the built-in WordPress CodeMirror editor. Returns `false` (and skips the editor) when the user has disabled syntax highlighting in their profile.
-- Calls `wp_localize_script()` with a `scriptomaticData` object containing: `ajaxUrl`, `rollbackNonce`, `filesNonce`, `prefHistoryNonce`, `maxLength`, `maxUploadSize`, `location`, `codeEditorSettings`, `i18n`.
+- Calls `wp_localize_script()` with a `scriptomaticData` object containing: `ajaxUrl`, `rollbackNonce`, `filesNonce`, `prefHistoryNonce`, `clearLogNonce`, `maxLength`, `maxUploadSize`, `location`, `codeEditorSettings`, `i18n`.
 
 ---
 
@@ -398,7 +392,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
 
 Output format:
 ```html
-<!-- Scriptomatic v3.1.0 (head) -->
+<!-- Scriptomatic v3.2.0 (head) -->
 <script src="https://example.com/script.js"></script>
 <script src="/wp-content/uploads/scriptomatic/my-tracker.js"></script>
 <script>
@@ -442,7 +436,7 @@ Houses all REST API concerns: route registration, the permission callback (inclu
 
 **Route registration:**
 
-`register_rest_routes()` — hooked to `rest_api_init`. Registers 13 routes, all in the `scriptomatic/v1` namespace, all using `POST`:
+`register_rest_routes()` — hooked to `rest_api_init`. Registers 14 routes, all in the `scriptomatic/v1` namespace, all using `POST`:
 
 | Route | Callback |
 |---|---|
@@ -454,6 +448,7 @@ Houses all REST API concerns: route registration, the permission callback (inclu
 | `/urls/set` | `rest_set_urls()` |
 | `/urls/rollback` | `rest_rollback_urls()` |
 | `/urls/history` | `rest_get_url_history()` |
+| `/prefs/history` | `rest_get_prefs_history()` — read-only; `limit` (1–100, default 20) + `offset`; log-clear absent by design |
 | `/files` | `rest_list_files()` |
 | `/files/get` | `rest_get_file()` |
 | `/files/set` | `rest_set_file()` |
@@ -473,21 +468,23 @@ Houses all REST API concerns: route registration, the permission callback (inclu
 
 **Service layer (public methods shared with WP-CLI):**
 
-All write commands — whether from the REST API or WP-CLI — call these public service methods, so validation, rate-limiting, and activity logging are identical regardless of the entry point:
+All write commands — whether from the REST API or WP-CLI — call these public service methods, so validation and activity logging are identical regardless of the entry point:
 
 | Method | Description |
 |---|---|
 | `service_get_script( $location )` | Returns `{location, content, chars}` |
 | `service_set_script( $location, $content, $conditions )` | Validates + saves inline script; returns `{location, chars, message}` or `WP_Error` |
 | `service_rollback_script( $location, $index )` | Restores inline script + conditions from snapshot; writes rollback log entry; returns `{location, content, chars, message}` or `WP_Error` |
-| `service_get_history( $location )` | Returns `{location, entries[]}` (index, action, timestamp, user, chars, detail, has_conditions) |
+| `service_get_history( $location )` | Returns `{location, entries[]}` (index, action, timestamp, user, source, chars, detail, has_conditions) |
 | `service_set_urls( $location, $urls_json )` | Validates + saves URL list; returns `{location, count, urls, message}` or `WP_Error` |
 | `service_rollback_urls( $location, $index )` | Restores URL list from snapshot; returns `{location, urls, message}` or `WP_Error` |
-| `service_get_url_history( $location )` | Returns `{location, entries[]}` (index, action, timestamp, user, url_count, detail) |
+| `service_get_url_history( $location )` | Returns `{location, entries[]}` (index, action, timestamp, user, source, url_count, detail) |
 | `service_get_file( $file_id )` | Returns `{file_id, label, filename, location, conditions, content, chars}` or `WP_Error` |
 | `service_set_file( array $params )` | Creates or updates a managed JS file; returns `{file_id, filename, label, location, chars, message}` or `WP_Error` |
 | `service_delete_file( $file_id )` | Deletes file from disk + metadata; returns `{file_id, message}` or `WP_Error` |
 | `service_upload_file( array $file_data, array $params )` | Validates upload via `validate_js_upload()` then delegates to `service_set_file()`; returns same shape or `WP_Error`. Used by `rest_upload_file()` and the CLI `files upload` command. |
+| `service_get_activity_log( $location, $limit, $offset )` | Returns array of decoded log entry arrays for the given location ('' = all), `$limit` (0 = all), `$offset`. Public wrapper around the private `get_activity_log()`. Used by WP-CLI `log list`. |
+| `service_clear_activity_log( $location )` | Deletes all rows from `{prefix}scriptomatic_log` for the given location ('' or 'all' to clear everything). Flushes the `scriptomatic_log` object cache group. Returns `{location, message}` or `WP_Error`. Used by Dashboard AJAX and WP-CLI `log clear`. |
 
 **Protected helper:**
 
@@ -508,7 +505,7 @@ Email notifications, per-admin opt-in user meta, and the Preferences Action Hist
 
 **Notification dispatch:**
 
-- `maybe_send_notifications( array $event )` — called from every write path after a successful save/rollback/delete. `$event` shape: `{ action, location, detail }`. Collects all administrators with user meta `scriptomatic_notifications = '1'`. Deduplicates the actor and the site admin address to avoid duplicate emails. Sends a plain-text email via `wp_mail()` per opted-in recipient. Silently returns if there are no opted-in recipients.
+- `maybe_send_notifications( array $event )` — called from every write path after a successful save/rollback/delete. `$event` shape: `{ action, location, detail }`. Collects all administrators with user meta `scriptomatic_notifications = '1'`. Deduplicates the actor and the site admin address to avoid duplicate emails. Sends a plain-text email via `wp_mail()` per opted-in recipient that includes a `Via: Dashboard/API/CLI` line recording the originating channel. Silently returns if there are no opted-in recipients.
 
 **Preferences Action History:**
 
@@ -541,6 +538,8 @@ Loaded only when `WP_CLI` is defined (bootstrapped in `scriptomatic.php`). Regis
 | `files set` | `--label=<label> (--content=<js> \| --file=<path>) [--id=<id>] [--filename=<fn>] [--location=<head\|footer>] [--conditions=<json>]` | Create or update a file |
 | `files upload` | `--path=<local-path> [--label=<label>] [--id=<id>] [--location=<head\|footer>] [--conditions=<json>]` | Upload a `.js` file through the shared service layer |
 | `files delete` | `--id=<file-id> [--yes]` | Delete a managed JS file |
+| `log list` | `[--location=<head\|footer\|file\|all>] [--limit=<n>] [--format=<format>]` | Print activity log entries (all locations by default) |
+| `log clear` | `[--location=<head\|footer\|file\|all>] [--yes]` | Delete activity log entries for the given location (prompts for confirmation unless `--yes`) |
 
 `--format` defaults to `table`; accepts `table`, `json`, `csv`, `yaml`, `count`. `--id` is the DB row primary key of the snapshot to restore — obtain IDs from the history commands. `--conditions` accepts a JSON `{logic, rules}` object.
 
@@ -568,6 +567,7 @@ Loaded only when `WP_CLI` is defined (bootstrapped in `scriptomatic.php`). Regis
 | `wp_ajax_scriptomatic_get_file_activity_content` | default | `ajax_get_file_activity_content()` | history |
 | `wp_ajax_scriptomatic_restore_deleted_file` | default | `ajax_restore_deleted_file()` | history |
 | `wp_ajax_scriptomatic_pref_history` | default | `ajax_pref_history()` | notifications |
+| `wp_ajax_scriptomatic_clear_activity_log` | default | `ajax_clear_activity_log()` | history |
 | `wp_ajax_scriptomatic_delete_js_file` | default | `ajax_delete_js_file()` | files |
 | `admin_post_scriptomatic_save_js_file` | default | `handle_save_js_file()` | files |
 | `rest_api_init` | default | `register_rest_routes()` | api |
@@ -714,6 +714,8 @@ All endpoints are registered on `wp_ajax_{action}` (logged-in users only). Histo
 | `scriptomatic_rollback_js_file` | ROLLBACK | `ajax_rollback_js_file()` | Restore a managed JS file from snapshot |
 | `scriptomatic_get_file_activity_content` | ROLLBACK | `ajax_get_file_activity_content()` | Return JS file entry display for lightbox |
 | `scriptomatic_restore_deleted_file` | ROLLBACK | `ajax_restore_deleted_file()` | Re-create a deleted JS file from file_delete snapshot |
+| `scriptomatic_pref_history` | GENERAL | `ajax_pref_history()` | Preferences Action History AJAX pagination — returns `{rows, total_pages, page}` |
+| `scriptomatic_clear_activity_log` | GENERAL | `ajax_clear_activity_log()` | Delete activity log entries for the given location; returns `{location, message}` |
 | `scriptomatic_delete_js_file` | FILES | `ajax_delete_js_file()` | Delete a managed JS file from disk and metadata |
 
 **Standard success response shape:**
@@ -789,6 +791,7 @@ Localized via `wp_localize_script()` as `scriptomaticData`:
   rollbackNonce:      "...",   // SCRIPTOMATIC_ROLLBACK_NONCE
   filesNonce:         "...",   // SCRIPTOMATIC_FILES_NONCE
   prefHistoryNonce:   "...",   // SCRIPTOMATIC_GENERAL_NONCE (Preferences History AJAX)
+  clearLogNonce:      "...",   // SCRIPTOMATIC_GENERAL_NONCE (Clear Log AJAX)
   maxLength:          100000,
   maxUploadSize:      ...,
   location:           "head",  // or "footer" or "files"
@@ -801,7 +804,7 @@ Responsibilities:
 - Live character counter: updates on `input` events, changes CSS class at 75% and 90% thresholds.
 - URL manager: add/remove URL chicklet entries; per-entry conditions sub-panel; encode the full entry list as JSON into the hidden `<input>` before form submit.
 - Stacked conditions widget: `initConditions()` manages rule-card add/remove, logic toggle, and JSON sync (`syncJson()`).
-- Activity log: View button fires a `get_*_content` AJAX call and opens a lightbox. Restore button fires the corresponding `restore_*` or `rollback` AJAX call and updates the editor/form in place. The lightbox `×` close button sets the `hidden` attribute (overrides WP admin CSS); open paths clear it.
+- Activity log: View button fires a `get_*_content` AJAX call and opens a lightbox. Restore button fires the corresponding `restore_*` or `rollback` AJAX call and updates the editor/form in place. The lightbox `×` close button sets the `hidden` attribute (overrides WP admin CSS); open paths clear it. The **Clear Log** `.sm-clear-log` button confirms with the user then fires `scriptomatic_clear_activity_log` and reloads the page on success.
 - Preferences Action History: Prev/Next pagination buttons fire `scriptomatic_pref_history` AJAX calls; page counter and opacity loading state updated on each response.
 
 ---
