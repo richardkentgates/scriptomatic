@@ -52,7 +52,6 @@ define( 'SCRIPTOMATIC_PLUGIN_SETTINGS_OPTION', 'scriptomatic_plugin_settings' );
 
 // ---- Limits / timing ----
 define( 'SCRIPTOMATIC_MAX_SCRIPT_LENGTH',  100000 ); // 100 KB hard limit per inline script
-define( 'SCRIPTOMATIC_RATE_LIMIT_SECONDS', 10 );     // Minimum seconds between saves per user
 
 // ---- Nonces ----
 define( 'SCRIPTOMATIC_HEAD_NONCE',     'scriptomatic_save_head' );    // Head script form secondary nonce

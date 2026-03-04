@@ -718,18 +718,6 @@ trait Scriptomatic_API {
     public function service_set_script( $location, $content, $cond_json = null ) {
         $location = ( 'footer' === $location ) ? 'footer' : 'head';
 
-        if ( $this->is_rate_limited( $location ) ) {
-            return new WP_Error(
-                'rate_limited',
-                sprintf(
-                    /* translators: %d: seconds to wait */
-                    __( 'You are saving too quickly. Please wait %d seconds before trying again.', 'scriptomatic' ),
-                    SCRIPTOMATIC_RATE_LIMIT_SECONDS
-                ),
-                array( 'status' => 429 )
-            );
-        }
-
         $validated = $this->api_validate_script_content( $content );
         if ( is_wp_error( $validated ) ) {
             return $validated;
@@ -770,7 +758,6 @@ trait Scriptomatic_API {
             ),
         );
         $this->write_activity_entry( $log_entry );
-        $this->record_save_timestamp( $location );
         $this->maybe_send_notifications( array(
             'action'   => __( 'Script saved (API)', 'scriptomatic' ),
             'location' => ucfirst( $location ),

@@ -19,12 +19,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 trait Scriptomatic_Sanitizer {
 
     /**
-     * Flags set by sanitize_location_for() to signal on_location_pre_update().
+     * Flags set by sanitize_location_for() to signal on_location_updated().
      *
      * Keyed by location ('head'|'footer'). Only set when sanitize fully
      * accepted the submitted input (i.e., did NOT return early due to a
-     * capability, nonce, or rate-limit failure). Cleared immediately after
-     * on_location_pre_update() consumes it so subsequent saves start clean.
+     * capability or nonce failure). Cleared immediately after
+     * on_location_updated() consumes it so subsequent saves start clean.
      *
      * @since 3.1.1
      * @var   bool[]
@@ -359,16 +359,6 @@ trait Scriptomatic_Sanitizer {
                 return $previous;
             }
 
-            // Gate 2: Rate limiter.
-            if ( $this->is_rate_limited( $location ) ) {
-                add_settings_error( $error_slug, 'rate_limited',
-                    sprintf(
-                        /* translators: %d: seconds to wait */
-                        __( 'You are saving too quickly. Please wait %d seconds before trying again.', 'scriptomatic' ),
-                        SCRIPTOMATIC_RATE_LIMIT_SECONDS
-                    ), 'error' );
-                return $previous;
-            }
         }
 
         // ---- Ensure $input is an array ----
@@ -475,7 +465,7 @@ trait Scriptomatic_Sanitizer {
         $urls = $this->sanitize_url_entries( is_array( $decoded_urls ) ? $decoded_urls : array() );
 
         if ( $is_form_post ) {
-            // Signal on_location_pre_update() that this save was accepted.
+            // Signal on_location_updated() that this save was accepted.
             $this->pending_saves[ $location ] = true;
 
             // Only add the success notice on the first invocation (not WP's internal second call).
@@ -494,36 +484,34 @@ trait Scriptomatic_Sanitizer {
     }
 
     /**
-     * Filter callback for pre_update_option_{scriptomatic_head|_footer}.
+     * Action callback for updated_option.
      *
-     * The `pre_update_option_{option}` filter fires before WordPress performs
-     * its old-vs-new equality check, so it runs on every admin save — including
-     * saves where the stored value is unchanged.  The sanitize callback cannot
-     * be used for side-effects because WordPress invokes it twice per POST.
+     * Fires only after WordPress has successfully written the option to the
+     * database, guaranteeing that every log entry corresponds to a real save.
+     * The sanitize callback sets the `pending_saves` flag so we can distinguish
+     * form POSTs (which should be logged) from programmatic calls like
+     * ajax_rollback() (which handle their own logging).
      *
-     * Handles all save side-effects:
-     *   - Activity log entry
-     *   - Rate-limit transient stamp
-     *   - Email notifications
-     *
-     * Must return $new_value unchanged (it is a filter, not an action).
-     *
-     * @since  3.1.1
-     * @param  mixed  $new_value  Value about to be stored.
+     * @since  3.2.0
+     * @param  string $option     Option name.
      * @param  mixed  $old_value  Previously stored value.
-     * @param  string $option     Option name (scriptomatic_head|scriptomatic_footer).
-     * @return mixed  $new_value  Returned unchanged.
+     * @param  mixed  $new_value  Newly stored value.
+     * @return void
      */
-    public function on_location_pre_update( $new_value, $old_value, $option ) {
+    public function on_location_updated( $option, $old_value, $new_value ) {
+        if ( SCRIPTOMATIC_LOCATION_HEAD !== $option && SCRIPTOMATIC_LOCATION_FOOTER !== $option ) {
+            return;
+        }
         $location = ( SCRIPTOMATIC_LOCATION_FOOTER === $option ) ? 'footer' : 'head';
 
-        // Only run side-effects when sanitize actually accepted the submitted
-        // input.  Rate-limited saves, nonce failures, and capability failures
-        // all return $previous early without setting this flag.
+        // Only log when sanitize accepted the submitted input (form POST path).
+        // Nonce failures and capability failures return $previous early without
+        // setting this flag, so programmatic saves are never logged here.
         if ( ! isset( $this->pending_saves[ $location ] ) ) {
-            return $new_value;
+            return;
         }
         unset( $this->pending_saves[ $location ] );
+
         $old_script     = isset( $old_value['script'] )     ? $old_value['script']     : '';
         $old_conditions = isset( $old_value['conditions'] ) ? $old_value['conditions'] : array();
         $old_urls       = isset( $old_value['urls'] )       ? $old_value['urls']       : array();
@@ -538,46 +526,11 @@ trait Scriptomatic_Sanitizer {
         $new_urls   = isset( $new_value['urls'] )       ? $new_value['urls']       : array();
 
         $this->log_location_save( $location, $previous, $new_script, $new_conds, $new_urls );
-        $this->record_save_timestamp( $location );
         $this->maybe_send_notifications( array(
             'action'   => __( 'Script saved', 'scriptomatic' ),
             'location' => ucfirst( $location ),
             'detail'   => number_format( strlen( $new_script ) ) . ' chars',
         ) );
-
-        return $new_value;
-    }
-
-    // =========================================================================
-    // RATE LIMITER
-    // =========================================================================
-
-    /**
-     * Determine whether the current user has exceeded the configured save rate.
-     *
-     * @since  1.2.0
-     * @access private
-     * @param  string $location `'head'` or `'footer'`.
-     * @return bool
-     */
-    private function is_rate_limited( $location = 'head' ) {
-        $user_id       = get_current_user_id();
-        $transient_key = 'scriptomatic_save_' . $location . '_' . $user_id;
-        return ( false !== get_transient( $transient_key ) );
-    }
-
-    /**
-     * Record a successful save timestamp for the rate limiter.
-     *
-     * @since  1.2.0
-     * @access private
-     * @param  string $location `'head'` or `'footer'`.
-     * @return void
-     */
-    private function record_save_timestamp( $location = 'head' ) {
-        $user_id       = get_current_user_id();
-        $transient_key = 'scriptomatic_save_' . $location . '_' . $user_id;
-        set_transient( $transient_key, time(), SCRIPTOMATIC_RATE_LIMIT_SECONDS );
     }
 
     // =========================================================================

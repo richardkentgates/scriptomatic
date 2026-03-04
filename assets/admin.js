@@ -126,6 +126,10 @@ jQuery( document ).ready( function ( $ ) {
             /* Sync CM content → hidden textarea before the form POSTs. */
             /* Also run a client-side syntax check via the browser JS engine.  */
             $textarea.closest( 'form' ).on( 'submit', function ( e ) {
+                if ( ! window.confirm( i18n.saveConfirm || 'Save these changes?' ) ) {
+                    e.preventDefault();
+                    return false;
+                }
                 var code = cmEditor.getValue();
                 $textarea.val( code );
                 if ( loc === 'files' || loc === 'head' || loc === 'footer' ) {
@@ -156,6 +160,10 @@ jQuery( document ).ready( function ( $ ) {
 
             /* Syntax check for the plain-textarea path. */
             $textarea.closest( 'form' ).on( 'submit', function ( e ) {
+                if ( ! window.confirm( i18n.saveConfirm || 'Save these changes?' ) ) {
+                    e.preventDefault();
+                    return false;
+                }
                 var code = $textarea.val();
                 try {
                     // eslint-disable-next-line no-new-func
@@ -172,6 +180,16 @@ jQuery( document ).ready( function ( $ ) {
                 }
             } );
         }
+    }
+
+    /* Confirmation dialog for pages with no textarea (e.g. Preferences). */
+    if ( ! $textarea.length ) {
+        $( '#scriptomatic-settings form' ).on( 'submit', function ( e ) {
+            if ( ! window.confirm( i18n.saveConfirm || 'Save these changes?' ) ) {
+                e.preventDefault();
+                return false;
+            }
+        } );
     }
 
     /* =========================================================================
