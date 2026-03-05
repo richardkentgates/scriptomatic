@@ -13,6 +13,17 @@ _Nothing yet._
 
 ---
 
+## [3.3.0] – 2026-03-05
+
+### Added
+- **Email notifications on preferences save.** `maybe_write_prefs_change()` now calls `maybe_send_notifications()` after logging the change, so any preference update via the Dashboard or `wp scriptomatic prefs set` triggers an email notification.
+
+### Changed
+- **Site admin email is always notified.** The WordPress site admin (`admin_email` option) is now an unconditional notification recipient — their profile opt-in setting cannot suppress it. Other administrators still opt in via their WordPress profile page. Deduplication ensures a single email when the acting user is the site admin.
+- **Removed `wp scriptomatic log clear` and `service_clear_activity_log()`.** Activity log retention is governed solely by the `max_log_entries` preference (3–1000, default 200); oldest entries are auto-pruned. No manual clearing exists through any avenue.
+
+---
+
 ## [3.2.0] – 2026-04-01
 
 ### Added

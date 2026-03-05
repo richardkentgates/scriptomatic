@@ -4,7 +4,7 @@ Tags: javascript, script injection, head scripts, conditional loading, activity 
 Requires at least: 6.2
 Tested up to: 6.9
 Requires PHP: 7.2
-Stable tag: 3.2.0
+Stable tag: 3.3.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,13 +105,18 @@ Scriptomatic hooks at priority 999 on `wp_head` and `wp_footer`. If your theme o
 
 == Changelog ==
 
+= 3.3.0 =
+* **Added**: Email notifications on preferences save — administrators are now notified when any preference is changed via the Dashboard or WP-CLI `prefs set`, in addition to script, URL, and file events.
+* **Changed**: Site admin email is now an unconditional notification recipient — the WordPress site admin (`admin_email`) always receives emails regardless of their profile opt-in setting. Other administrators opt in via their WordPress profile page. Duplicate emails are suppressed when the acting user is the site admin.
+* **Removed**: `wp scriptomatic log clear` WP-CLI command and `service_clear_activity_log()` service method. Activity log retention is governed solely by the `max_log_entries` preference (3–1000, default 200); oldest entries are auto-pruned.
+
 = 3.2.0 =
 * **Added**: Source tracking — all activity log entries now include a `source` field (`dashboard`, `api`, `cli`). The `Via` column appears in CLI `wp scriptomatic history` and `wp scriptomatic urls history` output.
-* **Added**: `Via: Dashboard/API/CLI` line in admin email notifications — all admin email notifications now include a line indicating how the change was made.
-* **Added**: Activity log clear — a **Clear Log** button appears at the top of each Activity Log table on the Head, Footer, and Files pages. Clears entries for the current location (or all). Also available via WP-CLI: `wp scriptomatic log list` and `wp scriptomatic log clear`. Intentionally absent from the REST API.
+* **Added**: `Via: Dashboard/API/CLI` line in admin email notifications.
+* **Added**: Activity log list via WP-CLI: `wp scriptomatic log list`. Intentionally absent from the REST API.
 * **Added**: REST endpoint `POST /wp-json/scriptomatic/v1/prefs/history` — read-only; returns paginated Preferences Action History (`limit` 1–100 default 20, `offset`). Requires Pro.
-* **Added**: `service_get_activity_log($location, $limit, $offset)` and `service_clear_activity_log($location)` service methods — shared by the Dashboard AJAX handler and WP-CLI.
-* **Changed**: Notification `action` strings no longer include `(API)` noise. All write paths — Dashboard, API, and CLI — now produce identical clean action names. The `source` field is the authoritative origin record.
+* **Added**: `service_get_activity_log($location, $limit, $offset)` service method — shared by the Dashboard and WP-CLI.
+* **Changed**: Notification `action` strings no longer include `(API)` noise. The `source` field is the authoritative origin record.
 
 = 3.1.1 =
 * **Fixed**: Inline script Load Conditions field showed an empty table cell on free tier because the upgrade notice used WordPress `.notice` CSS classes, which WP admin JS relocates out of the form table. Replaced with inline lock icon + span markup (matching the URL entry style).
