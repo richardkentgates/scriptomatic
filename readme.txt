@@ -34,7 +34,7 @@ Scriptomatic is a secure, production-ready WordPress plugin for injecting custom
 * **API Enable / Disable** — toggle REST API access site-wide from Preferences; returns HTTP 503 when disabled.
 * **API Allowed Users** — restrict REST API calls to named administrator accounts from Preferences; returns HTTP 403 for unlisted callers.
 * **WP-CLI** — `wp scriptomatic` command group for inline scripts, external URLs, managed JS files, and history.
-* **Email Notifications** — per-admin opt-in (via WordPress profile page) sends a plain-text notification email on every script save, rollback, file event, or restore.
+* **Email Notifications** — the site admin always receives a plain-text email on every script save, rollback, URL change, file event, preferences save, and restore. Other administrators can opt in via their WordPress profile page.
 
 = Architecture =
 

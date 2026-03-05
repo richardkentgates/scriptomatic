@@ -10,7 +10,9 @@ We provide security updates for the following versions:
 
 | Version | Supported          | Status        |
 | ------- | ------------------ | ------------- |
-| 3.1.x   | :white_check_mark: | Active Support |
+| 3.3.x   | :white_check_mark: | Active Support |
+| 3.2.x   | :x:                | End of Life    |
+| 3.1.x   | :x:                | End of Life    |
 | 3.0.x   | :x:                | End of Life    |
 
 ## Security Features
@@ -212,7 +214,7 @@ We appreciate responsible security researchers who help keep Scriptomatic secure
 
 ---
 
-**Last Updated**: March 10, 2026
-**Version**: 3.1.0
+**Last Updated**: March 5, 2026
+**Version**: 3.3.0
 
 Thank you for helping keep Scriptomatic secure!
