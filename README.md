@@ -105,7 +105,7 @@ scriptomatic/
     └── trait-notifications.php   # Email notifications, per-admin opt-in, Preferences Action History
 ```
 
-All traits are `use`d by `class Scriptomatic`, so cross-trait `$this->method()` calls work correctly.
+All traits are included in `class Scriptomatic` via `use`, making cross-trait `$this->method()` calls work correctly.
 
 ## 📥 Installation
 
