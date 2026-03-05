@@ -173,7 +173,7 @@
 
     /* ── HOW IT WORKS ── */
     .steps { display: flex; flex-direction: column; gap: 1.25rem; }
-    .step { display: flex; align-items: flex-start; gap: 1.25rem; }
+    .step { display: flex; align-items: center; gap: 1.25rem; }
     .step-num {
       flex-shrink: 0;
       width: 48px; height: 48px; border-radius: 50%;
@@ -181,8 +181,9 @@
       display: flex; align-items: center; justify-content: center;
       font-weight: 800; font-size: 1.1rem;
     }
-    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: .4rem; }
-    .step p  { font-size: .875rem; color: var(--muted); }
+    .step-body { display: flex; flex-direction: column; }
+    .step-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: .4rem; }
+    .step-body p  { font-size: .875rem; color: var(--muted); }
 
     /* ── CODE EXAMPLES ── */
     .code-bg { background: var(--surface); }
@@ -602,28 +603,38 @@
     <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
-        <h3>Install &amp; Activate</h3>
-        <p>Upload the plugin zip via WordPress admin or drop the folder into <code>wp-content/plugins/</code>. Activate normally.</p>
+        <div class="step-body">
+          <h3>Install &amp; Activate</h3>
+          <p>Upload the plugin zip via WordPress admin or drop the folder into <code>wp-content/plugins/</code>. Activate normally.</p>
+        </div>
       </div>
       <div class="step">
         <div class="step-num">2</div>
-        <h3>Open Head or Footer Scripts</h3>
-        <p>Navigate to <strong>Scriptomatic → Head Scripts</strong> or <strong>Footer Scripts</strong> in your WordPress admin.</p>
+        <div class="step-body">
+          <h3>Open Head or Footer Scripts</h3>
+          <p>Navigate to <strong>Scriptomatic → Head Scripts</strong> or <strong>Footer Scripts</strong> in your WordPress admin.</p>
+        </div>
       </div>
       <div class="step">
         <div class="step-num">3</div>
-        <h3>Write or Add URLs</h3>
-        <p>Paste your JavaScript into the inline editor, or add remote script URLs. No <code>&lt;script&gt;</code> tags needed — they are added automatically.</p>
+        <div class="step-body">
+          <h3>Write or Add URLs</h3>
+          <p>Paste your JavaScript into the inline editor, or add remote script URLs. No <code>&lt;script&gt;</code> tags needed — they are added automatically.</p>
+        </div>
       </div>
       <div class="step">
         <div class="step-num">4</div>
-        <h3>Set Load Conditions <span class="pro-badge">Pro</span></h3>
-        <p>Optionally restrict injection to specific pages, post types, URL patterns, or user state. Requires a Pro licence. On free, scripts load on all pages.</p>
+        <div class="step-body">
+          <h3>Set Load Conditions <span class="pro-badge">Pro</span></h3>
+          <p>Optionally restrict injection to specific pages, post types, URL patterns, or user state. Requires a Pro licence. On free, scripts load on all pages.</p>
+        </div>
       </div>
       <div class="step">
         <div class="step-num">5</div>
-        <h3>Save &amp; Verify</h3>
-        <p>Click <strong>Save</strong>. Visit the front-end and check the page source. Use the revision history to roll back at any time.</p>
+        <div class="step-body">
+          <h3>Save &amp; Verify</h3>
+          <p>Click <strong>Save</strong>. Visit the front-end and check the page source. Use the revision history to roll back at any time.</p>
+        </div>
       </div>
     </div>
 
