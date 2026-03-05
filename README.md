@@ -31,7 +31,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 | **API IP Allowlist** (IPv4/IPv6/CIDR) | ❌ | ✅ |
 | **API Enable / Disable** | ❌ | ✅ |
 | **API Allowed Users** (restrict by admin account) | ❌ | ✅ |
-| **Email Notifications** (opt-in per admin profile) | ❌ | ✅ |
+| **Email Notifications** (opt-in per admin profile) | ✅ | ✅ |
 | **Preferences Action History** (read-only, paginated) | ✅ | ✅ |
 
 <p align="center">
@@ -54,6 +54,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
 - **🌐 Multisite Compatible**: All script management is per-site; install/activate/deactivate network-wide; uninstall iterates every sub-site
 - **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion; fully multisite-aware
+- **📬 Email Notifications**: Per-admin opt-in (via WordPress profile page) sends a plain-text email for every script save, rollback, URL change, file save/delete, and restore event
 
 ### ⭐ Pro — requires a licence
 
@@ -63,8 +64,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **🛡️ API IP Allowlist**: Restrict REST API access to specific IPv4/IPv6 addresses or CIDR ranges from the Preferences page
 - **� API Enable / Disable**: Toggle REST API access site-wide from Preferences; returns HTTP 503 when disabled
 - **👤 API Allowed Users**: Restrict REST API access to named administrator accounts from Preferences; returns HTTP 403 for unlisted callers
-- **📬 Email Notifications**: Per-admin opt-in (via WordPress profile page) sends a plain-text email for every script save, rollback, URL change, file save/delete, and restore event
-- **💻 WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), activity log (`log list`, `log clear`), preferences management (`prefs get`, `prefs set`, `prefs history`), and history. All write commands share the same service layer as the REST API. Preferences management is CLI and Dashboard only — not REST API.
+- ** WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), activity log (`log list`, `log clear`), preferences management (`prefs get`, `prefs set`, `prefs history`), and history. All write commands share the same service layer as the REST API. Preferences management is CLI and Dashboard only — not REST API.
 - **📤 JS File Upload**: Upload a local `.js` file from the **JS Files list page**, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`
 
 
@@ -389,7 +389,7 @@ Scriptomatic is built with security as a top priority:
 - No IP addresses collected (intentional privacy decision)
 - Log limit is configurable (3–1000, default 200 entries); oldest entries are discarded automatically once the cap is reached
 - Helps track changes and detect unauthorised modification
-- **Email Notifications** _(Pro)_: administrators can opt in (via their WordPress profile page) to receive a plain-text email every time any script, URL, file, or rollback event is written to the Activity Log; emails include a `Via: Dashboard/API/CLI` line
+- **Email Notifications**: administrators can opt in (via their WordPress profile page) to receive a plain-text email every time any script, URL, file, or rollback event is written to the Activity Log; emails include a `Via: Dashboard/API/CLI` line
 
 ### Output Security
 - Proper escaping of all admin interface text
