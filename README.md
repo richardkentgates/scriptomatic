@@ -204,7 +204,7 @@ jQuery(document).ready(function($) {
 });
 ```
 
-## � REST API Reference
+## 📡 REST API Reference
 
 All endpoints are `POST`. Authentication uses **WordPress Application Passwords**:
 `Authorization: Basic base64(username:application-password)`
@@ -358,7 +358,7 @@ wp scriptomatic prefs history --format=json
 
 ---
 
-## �🔒 Security Features
+## 🔒 Security Features
 
 Scriptomatic is built with security as a top priority:
 
