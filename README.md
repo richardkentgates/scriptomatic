@@ -31,7 +31,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 | **API IP Allowlist** (IPv4/IPv6/CIDR) | ❌ | ✅ |
 | **API Enable / Disable** | ❌ | ✅ |
 | **API Allowed Users** (restrict by admin account) | ❌ | ✅ |
-| **Email Notifications** (opt-in per admin profile) | ✅ | ✅ |
+| **Email Notifications** (always: site admin; opt-in: other admins) | ✅ | ✅ |
 | **Preferences Action History** (read-only, paginated) | ✅ | ✅ |
 
 <p align="center">
@@ -54,7 +54,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **♿ Accessibility**: ARIA labels, `aria-describedby`, and semantic fieldsets throughout
 - **🌐 Multisite Compatible**: All script management is per-site; install/activate/deactivate network-wide; uninstall iterates every sub-site
 - **🧹 Configurable Uninstall**: Optionally retains or removes all data on deletion; fully multisite-aware
-- **📬 Email Notifications**: Per-admin opt-in (via WordPress profile page) sends a plain-text email for every script save, rollback, URL change, file save/delete, and restore event
+- **📬 Email Notifications**: The site admin always receives a plain-text email for every script save, rollback, URL change, file save/delete, preferences save, and restore event. Other administrators can opt in via their WordPress profile page.
 
 ### ⭐ Pro — requires a licence
 
@@ -102,7 +102,7 @@ scriptomatic/
     ├── trait-injector.php        # Front-end HTML injection
     ├── trait-files.php           # Managed JS files: CRUD, disk I/O, save + delete handlers [Pro]
     ├── trait-api.php             # REST API route registration, permission callbacks, service layer [Pro]
-    └── trait-notifications.php   # Email notifications, per-admin opt-in, Preferences Action History
+    └── trait-notifications.php   # Email notifications (site admin always; others opt-in), Preferences Action History
 ```
 
 All traits are included in `class Scriptomatic` via `use`, making cross-trait `$this->method()` calls work correctly.
@@ -385,7 +385,7 @@ Scriptomatic is built with security as a top priority:
 - No IP addresses collected (intentional privacy decision)
 - Log limit is configurable (3–1000, default 200 entries); oldest entries are discarded automatically once the cap is reached
 - Helps track changes and detect unauthorised modification
-- **Email Notifications**: administrators can opt in (via their WordPress profile page) to receive a plain-text email every time any script, URL, file, or rollback event is written to the Activity Log; emails include a `Via: Dashboard/API/CLI` line
+- **Email Notifications**: The site admin always receives a plain-text email every time any script, URL, file, preferences, or rollback event is written to the Activity Log; emails include a `Via: Dashboard/API/CLI` line. Other administrators can opt in via their WordPress profile page.
 
 ### Output Security
 - Proper escaping of all admin interface text

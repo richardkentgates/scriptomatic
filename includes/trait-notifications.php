@@ -64,7 +64,7 @@ trait Scriptomatic_Notifications {
                         <?php esc_html_e( 'Email me when any Scriptomatic script, URL, or JS file is added, removed, or modified.', 'scriptomatic' ); ?>
                     </label>
                     <p class="description">
-                        <?php esc_html_e( 'Applies to head/footer inline scripts, external URL lists, and managed JS files. Emails are sent immediately after each change.', 'scriptomatic' ); ?>
+                        <?php esc_html_e( 'Applies to head/footer inline scripts, external URL lists, managed JS files, and preferences saves. Emails are sent immediately after each change. Note: the site admin email always receives notifications regardless of this setting.', 'scriptomatic' ); ?>
                     </p>
                 </td>
             </tr>
@@ -113,14 +113,15 @@ trait Scriptomatic_Notifications {
     // =========================================================================
 
     /**
-     * Send notification emails to opted-in administrators when content changes.
+     * Send notification emails when content or preferences change.
      *
      * Two potential recipients:
-     *   1. The acting user (currently logged in, who made the change).
-     *   2. The site admin resolved from get_option('admin_email').
+     *   1. The acting user (currently logged in, who made the change) — if they
+     *      have opted in via user meta `scriptomatic_notifications = '1'`.
+     *   2. The site admin resolved from get_option('admin_email') — always
+     *      included regardless of their opt-in setting.
      *
-     * Each is emailed only when their `scriptomatic_notifications` user meta
-     * is '1'. When both resolve to the same email address, a single email is sent.
+     * When both resolve to the same email address, a single email is sent.
      *
      * @since  3.1.0
      * @access private
@@ -152,15 +153,15 @@ trait Scriptomatic_Notifications {
             $recipients[ $actor->user_email ] = $actor->display_name ?: $actor->user_login;
         }
 
-        // Site admin (only if distinct address from the actor).
+        // Site admin always receives a notification regardless of their opt-in
+        // setting — they cannot be excluded. If the acting user is the site
+        // admin, deduplication means only one email is sent (already added above).
         $admin_email = (string) get_option( 'admin_email', '' );
         if ( is_email( $admin_email ) && ! isset( $recipients[ $admin_email ] ) ) {
             $admin_user = get_user_by( 'email', $admin_email );
-            if ( $admin_user
-                && '1' === (string) get_user_meta( $admin_user->ID, 'scriptomatic_notifications', true )
-            ) {
-                $recipients[ $admin_email ] = $admin_user->display_name ?: $admin_user->user_login;
-            }
+            $recipients[ $admin_email ] = ( $admin_user )
+                ? ( $admin_user->display_name ?: $admin_user->user_login )
+                : $admin_email;
         }
 
         if ( empty( $recipients ) ) {

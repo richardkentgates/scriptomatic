@@ -80,7 +80,7 @@ scriptomatic/
     ├── trait-injector.php        # Front-end HTML output
     ├── trait-files.php           # Managed JS files: disk I/O, save/delete handlers
     ├── trait-api.php             # REST API route registration, permission callbacks, service layer
-    └── trait-notifications.php   # Email notifications, per-admin opt-in profile fields, Preferences Action History
+    └── trait-notifications.php   # Email notifications (site admin always; others opt-in), profile fields, Preferences Action History
 ```
 
 ---
@@ -499,7 +499,7 @@ All write commands — whether from the REST API or WP-CLI — call these public
 
 **Trait name:** `Scriptomatic_Notifications`
 
-Email notifications, per-admin opt-in user meta, and the Preferences Action History panel.
+Email notifications (site admin always notified; other admins opt in via profile), per-admin opt-in user meta, and the Preferences Action History panel.
 
 **Profile page hooks:**
 
@@ -508,7 +508,7 @@ Email notifications, per-admin opt-in user meta, and the Preferences Action Hist
 
 **Notification dispatch:**
 
-- `maybe_send_notifications( array $event )` — called from every write path after a successful save/rollback/delete. `$event` shape: `{ action, location, detail }`. Collects all administrators with user meta `scriptomatic_notifications = '1'`. Deduplicates the actor and the site admin address to avoid duplicate emails. Sends a plain-text email via `wp_mail()` per opted-in recipient that includes a `Via: Dashboard/API/CLI` line recording the originating channel. Silently returns if there are no opted-in recipients.
+- `maybe_send_notifications( array $event )` — called from every write path after a successful save/rollback/delete. `$event` shape: `{ action, location, detail }`. The site admin email (WordPress `admin_email` option) is always included as a recipient. The acting user is also included if they have opted in via user meta `scriptomatic_notifications = '1'`. If the acting user is the site admin, deduplication ensures only one email is sent. Sends a plain-text email via `wp_mail()` per recipient that includes a `Via: Dashboard/API/CLI` line recording the originating channel.
 
 **Preferences Action History:**
 
