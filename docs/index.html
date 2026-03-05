@@ -172,13 +172,14 @@
     .feature-card p  { font-size: .9rem; color: var(--muted); line-height: 1.6; }
 
     /* ── HOW IT WORKS ── */
-    .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2rem; }
-    .step { text-align: center; }
+    .steps { display: flex; flex-direction: column; gap: 1.25rem; }
+    .step { display: flex; align-items: flex-start; gap: 1.25rem; }
     .step-num {
+      flex-shrink: 0;
       width: 48px; height: 48px; border-radius: 50%;
       background: var(--blue); color: #fff;
       display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 1.1rem; margin: 0 auto 1rem;
+      font-weight: 800; font-size: 1.1rem;
     }
     .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: .4rem; }
     .step p  { font-size: .875rem; color: var(--muted); }
@@ -534,14 +535,8 @@
 
       <div class="feature-card">
         <div class="feature-icon icon-green">🔁</div>
-        <h3>Revision History &amp; Rollback</h3>
-        <p>Every save creates a restorable snapshot. Click <strong>Restore</strong> on any Activity Log entry to instantly roll back via AJAX — no page reload, no further Save needed. Inline script and external URL histories are tracked independently so restoring one never touches the other. View any snapshot in a lightbox before restoring.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon icon-amber">📋</div>
-        <h3>Activity Log</h3>
-        <p>All saves, rollbacks, and JS file events are recorded with timestamp, username, action type, a <strong>Via</strong> column (<strong>Dashboard</strong>, <strong>API</strong>, or <strong>CLI</strong>), and a human-readable summary of what changed. Configurable retention limit of 3&ndash;1000 entries (default 200); oldest entries are pruned automatically once the cap is reached.</p>
+        <h3>Activity Log &amp; Rollback</h3>
+        <p>Every save creates a restorable snapshot in the Activity Log — recorded with timestamp, username, a <strong>Via</strong> column (<strong>Dashboard</strong>, <strong>API</strong>, or <strong>CLI</strong>), and a summary of what changed. Click <strong>Restore</strong> on any entry to instantly roll back via AJAX — no page reload needed. Inline script and external URL histories are tracked independently; restoring one never touches the other. View any snapshot in a lightbox before restoring. Configurable retention limit of 3&ndash;1000 entries (default 200).</p>
       </div>
 
       <div class="feature-card">
@@ -577,7 +572,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-blue">🔌</div>
         <h3>REST API <span class="pro-badge">Pro</span></h3>
-        <p>Full <code>scriptomatic/v1</code> REST API (14 POST endpoints) covering inline scripts, external URLs, managed JS files, and Preferences Action History &mdash; including a multipart file upload endpoint. Authenticated via WordPress Application Passwords. Optional IP allowlist, API enable/disable toggle, and per-user access controls in Preferences.</p>
+        <p>Full <code>scriptomatic/v1</code> REST API (14 POST endpoints) covering inline scripts, external URLs, managed JS files, and Preferences Action History &mdash; including a multipart file upload endpoint. Authenticated via WordPress Application Passwords. Three independent access controls in Preferences: an <strong>enable/disable</strong> toggle (503 when off), an <strong>IP Allowlist</strong> (403 for unlisted addresses), and an <strong>Allowed Users</strong> list (403 for unlisted administrators).</p>
       </div>
 
       <div class="feature-card">
@@ -592,11 +587,7 @@
         <p>Administrators opt in via their WordPress profile page to receive a plain-text email on every script save, rollback, URL change, file event, and restore &mdash; keeping the whole team aware of changes in real time.</p>
       </div>
 
-      <div class="feature-card">
-        <div class="feature-icon icon-purple">🔐</div>
-        <h3>API Access Controls <span class="pro-badge">Pro</span></h3>
-        <p>Three independent API controls in Preferences: an <strong>enable/disable</strong> toggle (503 when off), an <strong>IP Allowlist</strong> (403 for unlisted addresses), and an <strong>Allowed Users</strong> list (403 for unlisted administrators). Stack as many or as few as needed.</p>
-      </div>
+
 
     </div>
   </div>
@@ -735,13 +726,7 @@ jQuery(document).<span class="n">ready</span>(<span class="k">function</span>($)
         </div>
       </div>
 
-      <div class="security-item">
-        <div class="security-icon">⏱️</div>
-        <div>
-          <h4>Rate Limiting</h4>
-          <p>A transient-based 10-second per-user, per-location cooldown prevents rapid repeated saves or brute-force form submissions.</p>
-        </div>
-      </div>
+
 
       <div class="security-item">
         <div class="security-icon">✅</div>
@@ -1112,6 +1097,8 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
           <tr><td>Revision history &amp; one-click rollback</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td>Activity log</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td>CodeMirror editor with autocomplete</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td>Email notifications (opt-in per admin)</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
+          <tr><td>Preferences Action History (read-only, paginated)</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td>Multisite compatible</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>Conditional loading</strong> (11 rule types, AND/OR)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>Managed JS Files</strong> (create / edit / upload / delete)</td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
@@ -1120,8 +1107,6 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
           <tr><td><strong>API IP Allowlist</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>API Enable / Disable</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
           <tr><td><strong>API Allowed Users</strong></td><td><span class="cross">✗</span></td><td><span class="chk">✔</span></td></tr>
-          <tr><td><strong>Email Notifications</strong> (opt-in per admin)</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
-          <tr><td>Preferences Action History (read-only, paginated)</td><td><span class="chk">✔</span></td><td><span class="chk">✔</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -1195,7 +1180,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
       <div class="clog-version">v2.6.0</div>
       <div class="clog-body">
         <h4>REST API &amp; WP-CLI command group</h4>
-        <p>Every Scriptomatic operation is now available over a first-party REST API (<code>scriptomatic/v1</code>) and through a <code>wp scriptomatic</code> WP-CLI command group. All REST endpoints are POST-only &mdash; credentials always travel in the <code>Authorization: Basic</code> header via WordPress Application Passwords, never in the URL. The two interfaces share a public service layer (<code>service_*</code> methods) so validation, rate-limiting, and activity logging are identical regardless of how a change is made. Twelve REST routes cover inline scripts, external URL lists, and managed JS files, including read, write, rollback, and history. Twelve CLI commands mirror the same operations with table, JSON, CSV, and YAML output formats.</p>
+        <p>Every Scriptomatic operation is now available over a first-party REST API (<code>scriptomatic/v1</code>) and through a <code>wp scriptomatic</code> WP-CLI command group. All REST endpoints are POST-only &mdash; credentials always travel in the <code>Authorization: Basic</code> header via WordPress Application Passwords, never in the URL. The two interfaces share a public service layer (<code>service_*</code> methods) so validation and activity logging are identical regardless of how a change is made. Twelve REST routes cover inline scripts, external URL lists, and managed JS files, including read, write, rollback, and history. Twelve CLI commands mirror the same operations with table, JSON, CSV, and YAML output formats.</p>
       </div>
     </div>
 

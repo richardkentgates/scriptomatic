@@ -667,7 +667,6 @@ Every save path enforces the same three gates in order:
 
 1. **Gate 0 — Capability**: `current_user_can( 'manage_options' )`. Returns stored value immediately on failure.
 2. **Gate 1 — Secondary nonce**: A short-lived nonce distinct from the WordPress Settings API nonce. Keyed to `SCRIPTOMATIC_{HEAD|FOOTER|GENERAL}_NONCE`. Present on all Settings API form submissions; conditionally checked (only if the nonce field is present in `$_POST`) for callbacks that may also be invoked in non-form contexts.
-3. **Gate 2 — Rate limiter** *(script saves only)*: Transient-based per-user, per-location 10-second cooldown. Skipped on the second invocation within the same request (double-call guard).
 
 **Content validation** (applied after all gates pass, script saves only):
 - Type check: must be `string`
