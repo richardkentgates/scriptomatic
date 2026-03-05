@@ -64,7 +64,7 @@ A secure and production-ready WordPress plugin for injecting custom JavaScript i
 - **🛡️ API IP Allowlist**: Restrict REST API access to specific IPv4/IPv6 addresses or CIDR ranges from the Preferences page
 - **� API Enable / Disable**: Toggle REST API access site-wide from Preferences; returns HTTP 503 when disabled
 - **👤 API Allowed Users**: Restrict REST API access to named administrator accounts from Preferences; returns HTTP 403 for unlisted callers
-- ** WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), activity log (`log list`, `log clear`), preferences management (`prefs get`, `prefs set`, `prefs history`), and history. All write commands share the same service layer as the REST API. Preferences management is CLI and Dashboard only — not REST API.
+- ** WP-CLI**: `wp scriptomatic` command group with subcommands for inline scripts, external URLs, managed JS files (including `files upload`), activity log (`log list`), preferences management (`prefs get`, `prefs set`, `prefs history`), and history. All write commands share the same service layer as the REST API. Preferences management is CLI and Dashboard only — not REST API.
 - **📤 JS File Upload**: Upload a local `.js` file from the **JS Files list page**, via `POST /wp-json/scriptomatic/v1/files/upload`, or with `wp scriptomatic files upload --path=<file>`
 
 
@@ -318,9 +318,6 @@ wp scriptomatic files delete --id=<file-id> [--yes]
 ```bash
 # List activity log (all locations, or scoped to one)
 wp scriptomatic log list [--location=<head|footer|file|all>] [--limit=<n>] [--format=<table|json|csv|yaml|count>]
-
-# Clear activity log (prompts for confirmation unless --yes)
-wp scriptomatic log clear [--location=<head|footer|file|all>] [--yes]
 ```
 
 ### Preferences

@@ -579,7 +579,7 @@
       <div class="feature-card">
         <div class="feature-icon icon-green">💻</div>
         <h3>WP-CLI <span class="pro-badge">Pro</span></h3>
-        <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), activity log (<code>log list</code>, <code>log clear</code>), preferences management (<code>prefs get</code>, <code>prefs set</code>, <code>prefs history</code>), and history. All write commands share the same service layer as the REST API &mdash; identical validation and activity logging. Preferences management is available via CLI only &mdash; intentionally absent from the REST API.</p>
+        <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files (including <code>files upload</code>), activity log (<code>log list</code>), preferences management (<code>prefs get</code>, <code>prefs set</code>, <code>prefs history</code>), and history. All write commands share the same service layer as the REST API &mdash; identical validation and activity logging. Preferences management is available via CLI only &mdash; intentionally absent from the REST API.</p>
       </div>
 
       <div class="feature-card">
@@ -968,9 +968,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
         <h3>Activity Log</h3>
         <div class="shell">
 <span class="prompt">$ </span>wp scriptomatic log list
-<span class="prompt">$ </span>wp scriptomatic log list --location=head --limit=50
-<span class="prompt">$ </span>wp scriptomatic log clear --location=head --yes
-<span class="prompt">$ </span>wp scriptomatic log clear --yes</div>
+<span class="prompt">$ </span>wp scriptomatic log list --location=head --limit=50</div>
       </div>
 
       <div class="install-card">
@@ -1134,8 +1132,8 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <div class="changelog-item">
       <div class="clog-version" style="background:#2563eb;">v3.2.0</div>
       <div class="clog-body">
-        <h4>Source tracking, activity log list/clear CLI, prefs CLI commands, email Via line, REST prefs/history</h4>
-        <p>Every activity log entry now records a <strong>source</strong> field (<code>dashboard</code>, <code>api</code>, <code>cli</code>) indicating which channel made the change. Admin email notifications include a new <strong>Via: Dashboard/API/CLI</strong> line. Two new WP-CLI commands: <code>wp scriptomatic log list</code> and <code>wp scriptomatic log clear</code> (CLI only &mdash; not exposed via REST). Three new WP-CLI preferences commands: <code>wp scriptomatic prefs get</code>, <code>wp scriptomatic prefs set</code>, and <code>wp scriptomatic prefs history</code> &mdash; preferences management is CLI and Dashboard only, intentionally absent from the REST API. A new REST endpoint <code>POST /wp-json/scriptomatic/v1/prefs/history</code> exposes paginated Preferences Action History read-only. Notification <code>action</code> strings have been cleaned &mdash; <code>(API)</code> suffixes removed; the <code>source</code> field is now the authoritative origin record.</p>
+        <h4>Source tracking, activity log list CLI, prefs CLI commands, email Via line, REST prefs/history</h4>
+        <p>Every activity log entry now records a <strong>source</strong> field (<code>dashboard</code>, <code>api</code>, <code>cli</code>) indicating which channel made the change. Admin email notifications include a new <strong>Via: Dashboard/API/CLI</strong> line. One new WP-CLI command: <code>wp scriptomatic log list</code> (CLI only &mdash; not exposed via REST). Three new WP-CLI preferences commands: <code>wp scriptomatic prefs get</code>, <code>wp scriptomatic prefs set</code>, and <code>wp scriptomatic prefs history</code> &mdash; preferences management is CLI and Dashboard only, intentionally absent from the REST API. A new REST endpoint <code>POST /wp-json/scriptomatic/v1/prefs/history</code> exposes paginated Preferences Action History read-only. Notification <code>action</code> strings have been cleaned &mdash; <code>(API)</code> suffixes removed; the <code>source</code> field is now the authoritative origin record.</p>
       </div>
     </div>
 

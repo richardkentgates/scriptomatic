@@ -485,7 +485,6 @@ All write commands — whether from the REST API or WP-CLI — call these public
 | `service_delete_file( $file_id )` | Deletes file from disk + metadata; returns `{file_id, message}` or `WP_Error` |
 | `service_upload_file( array $file_data, array $params )` | Validates upload via `validate_js_upload()` then delegates to `service_set_file()`; returns same shape or `WP_Error`. Used by `rest_upload_file()` and the CLI `files upload` command. |
 | `service_get_activity_log( $location, $limit, $offset )` | Returns array of decoded log entry arrays for the given location ('' = all), `$limit` (0 = all), `$offset`. Public wrapper around the private `get_activity_log()`. Used by WP-CLI `log list`. |
-| `service_clear_activity_log( $location )` | Deletes all rows from `{prefix}scriptomatic_log` for the given location ('' or 'all' to clear everything). Flushes the `scriptomatic_log` object cache group. Returns `{location, message}` or `WP_Error`. Used by WP-CLI `log clear`. |
 | `service_get_prefs()` | Returns current plugin settings as a flat associative array keyed by preference name. Used by WP-CLI `prefs get` and the Preferences admin page. |
 | `service_set_prefs( array $updates )` | Validates and persists one or more preference changes. Validates types and ranges (`max_log_entries` 3–1000, booleans, IP/CIDR format, user resolution for `api_allowed_users`). Logs the change to the preferences history. Returns `{message, changes}` on success or `WP_Error` on validation failure. Used by WP-CLI `prefs set`. Preferences write is intentionally absent from the REST API. |
 | `service_get_prefs_log( $limit, $offset )` | Returns paginated rows from the preferences change history log (columns: date, user, source, changes). Used by WP-CLI `prefs history` and the REST endpoint `POST /prefs/history`. |
@@ -543,7 +542,6 @@ Loaded only when `WP_CLI` is defined (bootstrapped in `scriptomatic.php`). Regis
 | `files upload` | `--path=<local-path> [--label=<label>] [--id=<id>] [--location=<head\|footer>] [--conditions=<json>]` | Upload a `.js` file through the shared service layer |
 | `files delete` | `--id=<file-id> [--yes]` | Delete a managed JS file |
 | `log list` | `[--location=<head\|footer\|file\|all>] [--limit=<n>] [--format=<format>]` | Print activity log entries (all locations by default) |
-| `log clear` | `[--location=<head\|footer\|file\|all>] [--yes]` | Delete activity log entries for the given location (prompts for confirmation unless `--yes`) |
 | `prefs get` | `[--format=<table\|json\|csv\|yaml>]` | Display all current plugin preferences as a Key/Value table |
 | `prefs set` | `--key=<key> --value=<value>` | Set one preference value; see valid keys below. Not available via REST. |
 | `prefs history` | `[--format=<table\|json\|csv\|yaml\|count>]` | List preferences change history (columns: Date, User, Via, Changes) |

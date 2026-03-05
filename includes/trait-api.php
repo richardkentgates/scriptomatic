@@ -155,8 +155,6 @@ trait Scriptomatic_API {
         // --- Preferences history (read-only) ---
         // Preferences write (prefs get/set) is intentionally NOT exposed via the
         // REST API — manage preferences via WP-CLI or the Dashboard only.
-        // Activity-log clear/delete is also intentionally absent from the REST
-        // API; log management is available only from the Dashboard and WP-CLI.
         register_rest_route( $ns, '/prefs/history', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'rest_get_prefs_history' ),
@@ -1573,48 +1571,6 @@ trait Scriptomatic_API {
      */
     public function service_get_activity_log( $location = '', $limit = 0, $offset = 0 ) {
         return $this->get_activity_log( (int) $limit, (int) $offset, sanitize_key( (string) $location ) );
-    }
-
-    /**
-     * Delete all activity log entries for one location (or all locations).
-     *
-     * Available from the Dashboard (AJAX) and WP-CLI (`wp scriptomatic log clear`).
-     * Intentionally NOT exposed via the REST API — log management stays
-     * out of band so auditors retain an independent record.
-     *
-     * @since  3.2.0
-     * @param  string $location  'head'|'footer'|'file' to clear one location;
-     *                           ''|'all' to clear every entry.
-     * @return array|WP_Error  On success: {location, message}.
-     */
-    public function service_clear_activity_log( $location = '' ) {
-        global $wpdb;
-        $table   = $wpdb->prefix . SCRIPTOMATIC_LOG_TABLE;
-        $allowed = array( 'head', 'footer', 'file' );
-
-        if ( '' === $location || 'all' === $location ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $table ) );
-        } elseif ( in_array( $location, $allowed, true ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE location = %s', $table, $location ) );
-        } else {
-            return new WP_Error(
-                'invalid_location',
-                __( 'Invalid location. Use head, footer, file, or all.', 'scriptomatic' ),
-                array( 'status' => 400 )
-            );
-        }
-
-        // Flush the object cache group so the next read is fresh.
-        if ( function_exists( 'wp_cache_flush_group' ) ) {
-            wp_cache_flush_group( 'scriptomatic_log' );
-        }
-
-        return array(
-            'location' => ( '' === $location ) ? 'all' : $location,
-            'message'  => __( 'Activity log cleared.', 'scriptomatic' ),
-        );
     }
 
     /**
