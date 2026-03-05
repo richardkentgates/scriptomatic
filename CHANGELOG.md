@@ -18,13 +18,10 @@ _Nothing yet._
 ### Added
 - **Source tracking.** Every activity log entry now carries a `source` field (`dashboard`, `api`, `cli`) recording how the change was made. The `Via` column appears in WP-CLI `wp scriptomatic history` and `wp scriptomatic urls history` table output.
 - **`Via: Dashboard/API/CLI` in admin email notifications.** All admin email notifications now include a `Via:` line (between the existing `User:` and `Time:` lines) showing the originating channel.
-- **Activity log list — WP-CLI.** Two new WP-CLI commands:
+- **Activity log list — WP-CLI.** New WP-CLI command:
   - `wp scriptomatic log list [--location=<head|footer|file|all>] [--limit=<n>] [--format=<format>]`
-  - `wp scriptomatic log clear [--location=<head|footer|file|all>] [--yes]`
-  Log-clear is intentionally absent from the REST API; CLI only.
 - **REST `POST /prefs/history`.** Read-only endpoint returning paginated Preferences Action History. Accepts `limit` (1–100, default 20) and `offset`. Requires Pro. Log-clear is not exposed via REST (Dashboard and CLI only, by design).
 - **`service_get_activity_log( $location, $limit, $offset )`** — public service method (wraps the private `get_activity_log()`); shared by WP-CLI.
-- **`service_clear_activity_log( $location )`** — public service method; deletes rows from `wp_scriptomatic_log` for the given location (or all); flushes the `scriptomatic_log` object cache group; used by WP-CLI `log clear`.
 
 ### Changed
 - **Notification `action` strings cleaned.** `(API)` suffixes and `API: ` prefixes have been removed from all log `action` and `detail` strings. All write paths — Dashboard, API, and CLI — now produce identical clean strings. The new `source` field is the authoritative origin record.
@@ -486,8 +483,8 @@ _Nothing yet._
 - External script URL lists are exclusively the `[{url, conditions}]` array format; legacy plain-string URL migration paths removed from `trait-sanitizer.php`, `trait-renderer.php`, and `trait-injector.php`.
 - Activity log is read directly via `get_option( SCRIPTOMATIC_ACTIVITY_LOG_OPTION )` with an empty-array default; the one-time migration from legacy per-location `head_history` / `footer_history` options has been removed from `trait-settings.php`.
 - `write_activity_entry()` is now the sole logging method; the `write_audit_log_entry()` backward-compat alias has been removed.
-- Removed deprecated `render_audit_log_table()` no-op stub and unused `maybe_clear_audit_log()` method from `trait-pages.php`.
-- Removed constants: `SCRIPTOMATIC_HEAD_HISTORY`, `SCRIPTOMATIC_FOOTER_HISTORY`, `SCRIPTOMATIC_DEFAULT_MAX_HISTORY`, `SCRIPTOMATIC_AUDIT_LOG_OPTION`, `SCRIPTOMATIC_CLEAR_LOG_NONCE`.
+- Removed deprecated `render_audit_log_table()` no-op stub from `trait-pages.php`.
+- Removed constants: `SCRIPTOMATIC_HEAD_HISTORY`, `SCRIPTOMATIC_FOOTER_HISTORY`, `SCRIPTOMATIC_DEFAULT_MAX_HISTORY`, `SCRIPTOMATIC_AUDIT_LOG_OPTION`.
 - Default registered conditions value updated from `{"type":"all","values":[]}` to `{"logic":"and","rules":[]}` in both Settings API registrations.
 - Help tab Security section updated to list all current Activity Log action types including `conditions_save`, `url_list_restored`, `conditions_restored`, and `file_restored`.
 
@@ -573,8 +570,6 @@ _Nothing yet._
 - **`write_activity_entry()`** replaces both `push_history()` and `write_audit_log_entry()`. The old `write_audit_log_entry()` is kept as a pass-through alias so existing callers continue to compile during the transition.
 - **`get_history($location)`** now filters the unified activity log instead of reading a per-location option; AJAX handlers `ajax_rollback()` and `ajax_get_history_content()` are unchanged.
 - **`max_history` setting removed.** The separate History Limit field on the Preferences page has been removed. A single **Activity Log Limit** (3–1000, default 200) now governs retention across all locations.
-- **`maybe_clear_audit_log()` is now fully wired.** The method was defined but never registered on `admin_init`; it is now properly hooked. The `scriptomatic-files` page slug is also accepted, and clearing now targets `SCRIPTOMATIC_ACTIVITY_LOG_OPTION` by location.
-- **`SCRIPTOMATIC_CLEAR_LOG_NONCE`** constant was referenced but never defined; it is now declared in `scriptomatic.php`.
 - `uninstall.php` updated to delete `scriptomatic_activity_log`; legacy keys (`scriptomatic_script_history`, `scriptomatic_footer_history`, `scriptomatic_audit_log`) are also deleted to clean up migrated data.
 
 ### Fixed
@@ -608,7 +603,6 @@ _Nothing yet._
 - **`sanitize_linked_for()` — capability + secondary nonce gates added.** The external URL list save callback now verifies `current_user_can( 'manage_options' )` and, when a secondary nonce field is present, validates it against the per-location nonce action. Matches the existing pattern in `sanitize_script_for()`.
 - **`sanitize_conditions_for()` — capability + secondary nonce gates added.** Same two-gate pattern applied to the load-conditions sanitizer callback; it previously had neither check.
 - **`sanitize_plugin_settings()` — capability check added.** The Preferences save callback now verifies `current_user_can( 'manage_options' )` before processing input; the secondary nonce check was already in place.
-- **Open redirect in `maybe_clear_audit_log()` eliminated.** The post-clear redirect was constructed with `wp_get_referer()`, which reads the HTTP `Referer` header and can be spoofed by an attacker. Replaced with an explicit `admin_url( 'admin.php' )` call using the already-validated `$page` slug, so the destination is always a known-safe admin page.
 - **`inject_scripts_for()` — `esc_html()` applied to label in HTML comments.** The location label written into the `<!-- Scriptomatic … -->` page comment is now escaped with `esc_html()` as a defence-in-depth measure (the value is currently constrained to `'head'` or `'footer'` at all call sites, but correct form prevents future exposure if call sites change).
 
 ---
@@ -654,10 +648,10 @@ _Nothing yet._
 ## [1.5.0] – 2026-02-26
 
 ### Added
-- **Audit Log admin page (per-site and network).** Script saves and rollbacks are now recorded in a persistent, WordPress-native log stored via `wp_options` / `wp_site_option` rather than the PHP error log. The log is accessible from the new **Audit Log** submenu in both the per-site and network admin menus. Each entry captures the timestamp, acting user, action (`save` or `rollback`), script location (`head` or `footer`), and character count of the content involved. The log is capped at 200 entries (oldest entries are discarded once the cap is exceeded). A **Clear Audit Log** button — guarded by a nonce and a capability check — lets admins wipe the log at any time.
-- Three new constants: `SCRIPTOMATIC_AUDIT_LOG_OPTION`, `SCRIPTOMATIC_MAX_LOG_ENTRIES`, `SCRIPTOMATIC_CLEAR_LOG_NONCE`.
+- **Audit Log admin page (per-site and network).** Script saves and rollbacks are now recorded in a persistent, WordPress-native log stored via `wp_options` / `wp_site_option`. The log is accessible from the new **Audit Log** submenu. Each entry captures the timestamp, acting user, action (`save` or `rollback`), script location (`head` or `footer`), and character count. The log is capped at 200 entries (oldest entries are discarded once the cap is exceeded).
+- Three new constants: `SCRIPTOMATIC_AUDIT_LOG_OPTION`, `SCRIPTOMATIC_MAX_LOG_ENTRIES`.
 - New private methods `write_audit_log_entry()` and `get_audit_log()` in `trait-settings.php`.
-- New public methods `render_audit_log_page()`, `render_network_audit_log_page()`, and `maybe_clear_audit_log()` in `trait-pages.php`.
+- New public methods `render_audit_log_page()` and `render_network_audit_log_page()` in `trait-pages.php`.
 
 ### Changed
 - `log_change()` in `trait-settings.php` now calls `write_audit_log_entry()` instead of `error_log()`.
