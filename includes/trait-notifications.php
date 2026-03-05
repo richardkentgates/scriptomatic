@@ -203,14 +203,19 @@ trait Scriptomatic_Notifications {
         $manage_url = admin_url( 'admin.php?page=scriptomatic' );
         if ( 'footer' === $loc_lower ) {
             $manage_url = admin_url( 'admin.php?page=scriptomatic-footer' );
+        } elseif ( 'preferences' === $loc_lower ) {
+            $manage_url = admin_url( 'admin.php?page=scriptomatic-settings' );
         } elseif ( 'head' !== $loc_lower ) {
             $manage_url = admin_url( 'admin.php?page=scriptomatic-files' );
         }
         if ( ! empty( $event['page_url'] ) ) {
             $manage_url = esc_url_raw( (string) $event['page_url'] );
         }
+        $manage_label = ( 'preferences' === $loc_lower )
+            ? __( 'Manage preferences: %s', 'scriptomatic' )
+            : __( 'Manage scripts: %s', 'scriptomatic' );
         /* translators: %s: admin URL */
-        $body .= sprintf( __( 'Manage scripts: %s', 'scriptomatic' ), $manage_url ) . "\n\n";
+        $body .= sprintf( $manage_label, $manage_url ) . "\n\n";
         /* translators: %s: profile page URL */
         $body .= sprintf( __( 'To stop receiving these emails, visit your profile: %s', 'scriptomatic' ), admin_url( 'profile.php' ) ) . "\n";
 

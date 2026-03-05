@@ -335,6 +335,12 @@ trait Scriptomatic_Settings {
         }
 
         $this->write_prefs_log_entry( implode( ' · ', $detail_parts ), $diff );
+
+        $this->maybe_send_notifications( array(
+            'action'   => __( 'Preferences updated', 'scriptomatic' ),
+            'location' => 'preferences',
+            'detail'   => implode( ' · ', $detail_parts ),
+        ) );
     }
 
     /**
