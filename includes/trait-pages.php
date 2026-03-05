@@ -106,13 +106,7 @@ trait Scriptomatic_Pages {
             ?>
         </p>
 
-        <p style="margin-top:6px;">
-            <button type="button" class="button button-secondary sm-clear-log"
-                data-location="<?php echo esc_attr( '' !== $file_id ? 'file' : $location ); ?>"
-                data-nonce="<?php echo esc_attr( wp_create_nonce( SCRIPTOMATIC_GENERAL_NONCE ) ); ?>"
-            ><?php esc_html_e( 'Clear Log', 'scriptomatic' ); ?></button>
-            <span class="description" style="margin-left:6px;"><?php esc_html_e( 'Permanently removes all entries for this location. Available from the Dashboard and WP-CLI only.', 'scriptomatic' ); ?></span>
-        </p>
+
 
         <?php if ( ! empty( $log ) ) : ?>
         <table class="widefat scriptomatic-history-table" style="max-width:960px;margin-top:8px;">
@@ -837,7 +831,7 @@ trait Scriptomatic_Pages {
                 '<li><strong>' . __( 'Dual Nonce Verification:', 'scriptomatic' ) . '</strong> ' . __( 'Each form carries both the WordPress Settings API nonce and a secondary location-specific nonce, verified on every save.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Input Validation:', 'scriptomatic' ) . '</strong> ' . __( 'All input is validated: UTF-8 check, control-character rejection, length cap (100&nbsp;KB for inline scripts; JS files are limited by the server&rsquo;s upload setting, not this plugin), PHP-tag detection, and dangerous-HTML-tag warning (iframe, object, embed, link, style, meta).', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Sanitization:', 'scriptomatic' ) . '</strong> ' . __( '&lt;script&gt; tags are automatically stripped to prevent double-wrapping.', 'scriptomatic' ) . '</li>' .
-                '<li><strong>' . __( 'Activity Log:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Each entry now includes a <strong>Via</strong> column showing whether the change came from the Dashboard, the REST API, or WP-CLI. Inline script + conditions changes and external URL changes are written as <strong>separate independent entries</strong>, each with its own View and Restore buttons &mdash; restoring one never touches the other. <strong>View</strong> shows the full saved state; <strong>Restore</strong> writes the dataset back with no further Save needed. The Restore button is disabled on the most recent entry of each dataset. A <strong>Clear Log</strong> button on each panel lets administrators remove entries for that location &mdash; this action is available only from the Dashboard and WP-CLI; the REST API provides read-only history access. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically.', 'scriptomatic' ) . '</li>' .
+                '<li><strong>' . __( 'Activity Log:', 'scriptomatic' ) . '</strong> ' . __( 'All saves, AJAX rollbacks, and JS file events are recorded in the <strong>Activity Log</strong> at the bottom of each admin page. Each entry now includes a <strong>Via</strong> column showing whether the change came from the Dashboard, the REST API, or WP-CLI. Inline script + conditions changes and external URL changes are written as <strong>separate independent entries</strong>, each with its own View and Restore buttons &mdash; restoring one never touches the other. <strong>View</strong> shows the full saved state; <strong>Restore</strong> writes the dataset back with no further Save needed. The Restore button is disabled on the most recent entry of each dataset. The log limit (3&ndash;1000, default 200) is configurable in Preferences; oldest entries are discarded automatically.', 'scriptomatic' ) . '</li>' .
                 '<li><strong>' . __( 'Output Escaping:', 'scriptomatic' ) . '</strong> ' . __( 'Content is properly escaped when displayed in the admin interface.', 'scriptomatic' ) . '</li>' .
                 '</ul>' .
                 '<p class="description">' . __( 'Note: Always verify code from external sources before adding it to your site. Malicious JavaScript can compromise your website and user data.', 'scriptomatic' ) . '</p>',

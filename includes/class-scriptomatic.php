@@ -145,7 +145,6 @@ class Scriptomatic {
         add_action( 'wp_ajax_scriptomatic_get_history_content',     array( $this, 'ajax_get_history_content' ) );
         add_action( 'wp_ajax_scriptomatic_rollback_urls',           array( $this, 'ajax_rollback_urls' ) );
         add_action( 'wp_ajax_scriptomatic_get_url_history_content', array( $this, 'ajax_get_url_history_content' ) );
-        add_action( 'wp_ajax_scriptomatic_clear_activity_log',      array( $this, 'ajax_clear_activity_log' ) );
 
         // Pro-only AJAX: managed JS file actions, admin-post save, and REST API.
         if ( scriptomatic_is_premium() ) {

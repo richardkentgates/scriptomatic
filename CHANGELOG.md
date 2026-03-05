@@ -18,13 +18,13 @@ _Nothing yet._
 ### Added
 - **Source tracking.** Every activity log entry now carries a `source` field (`dashboard`, `api`, `cli`) recording how the change was made. The `Via` column appears in WP-CLI `wp scriptomatic history` and `wp scriptomatic urls history` table output.
 - **`Via: Dashboard/API/CLI` in admin email notifications.** All admin email notifications now include a `Via:` line (between the existing `User:` and `Time:` lines) showing the originating channel.
-- **Activity log clear — Dashboard + WP-CLI.** A **Clear Log** button appears at the top of each Activity Log table on the Head, Footer, and Files pages. Clearing is scoped to the current location. Two new WP-CLI commands:
+- **Activity log list — WP-CLI.** Two new WP-CLI commands:
   - `wp scriptomatic log list [--location=<head|footer|file|all>] [--limit=<n>] [--format=<format>]`
   - `wp scriptomatic log clear [--location=<head|footer|file|all>] [--yes]`
-  Log-clear is intentionally absent from the REST API; Dashboard and CLI only.
+  Log-clear is intentionally absent from the REST API; CLI only.
 - **REST `POST /prefs/history`.** Read-only endpoint returning paginated Preferences Action History. Accepts `limit` (1–100, default 20) and `offset`. Requires Pro. Log-clear is not exposed via REST (Dashboard and CLI only, by design).
 - **`service_get_activity_log( $location, $limit, $offset )`** — public service method (wraps the private `get_activity_log()`); shared by WP-CLI.
-- **`service_clear_activity_log( $location )`** — public service method; deletes rows from `wp_scriptomatic_log` for the given location (or all); flushes the `scriptomatic_log` object cache group; shared by Dashboard AJAX and WP-CLI.
+- **`service_clear_activity_log( $location )`** — public service method; deletes rows from `wp_scriptomatic_log` for the given location (or all); flushes the `scriptomatic_log` object cache group; used by WP-CLI `log clear`.
 
 ### Changed
 - **Notification `action` strings cleaned.** `(API)` suffixes and `API: ` prefixes have been removed from all log `action` and `detail` strings. All write paths — Dashboard, API, and CLI — now produce identical clean strings. The new `source` field is the authoritative origin record.
@@ -564,7 +564,6 @@ _Nothing yet._
 ### Added
 - **Unified Activity Log.** The separate Revision History panel and Audit Log table on the Head Scripts and Footer Scripts pages have been merged into a single **Activity Log** panel per location. Every event type — script saves, rollbacks, external URL additions/removals, JS file saves, JS file rollbacks, and JS file deletions — appears in one table. Rows that carry a content snapshot (saves and rollbacks) expose **View** and **Restore** buttons; informational rows (URL events, file deletions) are shown without action buttons. The Activity Log panel is also added to the JS Files list view (all file events) and the JS Files edit view (filtered to the current file only).
 - **JS Files activity log entries.** `file_save` and `file_rollback` entries carry a full content snapshot, enabling View and Restore on managed JS files. `file_delete` entries are informational only.
-- **Per-location Clear Log.** The **Clear Log** button (previously present only on head/footer pages) now appears on all activity log panels and clears only the entries for that location, leaving other locations untouched.
 - **`ajax_rollback_js_file()` AJAX handler.** Restores a managed JS file from a content snapshot stored in the activity log; writes a `file_rollback` entry on success.
 - **`ajax_get_file_activity_content()` AJAX handler.** Returns the raw content of a JS-file activity log entry for the View lightbox.
 - **One-time migration.** On first load after upgrade, `get_activity_log()` automatically migrates existing head/footer revision history (with content snapshots) and legacy URL-event audit log entries into the new unified option (`scriptomatic_activity_log`), then deletes nothing — old options remain until uninstall.

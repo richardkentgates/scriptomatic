@@ -644,43 +644,4 @@ trait Scriptomatic_History {
         ) );
     }
 
-    // =========================================================================
-    // ACTIVITY LOG MANAGEMENT
-    // =========================================================================
-
-    /**
-     * AJAX handler — clear the activity log for a specific location (or all).
-     *
-     * Available from the Dashboard only. Intentionally NOT exposed via the
-     * REST API — log management stays out of band.
-     *
-     * Expects POST fields:
-     *   `nonce`    — SCRIPTOMATIC_GENERAL_NONCE
-     *   `location` — 'head'|'footer'|'file'|'all' (default 'all')
-     *
-     * @since  3.2.0
-     * @return void  Sends a JSON response and exits.
-     */
-    public function ajax_clear_activity_log() {
-        check_ajax_referer( SCRIPTOMATIC_GENERAL_NONCE, 'nonce' );
-
-        if ( ! current_user_can( $this->get_required_cap() ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scriptomatic' ) ) );
-        }
-
-        $location = isset( $_POST['location'] )
-            ? sanitize_key( wp_unslash( $_POST['location'] ) )
-            : 'all';
-
-        $result = $this->service_clear_activity_log( $location );
-
-        if ( is_wp_error( $result ) ) {
-            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
-        }
-
-        wp_send_json_success( array(
-            'location' => $result['location'],
-            'message'  => __( 'Activity log cleared.', 'scriptomatic' ),
-        ) );
-    }
 }

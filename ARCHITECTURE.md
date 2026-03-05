@@ -355,7 +355,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
 
 - `render_js_file_list_view()` — outputs the managed JS files table (label, filename, location, conditions summary) with Add New and Edit links. Also renders an **Upload a JS File** card at the top of the page with a file picker and an **Upload &amp; Edit** button (POST to `admin_post_scriptomatic_save_js_file` with `_sm_upload_source=list`). Includes an all-files activity log panel at the bottom.
 - `render_js_file_edit_view()` — outputs the JS file edit form (label, filename, Head/Footer selector, CodeMirror editor, conditions widget) and a per-file activity log panel.
-- `render_activity_log( $location, $file_id )` — queries the unified activity log, filters by location/file_id, and renders the table with View and Restore buttons where applicable. Also outputs a **Clear Log** button above the table; clicking it fires `wp_ajax_scriptomatic_clear_activity_log` scoped to the current location.
+- `render_activity_log( $location, $file_id )` — queries the unified activity log, filters by location/file_id, and renders the table with View and Restore buttons where applicable.
 
 **Public contextual help:**
 
@@ -380,7 +380,7 @@ Full-page renderers, the Activity Log table, JS Files pages, contextual help, an
   - `scriptomatic-admin` → `assets/admin.css`
   - `scriptomatic-admin-js` → `assets/admin.js`
 - On Head Scripts, Footer Scripts, and JS Files pages, calls `wp_enqueue_code_editor( ['type' => 'text/javascript'] )` to activate the built-in WordPress CodeMirror editor. Returns `false` (and skips the editor) when the user has disabled syntax highlighting in their profile.
-- Calls `wp_localize_script()` with a `scriptomaticData` object containing: `ajaxUrl`, `rollbackNonce`, `filesNonce`, `prefHistoryNonce`, `clearLogNonce`, `maxLength`, `maxUploadSize`, `location`, `codeEditorSettings`, `i18n`.
+- Calls `wp_localize_script()` with a `scriptomaticData` object containing: `ajaxUrl`, `rollbackNonce`, `filesNonce`, `prefHistoryNonce`, `maxLength`, `maxUploadSize`, `location`, `codeEditorSettings`, `i18n`.
 
 ---
 
@@ -485,7 +485,7 @@ All write commands — whether from the REST API or WP-CLI — call these public
 | `service_delete_file( $file_id )` | Deletes file from disk + metadata; returns `{file_id, message}` or `WP_Error` |
 | `service_upload_file( array $file_data, array $params )` | Validates upload via `validate_js_upload()` then delegates to `service_set_file()`; returns same shape or `WP_Error`. Used by `rest_upload_file()` and the CLI `files upload` command. |
 | `service_get_activity_log( $location, $limit, $offset )` | Returns array of decoded log entry arrays for the given location ('' = all), `$limit` (0 = all), `$offset`. Public wrapper around the private `get_activity_log()`. Used by WP-CLI `log list`. |
-| `service_clear_activity_log( $location )` | Deletes all rows from `{prefix}scriptomatic_log` for the given location ('' or 'all' to clear everything). Flushes the `scriptomatic_log` object cache group. Returns `{location, message}` or `WP_Error`. Used by Dashboard AJAX and WP-CLI `log clear`. |
+| `service_clear_activity_log( $location )` | Deletes all rows from `{prefix}scriptomatic_log` for the given location ('' or 'all' to clear everything). Flushes the `scriptomatic_log` object cache group. Returns `{location, message}` or `WP_Error`. Used by WP-CLI `log clear`. |
 | `service_get_prefs()` | Returns current plugin settings as a flat associative array keyed by preference name. Used by WP-CLI `prefs get` and the Preferences admin page. |
 | `service_set_prefs( array $updates )` | Validates and persists one or more preference changes. Validates types and ranges (`max_log_entries` 3–1000, booleans, IP/CIDR format, user resolution for `api_allowed_users`). Logs the change to the preferences history. Returns `{message, changes}` on success or `WP_Error` on validation failure. Used by WP-CLI `prefs set`. Preferences write is intentionally absent from the REST API. |
 | `service_get_prefs_log( $limit, $offset )` | Returns paginated rows from the preferences change history log (columns: date, user, source, changes). Used by WP-CLI `prefs history` and the REST endpoint `POST /prefs/history`. |
@@ -576,7 +576,6 @@ Loaded only when `WP_CLI` is defined (bootstrapped in `scriptomatic.php`). Regis
 | `wp_ajax_scriptomatic_get_file_activity_content` | default | `ajax_get_file_activity_content()` | history |
 | `wp_ajax_scriptomatic_restore_deleted_file` | default | `ajax_restore_deleted_file()` | history |
 | `wp_ajax_scriptomatic_pref_history` | default | `ajax_pref_history()` | notifications |
-| `wp_ajax_scriptomatic_clear_activity_log` | default | `ajax_clear_activity_log()` | history |
 | `wp_ajax_scriptomatic_delete_js_file` | default | `ajax_delete_js_file()` | files |
 | `admin_post_scriptomatic_save_js_file` | default | `handle_save_js_file()` | files |
 | `rest_api_init` | default | `register_rest_routes()` | api |
@@ -723,7 +722,6 @@ All endpoints are registered on `wp_ajax_{action}` (logged-in users only). Histo
 | `scriptomatic_get_file_activity_content` | ROLLBACK | `ajax_get_file_activity_content()` | Return JS file entry display for lightbox |
 | `scriptomatic_restore_deleted_file` | ROLLBACK | `ajax_restore_deleted_file()` | Re-create a deleted JS file from file_delete snapshot |
 | `scriptomatic_pref_history` | GENERAL | `ajax_pref_history()` | Preferences Action History AJAX pagination — returns `{rows, total_pages, page}` |
-| `scriptomatic_clear_activity_log` | GENERAL | `ajax_clear_activity_log()` | Delete activity log entries for the given location; returns `{location, message}` |
 | `scriptomatic_delete_js_file` | FILES | `ajax_delete_js_file()` | Delete a managed JS file from disk and metadata |
 
 **Standard success response shape:**
@@ -799,7 +797,6 @@ Localized via `wp_localize_script()` as `scriptomaticData`:
   rollbackNonce:      "...",   // SCRIPTOMATIC_ROLLBACK_NONCE
   filesNonce:         "...",   // SCRIPTOMATIC_FILES_NONCE
   prefHistoryNonce:   "...",   // SCRIPTOMATIC_GENERAL_NONCE (Preferences History AJAX)
-  clearLogNonce:      "...",   // SCRIPTOMATIC_GENERAL_NONCE (Clear Log AJAX)
   maxLength:          100000,
   maxUploadSize:      ...,
   location:           "head",  // or "footer" or "files"
@@ -812,7 +809,7 @@ Responsibilities:
 - Live character counter: updates on `input` events, changes CSS class at 75% and 90% thresholds.
 - URL manager: add/remove URL chicklet entries; per-entry conditions sub-panel; encode the full entry list as JSON into the hidden `<input>` before form submit.
 - Stacked conditions widget: `initConditions()` manages rule-card add/remove, logic toggle, and JSON sync (`syncJson()`).
-- Activity log: View button fires a `get_*_content` AJAX call and opens a lightbox. Restore button fires the corresponding `restore_*` or `rollback` AJAX call and updates the editor/form in place. The lightbox `×` close button sets the `hidden` attribute (overrides WP admin CSS); open paths clear it. The **Clear Log** `.sm-clear-log` button confirms with the user then fires `scriptomatic_clear_activity_log` and reloads the page on success.
+- Activity log: View button fires a `get_*_content` AJAX call and opens a lightbox. Restore button fires the corresponding `restore_*` or `rollback` AJAX call and updates the editor/form in place. The lightbox `×` close button sets the `hidden` attribute (overrides WP admin CSS); open paths clear it.
 - Preferences Action History: Prev/Next pagination buttons fire `scriptomatic_pref_history` AJAX calls; page counter and opacity loading state updated on each response.
 
 ---

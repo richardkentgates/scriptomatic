@@ -385,7 +385,6 @@ Scriptomatic is built with security as a top priority:
 - Each entry captures: timestamp, username, user ID, action (`save`, `url_save`, `rollback`, `url_rollback`, `file_save`, `file_rollback`, `file_delete`, `file_restored`), source, and a human-readable summary of what changed
 - The Restore button is disabled on the most recent entry of each dataset (it already reflects the live state)
 - Entries with content snapshots expose **View** and **Restore** buttons directly in the table
-- A **Clear Log** button at the top of each Activity Log table lets admins delete entries for the current location; also available via `wp scriptomatic log clear` (intentionally absent from the REST API)
 - No IP addresses collected (intentional privacy decision)
 - Log limit is configurable (3–1000, default 200 entries); oldest entries are discarded automatically once the cap is reached
 - Helps track changes and detect unauthorised modification

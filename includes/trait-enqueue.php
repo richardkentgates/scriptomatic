@@ -97,7 +97,6 @@ trait Scriptomatic_Enqueue {
             'rollbackNonce'       => wp_create_nonce( SCRIPTOMATIC_ROLLBACK_NONCE ),
             'filesNonce'          => wp_create_nonce( SCRIPTOMATIC_FILES_NONCE ),
             'prefHistoryNonce'    => wp_create_nonce( SCRIPTOMATIC_GENERAL_NONCE ),
-            'clearLogNonce'       => wp_create_nonce( SCRIPTOMATIC_GENERAL_NONCE ),
             'maxLength'           => SCRIPTOMATIC_MAX_SCRIPT_LENGTH,
             'maxUploadSize'       => wp_max_upload_size(),
             'location'            => $location,
@@ -123,10 +122,7 @@ trait Scriptomatic_Enqueue {
                 'deleteFileConfirm' => __( 'Delete "$1"? This cannot be undone.', 'scriptomatic' ),
                 'deleteFileError'   => __( 'Delete failed. Please try again.', 'scriptomatic' ),
                 'deleting'          => __( 'Deleting…', 'scriptomatic' ),
-                'clearLogConfirm'   => __( 'Clear all activity log entries for this location? This cannot be undone.', 'scriptomatic' ),
-                'clearLogSuccess'   => __( 'Activity log cleared.', 'scriptomatic' ),
-                'clearLogError'     => __( 'Clear failed. Please try again.', 'scriptomatic' ),
-                'clearing'          => __( 'Clearing…', 'scriptomatic' ),
+
             ),
         ) );
     }

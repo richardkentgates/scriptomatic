@@ -1134,8 +1134,8 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
     <div class="changelog-item">
       <div class="clog-version" style="background:#2563eb;">v3.2.0</div>
       <div class="clog-body">
-        <h4>Source tracking, activity log clear, prefs CLI commands, email Via line, REST prefs/history</h4>
-        <p>Every activity log entry now records a <strong>source</strong> field (<code>dashboard</code>, <code>api</code>, <code>cli</code>) indicating which channel made the change. Admin email notifications include a new <strong>Via: Dashboard/API/CLI</strong> line. A <strong>Clear Log</strong> button appears above each Activity Log table on the Head, Footer, and Files pages, scoped to the current location; complemented by two new WP-CLI commands: <code>wp scriptomatic log list</code> and <code>wp scriptomatic log clear</code>. Three new WP-CLI preferences commands: <code>wp scriptomatic prefs get</code>, <code>wp scriptomatic prefs set</code>, and <code>wp scriptomatic prefs history</code> — preferences management is CLI and Dashboard only, intentionally absent from the REST API. Log-clear is also intentionally absent from the REST API. A new REST endpoint <code>POST /wp-json/scriptomatic/v1/prefs/history</code> exposes paginated Preferences Action History read-only. Notification <code>action</code> strings have been cleaned &mdash; <code>(API)</code> suffixes removed; the <code>source</code> field is now the authoritative origin record.</p>
+        <h4>Source tracking, activity log list/clear CLI, prefs CLI commands, email Via line, REST prefs/history</h4>
+        <p>Every activity log entry now records a <strong>source</strong> field (<code>dashboard</code>, <code>api</code>, <code>cli</code>) indicating which channel made the change. Admin email notifications include a new <strong>Via: Dashboard/API/CLI</strong> line. Two new WP-CLI commands: <code>wp scriptomatic log list</code> and <code>wp scriptomatic log clear</code> (CLI only &mdash; not exposed via REST). Three new WP-CLI preferences commands: <code>wp scriptomatic prefs get</code>, <code>wp scriptomatic prefs set</code>, and <code>wp scriptomatic prefs history</code> &mdash; preferences management is CLI and Dashboard only, intentionally absent from the REST API. A new REST endpoint <code>POST /wp-json/scriptomatic/v1/prefs/history</code> exposes paginated Preferences Action History read-only. Notification <code>action</code> strings have been cleaned &mdash; <code>(API)</code> suffixes removed; the <code>source</code> field is now the authoritative origin record.</p>
       </div>
     </div>
 
@@ -1293,7 +1293,7 @@ curl -X POST <span class="s">"$BASE/files/upload"</span> \
       <div class="clog-version">v1.9.0</div>
       <div class="clog-body">
         <h4>Unified Activity Log, JS file revision history</h4>
-        <p>Merged separate Revision History and Audit Log panels into a single <strong>Activity Log</strong> per location. JS file saves, rollbacks, and deletions are now logged with View &amp; Restore buttons where applicable. Per-location Clear Log button. One-time migration of legacy data. Fixed broken <code>log_change()</code> 4-arg calls in <code>trait-files.php</code>.</p>
+        <p>Merged separate Revision History and Audit Log panels into a single <strong>Activity Log</strong> per location. JS file saves, rollbacks, and deletions are now logged with View &amp; Restore buttons where applicable. One-time migration of legacy data. Fixed broken <code>log_change()</code> 4-arg calls in <code>trait-files.php</code>.</p>
       </div>
     </div>
 

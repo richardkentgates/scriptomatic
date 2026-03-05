@@ -788,35 +788,6 @@ jQuery( document ).ready( function ( $ ) {
     }
 
     /* =========================================================================
-     * 3.9  Clear Activity Log
-     * ====================================================================== */
-    $( document ).on( 'click', '.sm-clear-log', function () {
-        if ( ! confirm( i18n.clearLogConfirm || 'Clear all activity log entries for this location? This cannot be undone.' ) ) { return; }
-        var $btn  = $( this );
-        var orig  = $btn.text();
-        $btn.prop( 'disabled', true ).text( i18n.clearing || 'Clearing\u2026' );
-        $.post( data.ajaxUrl, {
-            action:   'scriptomatic_clear_activity_log',
-            nonce:    $btn.data( 'nonce' ) || data.clearLogNonce,
-            location: $btn.data( 'location' ) || 'all'
-        }, function ( response ) {
-            if ( response.success ) {
-                $( '<div>' ).addClass( 'notice notice-success is-dismissible' )
-                    .html( '<p>' + ( i18n.clearLogSuccess || 'Activity log cleared.' ) + '</p>' )
-                    .insertAfter( '.wp-header-end' );
-                setTimeout( function () { location.reload(); }, 600 );
-            } else {
-                var msg = ( response.data && response.data.message ) ? response.data.message : '';
-                alert( ( i18n.clearLogError || 'Clear failed.' ) + ( msg ? ' ' + msg : '' ) );
-                $btn.prop( 'disabled', false ).text( orig );
-            }
-        } ).fail( function () {
-            alert( i18n.clearLogError || 'Clear failed. Please try again.' );
-            $btn.prop( 'disabled', false ).text( orig );
-        } );
-    } );
-
-    /* =========================================================================
      * 4. Load Conditions — page-level wraps (inline script textarea only).
      *    Per-URL wraps (.sm-url-conditions-wrap) are initialised in section 2.
      * ====================================================================== */
