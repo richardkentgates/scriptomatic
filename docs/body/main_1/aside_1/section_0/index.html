@@ -1,0 +1,11 @@
+<h4>Defence in Depth</h4>
+<p>Scriptomatic applies multiple independent security layers so that a failure in any one layer does not expose the site.</p>
+<ul>
+    <li>Capability Gates — every save callback verifies <code>manage_options</code></li>
+    <li>Dual Nonce Verification — both Settings API and per-location nonces must validate</li>
+    <li>Input Validation — 100 KB cap, invalid UTF-8 rejected, dangerous HTML flagged</li>
+    <li>URL Validation — external URLs validated with <code>wp_http_validate_url()</code></li>
+    <li>Activity Logging — all saves, rollbacks, and file events recorded</li>
+    <li>Open Redirect Hardening — post-action redirects use <code>admin_url()</code></li>
+    <li>Singleton Guards — <code>__clone()</code> and <code>__wakeup()</code> prevent duplication</li>
+</ul>
