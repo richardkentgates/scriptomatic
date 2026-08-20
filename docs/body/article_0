@@ -1,0 +1,105 @@
+<h3>Everything you need, nothing you don't</h3>
+<p>Add Google Analytics, Google Tag Manager, Meta Pixel, custom jQuery, or any JavaScript to your WordPress site. The free version covers the essentials. Scriptomatic Pro unlocks conditional loading, managed JS files, REST API, and WP-CLI.</p>
+
+<div class="feature-grid">
+  <div class="feature-card">
+    <div class="feature-icon" style="background:var(--blue-light)">⌨️</div>
+    <h3>Inline Script Editor</h3>
+    <p>Write JavaScript directly in the admin using a full CodeMirror editor — line numbers, bracket matching, and WordPress/jQuery-specific Ctrl-Space autocomplete. Falls back to a plain textarea if syntax highlighting is disabled.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:var(--blue-light)">🔗</div>
+    <h3>External Script URLs</h3>
+    <p>Manage multiple remote <code>&lt;script src&gt;</code> tags per location via a chiclet UI. URLs are validated, deduplicated, and loaded before the inline block.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:#d7f0db">🎯</div>
+    <h3>Conditional Loading</h3>
+    <p>Eleven condition types — Front Page, Singular, Post Type, Page ID, URL Contains, Logged In, Logged Out, Date Range, Date &amp; Time Range, Week Number, Month — per location, independently configured.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:#d7f0db">🔁</div>
+    <h3>Activity Log &amp; Rollback</h3>
+    <p>Every save creates a restorable snapshot in the Activity Log — recorded with timestamp, username, a Via column (Dashboard, API, or CLI), and a summary of what changed. Click Restore on any entry to instantly roll back via AJAX.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:var(--blue-light)">🔒</div>
+    <h3>Security-First Architecture</h3>
+    <p>Dual nonce verification, capability checks on every callback, open-redirect hardening, and singleton deserialization guards.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:#ede9fe">📚</div>
+    <h3>Contextual Help Tabs</h3>
+    <p>Built-in help tabs on every admin page covering usage, load conditions, security tips, and troubleshooting — no need to leave the dashboard.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:#d7f0db">🌐</div>
+    <h3>Multisite Compatible</h3>
+    <p>Fully per-site within a network. Install and activate network-wide. Uninstall iterates every sub-site to clean up option data.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:#fef3cd">🗂️</div>
+    <h3>Managed JS Files</h3>
+    <p>Create, edit, and delete standalone <code>.js</code> files stored in <code>wp-content/uploads/scriptomatic/</code>. Each file gets its own Head/Footer selector and Load Conditions.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:#ede9fe">🏗️</div>
+    <h3>Modular Architecture</h3>
+    <p>Eleven focused PHP traits — including dedicated traits for file management, injection, sanitization, notifications, and enqueuing — in separate files for clean separation of concerns.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:var(--blue-light)">🔌</div>
+    <h3>REST API</h3>
+    <p>Full <code>scriptomatic/v1</code> REST API (14 POST endpoints) covering inline scripts, external URLs, managed JS files, and Preferences Action History. Authenticated via WordPress Application Passwords.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:#d7f0db">💻</div>
+    <h3>WP-CLI</h3>
+    <p><code>wp scriptomatic</code> command group with subcommands for inline scripts, external URLs, managed JS files, activity log, preferences management, and history.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" style="background:#fef3cd">📧</div>
+    <h3>Email Notifications</h3>
+    <p>The site admin always receives a plain-text email on every script save, rollback, URL change, file event, preferences save, and restore. Other administrators can opt in via their WordPress profile page.</p>
+  </div>
+</div>
+
+<h3>Up and running in minutes</h3>
+<p><strong>Step 1 — Install &amp; Activate:</strong> Upload the plugin zip via WordPress admin or drop the folder into <code>wp-content/plugins/</code>. Activate normally.</p>
+<p><strong>Step 2 — Open Head or Footer Scripts:</strong> Navigate to <strong>Scriptomatic → Head Scripts</strong> or <strong>Footer Scripts</strong> in your WordPress admin.</p>
+<p><strong>Step 3 — Write or Add URLs:</strong> Paste your JavaScript into the inline editor, or add remote script URLs. No <code>&lt;script&gt;</code> tags needed — they are added automatically.</p>
+<p><strong>Step 4 — Set Load Conditions:</strong> Optionally restrict injection to specific pages, post types, URL patterns, or user state. On free, scripts load on all pages.</p>
+<p><strong>Step 5 — Save &amp; Verify:</strong> Click Save. Visit the front-end and check the page source. Use the revision history to roll back at any time.</p>
+
+<h3>Common use cases</h3>
+<p>Paste any of these into the inline editor. Scriptomatic wraps the code in <code>&lt;script&gt;</code> tags automatically.</p>
+<p><strong>Google Analytics (GA4):</strong></p>
+<pre><code>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-XXXXXXXXXX');</code></pre>
+<p><strong>Meta (Facebook) Pixel:</strong></p>
+<pre><code>!function(f,b,e,v,n,t,s){
+  if(f.fbq)return;n=f.fbq=function(){
+    n.callMethod ? n.callMethod.apply(n,arguments) : n.queue.push(arguments)
+  };
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)
+}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+
+fbq('init', 'YOUR_PIXEL_ID');
+fbq('track', 'PageView');</code></pre>
+<p><strong>Custom jQuery:</strong></p>
+<pre><code>jQuery(document).ready(function($) {
+    console.log('Scriptomatic loaded.');
+
+    $('.my-button').on('click', function() {
+        $('.my-panel').toggleClass('active');
+    });
+});</code></pre>
+
+<div class="callout">
+<p>Never include <code>&lt;script&gt;</code> tags — Scriptomatic adds them automatically. Do not use <code>eval()</code> or inject untrusted input.</p>
+</div>
